@@ -1,0 +1,13 @@
+#!/bin/sh
+# Activates Patou for this clone. No patou binary required.
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH= cd -- "$dir/.." && pwd)
+
+if [ ! -d "$dir/hooks" ]; then
+  echo "no $dir/hooks found - is Patou set up in this repository?" >&2
+  exit 1
+fi
+
+git -C "$repo_root" config core.hooksPath .patou/hooks
+echo "Patou activated for $repo_root"
+echo "  git config core.hooksPath -> .patou/hooks"

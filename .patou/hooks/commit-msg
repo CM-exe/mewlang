@@ -1,0 +1,26 @@
+#!/bin/sh
+# Patou commit-msg hook. Self-contained: no patou binary required.
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+config="$dir/../config.toml"
+msg_file="$1"
+
+raw=$(grep '^pattern' "$config" | head -n1)
+raw=${raw#*=}
+raw=$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+raw=${raw#\'}
+pattern=${raw%\'}
+
+if [ -z "$pattern" ]; then
+  exit 0
+fi
+
+subject=$(grep -v '^#' "$msg_file" | grep -v '^[[:space:]]*$' | head -n1)
+
+if printf '%s' "$subject" | grep -Eq "$pattern"; then
+  echo "commit message OK"
+  exit 0
+fi
+
+echo "commit message rejected: \"$subject\"" >&2
+echo "must match pattern: $pattern" >&2
+exit 1
