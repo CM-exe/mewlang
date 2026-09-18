@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Perl Parts 0–2 — The Text Archaeologist, Setup, and the Language</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --paper: #F3F0E9;
+            --ink: #232019;
+            --ink-soft: #5A5346;
+            --rule: #D5CEBF;
+            --umber: #7A4E2D;
+            --slate: #2F5754;
+            --amber: #8A5A00;
+            --code-bg: #ECE7DC;
+            --panel: #E8E2D4;
+            --sel: rgba(122, 78, 45, .16);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --paper: #15130E;
+                --ink: #EAE4D6;
+                --ink-soft: #ADA593;
+                --rule: #332E24;
+                --umber: #D79A6A;
+                --slate: #7FC3BC;
+                --amber: #E0B25E;
+                --code-bg: #1D1A13;
+                --panel: #1C1913;
+                --sel: rgba(215, 154, 106, .18);
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --paper: #15130E;
+            --ink: #EAE4D6;
+            --ink-soft: #ADA593;
+            --rule: #332E24;
+            --umber: #D79A6A;
+            --slate: #7FC3BC;
+            --amber: #E0B25E;
+            --code-bg: #1D1A13;
+            --panel: #1C1913;
+            --sel: rgba(215, 154, 106, .18);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%
+        }
+
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: "Newsreader", Georgia, "Times New Roman", serif;
+            font-size: 19px;
+            line-height: 1.62
+        }
+
+        ::selection {
+            background: var(--sel)
+        }
+
+        .wrap {
+            max-width: 50rem;
+            margin: 0 auto;
+            padding: 0 1.25rem 6rem
+        }
+
+        header.masthead {
+            border-bottom: 1px solid var(--rule);
+            padding: 4rem 0 2rem;
+            margin-bottom: 2rem
+        }
+
+        header.masthead .kicker {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: .8rem;
+            color: var(--umber);
+            margin: 0 0 1rem
+        }
+
+        header.masthead h1 {
+            font-size: clamp(2rem, 5.5vw, 3.1rem);
+            line-height: 1.1;
+            font-weight: 600;
+            margin: 0 0 1rem;
+            letter-spacing: -.015em
+        }
+
+        header.masthead p.lede {
+            font-size: 1.12rem;
+            color: var(--ink-soft);
+            margin: 0;
+            max-width: 34rem
+        }
+
+        h2 {
+            font-size: 1.85rem;
+            line-height: 1.15;
+            font-weight: 600;
+            margin: 3.4rem 0 .3rem;
+            letter-spacing: -.01em
+        }
+
+        h2 .num {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--umber);
+            display: block;
+            margin-bottom: .45rem
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 2.3rem 0 .4rem
+        }
+
+        h4 {
+            font-size: 1.06rem;
+            font-weight: 600;
+            margin: 1.7rem 0 .3rem
+        }
+
+        h5 {
+            font-size: .95rem;
+            font-weight: 600;
+            margin: 1.2rem 0 .2rem;
+            color: var(--ink-soft)
+        }
+
+        p {
+            margin: .75rem 0
+        }
+
+        a {
+            color: var(--umber);
+            text-underline-offset: 2px
+        }
+
+        a:focus-visible,
+        summary:focus-visible {
+            outline: 2px solid var(--umber);
+            outline-offset: 3px;
+            border-radius: 2px
+        }
+
+        ul,
+        ol {
+            padding-left: 1.3rem;
+            margin: .7rem 0
+        }
+
+        li {
+            margin: .32rem 0
+        }
+
+        code {
+            font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+            font-size: .86em;
+            background: var(--code-bg);
+            padding: .1em .32em;
+            border-radius: 3px
+        }
+
+        pre {
+            background: var(--code-bg);
+            border-left: 2px solid var(--umber);
+            padding: 1rem 1.1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-radius: 0 4px 4px 0
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: .8rem;
+            line-height: 1.55;
+            display: block;
+            white-space: pre
+        }
+
+        pre.plain {
+            border-left-color: var(--rule)
+        }
+
+        pre.bad {
+            border-left-color: var(--amber)
+        }
+
+        table.grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88rem;
+            margin: 1.2rem 0;
+            display: block;
+            overflow-x: auto
+        }
+
+        table.grid th,
+        table.grid td {
+            border-bottom: 1px solid var(--rule);
+            padding: .5rem .7rem .5rem 0;
+            text-align: left;
+            vertical-align: top
+        }
+
+        table.grid th {
+            font-weight: 600;
+            border-bottom: 2px solid var(--rule)
+        }
+
+        table.grid td:first-child {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: .82rem
+        }
+
+        .why,
+        .note,
+        .warn,
+        .cmp {
+            margin: 1.5rem 0;
+            padding: 1rem 1.15rem;
+            background: var(--panel);
+            border-radius: 4px
+        }
+
+        .why {
+            border-top: 3px solid var(--slate)
+        }
+
+        .cmp {
+            border-top: 3px solid var(--umber)
+        }
+
+        .warn {
+            border-top: 3px solid var(--amber)
+        }
+
+        .note {
+            border-top: 3px solid var(--rule)
+        }
+
+        .why h5,
+        .cmp h5,
+        .warn h5,
+        .note h5 {
+            margin-top: 0;
+            color: var(--ink)
+        }
+
+        .why p:last-child,
+        .cmp p:last-child,
+        .warn p:last-child,
+        .note p:last-child,
+        .why ul:last-child,
+        .cmp ul:last-child,
+        .warn ul:last-child,
+        .note ul:last-child {
+            margin-bottom: 0
+        }
+
+        details {
+            margin: 1rem 0;
+            border: 1px solid var(--rule);
+            border-radius: 4px;
+            padding: .15rem 1rem;
+            background: var(--panel)
+        }
+
+        details[open] {
+            padding-bottom: .8rem
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            padding: .7rem 0;
+            font-size: .95rem
+        }
+
+        summary::marker {
+            color: var(--umber)
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--rule);
+            margin: 3rem 0
+        }
+
+        .exercise {
+            border-left: 2px solid var(--slate);
+            padding-left: 1rem;
+            margin: 1.4rem 0
+        }
+
+        .exercise h5 {
+            color: var(--slate);
+            margin-top: 0
+        }
+
+        .milestone-head {
+            border-top: 2px solid var(--ink);
+            padding-top: 1.2rem;
+            margin-top: 4rem
+        }
+
+        footer.end {
+            border-top: 1px solid var(--rule);
+            margin-top: 4rem;
+            padding-top: 1.5rem;
+            color: var(--ink-soft);
+            font-size: .92rem
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+
+        <header class="masthead">
+            <p class="kicker">Instalment 11 · Course 3 (Perl) · Parts 0–2</p>
+            <h1>The language that assumes your data is a mess</h1>
+            <p class="lede">Go was about concurrency and Ruby about expressiveness. Perl is about the hour you spend
+                with ten gigabytes of logs that nobody documented, half of which are truncated, and a question you need
+                answered by lunchtime.</p>
+        </header>
+
+        <div class="note">
+            <h5>Verification note</h5>
+            <p>Every example below was run on Perl 5.38.2 and the outputs are copied from those runs. The modules used
+                in the project (<code>Text::CSV</code>, <code>DBI</code>, <code>DBD::SQLite</code>,
+                <code>XML::LibXML</code>, <code>Try::Tiny</code>) are installed in my sandbox, so the later milestones
+                will be verified too.</p>
+        </div>
+
+        <h2><span class="num">Course 3 · Part 0</span>What are we building?</h2>
+
+        <h3>The final result</h3>
+
+        <p>A command-line tool called <code>strata</code> that you point at a directory of unexplained files and
+            interrogate.</p>
+
+        <pre class="plain"><code>$ strata ingest ./incident-2026-09-12/ --recursive
+  apache/access.log        412,884 lines   apache_combined     3.2s
+  apache/error.log          18,221 lines   apache_error        0.4s
+  app/service.log          904,110 lines   json_lines          8.1s
+  exports/users.csv          9,412 rows    csv                 0.3s
+  config/nginx.conf            420 lines   nginx_config        0.0s
+  unknown/dump.txt          33,900 lines   unstructured        1.1s
+  corrupt/partial.log        2,004 lines   apache_combined     0.1s  (91 malformed, kept)
+
+  1,381,051 records, 214,882 entities, 46,203 events in 13.2s (104k lines/sec)
+
+$ strata entities --type ip --top 5
+  10.14.22.9        88,214 occurrences   6 files   first 13:02:11  last 14:47:52
+  10.14.22.31       41,002 occurrences   4 files   ...
+
+$ strata timeline --entity ip:10.14.22.9 --around '13:44:10' --window 90s
+  13:43:58  apache/access.log:88214   GET /api/export  200  1.2MB
+  13:44:02  app/service.log:551203    export.start  user=4412 rows=900000
+  13:44:09  apache/error.log:9902     upstream timed out
+  13:44:10  app/service.log:551288    ERROR OOM killed worker pid=8823
+  13:44:11  apache/access.log:88240   GET /api/export  502
+
+$ strata graph --entity user:4412 --depth 2 --format dot | dot -Tsvg &gt; incident.svg
+</code></pre>
+
+        <p>Underneath: a streaming ingestion pipeline with pluggable format detectors, an entity extractor, a normaliser
+            that turns eleven timestamp formats into one, a correlation engine that groups records into events, and a
+            SQLite-backed store you can query, all of it able to survive files that are truncated, mis-encoded, or
+            simply lying about their format.</p>
+
+        <h3>Why this project is interesting</h3>
+
+        <p>Most data-processing tutorials use clean data, which is the one thing you will never be given. Real forensic
+            work looks like this: eight formats, three of them undocumented, timestamps in four time zones, a log
+            rotated mid-write so one line is half of two lines, an "XML" file that is actually XML fragments
+            concatenated without a root element, and a CSV whose quoting breaks on row 40,000 because someone's surname
+            contains a comma <em>and</em> a quotation mark.</p>
+
+        <p>The interesting engineering is not parsing any one format. It is building something that <strong>keeps
+                going</strong>: that treats malformed input as expected rather than exceptional, that tells you exactly
+            what it could not parse and why, and that never loads more than one line into memory so the same tool works
+            on a 2&nbsp;KB file and a 200&nbsp;GB one.</p>
+
+        <h3>Why Perl in particular</h3>
+
+        <ul>
+            <li><strong>Regular expressions are syntax, not a library.</strong>
+                <code>if ($line =~ /^(\S+) (\S+)/)</code> versus Python's
+                <code>m = re.match(r'^(\S+) (\S+)', line); if m: m.group(1)</code>. One of those disappears into the
+                code and one of them is visible machinery. Over ten thousand lines of parsing that difference compounds.
+            </li>
+            <li><strong>Line-oriented streaming is the default.</strong> <code>while (&lt;&gt;) { ... }</code> reads
+                standard input or every file named on the command line, one line at a time, with no imports and no
+                ceremony. Your program is a filter before you have decided to write one.</li>
+            <li><strong>Context makes text code short.</strong> <code>my @all = $text =~ /(\w+)@([\w.]+)/g;</code>
+                collects every capture from every match into a list, in one expression.</li>
+            <li><strong>The one-liner is a first-class tool.</strong>
+                <code>perl -lane 'print $F[6] if $F[8] == 500' access.log</code> is a complete program you type into a
+                terminal while exploring, and the language you explore in is the language you write the tool in.</li>
+            <li><strong>CPAN has parsed your format already.</strong> Every log shape, every date dialect, every
+                encoding disaster has a module written by someone who hit it in 2003 and is still maintained.</li>
+            <li><strong>It starts in milliseconds and is everywhere.</strong> Perl is on every Unix box you will ever be
+                handed, which matters when the machine with the logs on it is not your laptop.</li>
+        </ul>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>For the middle of this project (streaming, regex-heavy, line-oriented transformation with Unix plumbing),
+                Perl is still the best tool in existence, and the reason is not nostalgia: no other language has put
+                regular expressions, context, and the input loop into the syntax itself.</p>
+            <p>Where it is not the answer, and we will say so at the time:</p>
+            <ul>
+                <li><strong>Structured analysis.</strong> Once the data is clean and rectangular, Python with pandas or
+                    Polars is better. Grouping, joining and statistics are libraries there and hand-written loops here.
+                </li>
+                <li><strong>Raw throughput.</strong> Go or Rust would be several times faster on the same regexes and
+                    would parallelise more easily. We will measure this rather than assert it.</li>
+                <li><strong>Long-lived services.</strong> Perl is a fine language for programs that start, work and
+                    exit. For something that runs for six months, the ecosystem's tooling for observability and
+                    deployment is thinner than Go's.</li>
+                <li><strong>Team maintenance.</strong> Perl earns its reputation for write-only code when written badly,
+                    and badly is easy. A large part of this course is the discipline that prevents it:
+                    <code>use v5.36</code>, named captures, <code>/x</code>, real data structures, and tests.</li>
+            </ul>
+            <p>The honest summary: Perl is the best language I know for the first two hours with unknown data, and you
+                should be prepared to hand the result to something else afterwards. Knowing <em>when</em> to hand over
+                is part of what this course teaches.</p>
+        </div>
+
+        <h3>Architecture we are building toward</h3>
+
+        <pre class="plain"><code>   files (any shape, any size, some broken)
+        │
+        ▼
+  ┌───────────────┐   one line at a time, constant memory
+  │  Source       │   handles gzip, encodings, truncation
+  └───────┬───────┘
+          ▼
+  ┌───────────────┐   sniffs the format, or is told
+  │  Detector     │   apache | nginx | json_lines | csv | xml | conf | code | unknown
+  └───────┬───────┘
+          ▼
+  ┌───────────────┐   a plugin per format, each returning a Record
+  │  Parsers      │   malformed lines become Records with a `problem` field,
+  └───────┬───────┘   never exceptions and never silent drops
+          ▼
+  ┌───────────────┐   ips, emails, paths, ids, versions, timestamps...
+  │  Extractors   │   each is a named regex plus a normaliser
+  └───────┬───────┘
+          ▼
+  ┌───────────────┐   one canonical timestamp, one canonical host,
+  │  Normaliser   │   one canonical path, whatever the source said
+  └───────┬───────┘
+          ▼
+  ┌───────────────┐   records near in time and sharing an entity
+  │  Correlator   │   become events; events referencing each other
+  └───────┬───────┘   become a graph
+          ▼
+  ┌───────────────┐
+  │  Store        │   SQLite: records, entities, occurrences, events, edges
+  └───────┬───────┘
+          ▼
+   query · timeline · graph · report        (and stdout, for piping)
+</code></pre>
+
+        <h3>The twelve milestones</h3>
+
+        <table class="grid">
+            <tr>
+                <th>#</th>
+                <th>Milestone</th>
+                <th>What it teaches</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>A filter that counts what it reads</td>
+                <td>scalars, <code>while (&lt;&gt;)</code>, <code>$_</code>, strict and warnings, exit codes</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Summaries: top talkers, error rates</td>
+                <td>hashes, sorting, context, output formatting</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>An Apache/nginx parser</td>
+                <td>regexes, named captures, <code>/x</code>, <code>qr//</code>, failure counting</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>A Record model and a pipeline</td>
+                <td>references, nested data, subs, <code>Data::Dumper</code></td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Splitting into modules</td>
+                <td>packages, <code>lib/</code>, <code>cpanm</code>, cpanfile, <code>Test::More</code>,
+                    <code>prove</code></td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Pluggable formats: CSV, JSON, XML</td>
+                <td>dispatch tables, CPAN modules, format sniffing</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Streaming 10&nbsp;GB safely</td>
+                <td>encodings, gzip, truncation, memory discipline, malformed-input policy</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>Entity extraction and normalisation</td>
+                <td>IPs, timestamps, paths, ids; canonical forms; time zones</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>Correlation and sessionisation</td>
+                <td>time windows, joins, SQLite via <code>DBI</code>, indexes</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>A proper command-line tool</td>
+                <td><code>Getopt::Long</code>, exit codes, signals, pipes, <code>--help</code></td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td>Testing, fuzzing and profiling</td>
+                <td><code>Test::More</code>, corrupt-input tests, <code>Devel::NYTProf</code>, optimisation</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>The knowledge graph</td>
+                <td>graph storage and queries, <code>fork</code> for parallelism, packaging</td>
+            </tr>
+        </table>
+
+        <h3>What you will know afterwards</h3>
+
+        <p>How to build a streaming pipeline that survives input designed to break it; how to write regexes that a
+            colleague can read a year later; why Perl's context rule exists and how to stop it surprising you; how to
+            correlate events across sources with nothing but a time window and a shared identifier; and when to stop and
+            hand the cleaned data to something else.</p>
+
+        <hr>
+
+        <h2><span class="num">Course 3 · Part 1</span>Install and first program</h2>
+
+        <h3>What Perl is</h3>
+
+        <p>Perl is a dynamically typed, garbage-collected interpreted language from 1987, designed explicitly for report
+            processing and system glue. It is not "Perl 6": that language was renamed Raku in 2019 and is a different
+            thing. Perl 5 is alive, gets an annual release, and version 5.36 (2022) and 5.38 (2023) modernised it
+            substantially, with subroutine signatures and a real class syntax.</p>
+
+        <p>Two facts shape everything about the language. First, <strong>values have no fixed type but variables have a
+                fixed <em>shape</em></strong>, marked by a sigil: <code>$</code> for a single value, <code>@</code> for
+            a list, <code>%</code> for a key-value table. Second, <strong>every expression is evaluated in a
+                context</strong>, either "give me one value" or "give me a list", and many operations do different
+            things depending on which. Nothing else in mainstream programming works this way, and both are covered
+            properly in Part 2.</p>
+
+        <h3>Installing</h3>
+
+        <p>Unlike Ruby, using the system Perl is <em>usually fine</em>: it is well-maintained, present everywhere, and
+            most distributions keep it current enough. Perl's compatibility record is unusually good, so a script from
+            2010 generally still runs. You want 5.36 or newer to get signatures and the modern feature bundle; I
+            verified everything on 5.38.2.</p>
+
+        <h5>Linux</h5>
+        <pre class="plain"><code>perl -v                                 # almost certainly already there
+sudo apt install perl cpanminus         # Debian/Ubuntu: adds the cpanm installer
+sudo dnf install perl perl-App-cpanminus # Fedora
+
+# many CPAN modules exist as distribution packages, which is the easiest path:
+sudo apt install libtext-csv-perl libdbd-sqlite3-perl libxml-libxml-perl libtry-tiny-perl
+</code></pre>
+
+        <h5>macOS</h5>
+        <pre class="plain"><code>perl -v                    # Apple ships one, often a version or two behind
+brew install perl          # newer, installed under /opt/homebrew
+</code></pre>
+
+        <h5>Windows</h5>
+        <pre class="plain"><code>:: Strawberry Perl bundles a C compiler, so modules with XS code build
+winget install StrawberryPerl.StrawberryPerl
+</code></pre>
+        <p>Strawberry Perl is genuinely good. That said, this course leans on Unix habits (pipes, <code>STDIN</code>,
+            signals, file permissions) more than any other in the curriculum, and WSL2 will save you real friction.</p>
+
+        <h5>When you need your own Perl</h5>
+        <p>If you need a version the system does not have, or you are installing modules on a machine where you have no
+            root, use a version manager:</p>
+        <pre class="plain"><code>curl -L https://install.perlbrew.pl | bash     # perlbrew
+perlbrew install perl-5.38.2
+perlbrew switch perl-5.38.2
+
+# or plenv, if you liked rbenv
+</code></pre>
+
+        <h3>CPAN, cpanm, and not using sudo</h3>
+
+        <p>CPAN is Perl's module archive, and at around 220,000 modules it is one of the oldest and deepest package
+            ecosystems in existence. The modern client is <code>cpanm</code>:</p>
+
+        <pre class="plain"><code>cpanm Text::CSV                  # install one module
+cpanm --installdeps .            # install everything a cpanfile lists
+cpanm --local-lib=~/perl5 DBI    # install into your home directory, no root
+
+# then tell perl where to find them (add to ~/.bashrc):
+eval "$(perl -I ~/perl5/lib/perl5 -Mlocal::lib)"
+</code></pre>
+
+        <p><strong>Never use <code>sudo cpanm</code>.</strong> It mixes modules you installed with modules your
+            operating system manages, and the resulting breakage is tedious. Use <code>local::lib</code>, perlbrew, or
+            your distribution's packages.</p>
+
+        <p>For a project, declare dependencies in a <code>cpanfile</code>:</p>
+
+        <pre class="plain"><code># cpanfile
+requires 'perl', '5.036';
+requires 'Text::CSV', '2.00';
+requires 'DBI';
+requires 'DBD::SQLite';
+requires 'Try::Tiny';
+
+on 'test' =&gt; sub {
+    requires 'Test::More', '1.302';
+};
+</code></pre>
+
+        <p>Then <code>cpanm --installdeps .</code> installs them. If you want a lockfile and a bundled dependency tree
+            (Bundler's role), that is <strong>Carton</strong>: <code>carton install</code> writes
+            <code>cpanfile.snapshot</code> and <code>carton exec</code> runs with exactly those versions.</p>
+
+        <h3>Documentation: the best thing about Perl</h3>
+
+        <pre class="plain"><code>perldoc -f split          # one built-in function, with examples
+perldoc perlre            # the regex reference
+perldoc perlretut         # the regex tutorial
+perldoc perlrequick       # the regex quick start
+perldoc perlvar           # what $_, @ARGV, $! and the rest mean
+perldoc perldsc           # data structures cookbook: the one to read twice
+perldoc perlop            # operators and precedence
+perldoc -q "how do I sort"  # search the FAQ
+perldoc Text::CSV         # any installed module's own documentation
+perldoc -l Text::CSV      # where that module actually lives on disk
+</code></pre>
+
+        <p>Perl's documentation ships with the interpreter, is written by people who use the language, and is complete.
+            <code>perldoc perlretut</code> alone is a better regex tutorial than most books. Get into the habit of
+            reading it in a terminal rather than searching the web, because the web has thirty years of outdated Perl
+            advice on it and <code>perldoc</code> has none.</p>
+
+        <h3>Project layout</h3>
+
+        <pre class="plain"><code>strata/
+├── cpanfile              dependencies
+├── bin/
+│   └── strata            the command-line program (no .pl extension)
+├── lib/
+│   └── Strata/
+│       ├── Record.pm     Strata::Record
+│       ├── Source.pm     Strata::Source
+│       └── Parser/
+│           ├── Apache.pm Strata::Parser::Apache
+│           └── CSV.pm
+├── t/
+│   ├── 00-load.t         does everything compile?
+│   ├── 10-record.t
+│   └── 20-parser-apache.t
+└── share/
+    └── fixtures/         sample logs, including deliberately broken ones
+</code></pre>
+
+        <p>Three conventions, all enforced by tooling rather than taste:</p>
+        <ul>
+            <li><strong>Module names map to paths.</strong> <code>Strata::Parser::Apache</code> must live at
+                <code>lib/Strata/Parser/Apache.pm</code>. <code>use lib 'lib'</code> or <code>perl -Ilib</code> puts
+                <code>lib/</code> on the search path (<code>@INC</code>).</li>
+            <li><strong>Tests live in <code>t/</code> and end in <code>.t</code></strong>, and are run by
+                <code>prove</code>. Numbering them controls order.</li>
+            <li><strong>Every module ends with <code>1;</code></strong>. A module must return a true value or
+                <code>use</code> fails, and a bare <code>1;</code> is the conventional way. Forgetting it is every Perl
+                programmer's first confusing error.</li>
+        </ul>
+
+        <h3>Hello, archaeology</h3>
+
+        <pre><code>#!/usr/bin/env perl
+use v5.36;
+
+my $name = shift @ARGV // "world";
+say "hello, $name";
+say "perl $^V, script $0, pid $$";
+</code></pre>
+
+        <pre class="plain"><code>$ perl hello.pl
+hello, world
+perl v5.38.2, script hello.pl, pid 18244
+
+$ perl hello.pl strata
+hello, strata
+</code></pre>
+
+        <h4>Every line, explained</h4>
+
+        <p><code>#!/usr/bin/env perl</code> — the shebang, so <code>./hello.pl</code> works once the file is executable.
+            <code>/usr/bin/env perl</code> finds whichever Perl is first on your <code>PATH</code>, which is what you
+            want with perlbrew.</p>
+
+        <p><code>use v5.36;</code> — <strong>the single most important line in modern Perl.</strong> It enables a whole
+            feature bundle at once:</p>
+
+        <table class="grid">
+            <tr>
+                <th>What it turns on</th>
+                <th>Why it matters</th>
+            </tr>
+            <tr>
+                <td><code>use strict</code></td>
+                <td>Undeclared variables are a compile error, not a new global</td>
+            </tr>
+            <tr>
+                <td><code>use warnings</code></td>
+                <td>Undefined values, dubious conversions and typos in comparisons get reported</td>
+            </tr>
+            <tr>
+                <td><code>say</code></td>
+                <td><code>print</code> with a newline</td>
+            </tr>
+            <tr>
+                <td>subroutine signatures</td>
+                <td><code>sub f ($x, $y = 1) { ... }</code> instead of unpacking <code>@_</code> by hand</td>
+            </tr>
+            <tr>
+                <td><code>isa</code>, postfix deref, and more</td>
+                <td>modern conveniences without per-feature imports</td>
+            </tr>
+            <tr>
+                <td>disables indirect object syntax</td>
+                <td>removes a genuinely confusing old parsing rule</td>
+            </tr>
+        </table>
+
+        <p>Old Perl tutorials start with <code>use strict; use warnings;</code> as two separate lines.
+            <code>use v5.36;</code> includes both and more, and it also <em>declares your minimum Perl version</em>, so
+            running on something older fails immediately with a clear message rather than mysteriously.</p>
+
+        <p><code>my $name = shift @ARGV // "world";</code> — <code>my</code> declares a lexical variable, scoped to the
+            enclosing block. <code>@ARGV</code> holds the command-line arguments (unlike C, it does not include the
+            program name, which is in <code>$0</code>). <code>shift</code> removes and returns the first element.
+            <code>//</code> is the defined-or operator: use the left side unless it is <code>undef</code>. It differs
+            from <code>||</code> in that <code>0</code> and <code>""</code> are kept, which matters constantly when
+            parsing data where zero is a real value.</p>
+
+        <p><code>say "hello, $name"</code> — double-quoted strings interpolate variables, including array and hash
+            elements. Single quotes do not interpolate anything.</p>
+
+        <p><code>$^V</code>, <code>$0</code>, <code>$$</code> — Perl's punctuation variables: the version, the program
+            name, the process id. There are dozens; <code>perldoc perlvar</code> lists them all, and Part 2 covers the
+            six you actually need.</p>
+
+        <h3>One-liners, which are not a gimmick</h3>
+
+        <p>Before writing a script, Perl programmers interrogate data from the shell. This is a real part of the
+            language's culture and the fastest way to build intuition:</p>
+
+        <pre class="plain"><code># print lines matching a pattern (grep, but with Perl regexes)
+perl -ne 'print if /ERROR/' access.log
+
+# -l adds newline handling, -a splits each line into @F on whitespace
+perl -lane 'print $F[0] if $F[8] == 500' access.log
+
+# count by field: the Perl idiom you will use a thousand times
+perl -lane '$c{$F[0]}++; END { print "$c{$_}\t$_" for sort { $c{$b} &lt;=&gt; $c{$a} } keys %c }' access.log
+
+# in-place edit with a backup
+perl -i.bak -pe 's/\bDEBUG\b/TRACE/g' service.log
+
+# -F sets the split pattern: CSV-ish, badly, but instantly
+perl -F, -lane 'print $F[2] if $F[4] &gt; 100' export.csv
+</code></pre>
+
+        <table class="grid">
+            <tr>
+                <th>Flag</th>
+                <th>Meaning</th>
+            </tr>
+            <tr>
+                <td><code>-e</code></td>
+                <td>the program is on the command line</td>
+            </tr>
+            <tr>
+                <td><code>-n</code></td>
+                <td>wrap it in <code>while (&lt;&gt;) { ... }</code></td>
+            </tr>
+            <tr>
+                <td><code>-p</code></td>
+                <td>same, and print <code>$_</code> at the end of each iteration</td>
+            </tr>
+            <tr>
+                <td><code>-l</code></td>
+                <td>strip the newline on input, add one on output</td>
+            </tr>
+            <tr>
+                <td><code>-a</code></td>
+                <td>autosplit each line into <code>@F</code></td>
+            </tr>
+            <tr>
+                <td><code>-F</code></td>
+                <td>the pattern to autosplit on</td>
+            </tr>
+            <tr>
+                <td><code>-i</code></td>
+                <td>edit files in place</td>
+            </tr>
+        </table>
+
+        <p>That third one-liner is a complete top-talkers report, and it is the seed of Milestone 2. <strong>Perl's
+                design makes the exploratory version and the production version the same language</strong>, which is
+            exactly what you want when the exploration turns out to be the tool.</p>
+
+        <h3>Testing, from the first day</h3>
+
+        <pre><code>use v5.36;
+use lib "lib";
+use Test::More tests =&gt; 4;
+use Strata::Record;
+
+my $r = Strata::Record-&gt;new(source =&gt; "apache", fields =&gt; { ip =&gt; "10.0.0.1" });
+isa_ok $r, "Strata::Record";
+is $r-&gt;source, "apache", "source is kept";
+is $r-&gt;field("ip"), "10.0.0.1", "fields are readable";
+like $r-&gt;to_line, qr/ip=10\.0\.0\.1/, "to_line renders fields";
+</code></pre>
+
+        <pre class="plain"><code>$ perl -Ilib t/10-record.t
+1..4
+ok 1 - An object of class 'Strata::Record' isa 'Strata::Record'
+ok 2 - source is kept
+ok 3 - fields are readable
+ok 4 - to_line renders fields
+
+$ prove -l t/
+t/10-record.t .. ok
+All tests successful.
+Files=1, Tests=4,  0 wallclock secs
+Result: PASS
+</code></pre>
+
+        <p>That output format is <strong>TAP</strong>, the Test Anything Protocol, which Perl invented in 1987 and which
+            now has implementations in most languages. A test file is an ordinary program that prints <code>ok</code>
+            and <code>not ok</code> lines; <code>prove</code> runs many of them and summarises. <code>prove -l</code>
+            adds <code>lib/</code> to the path, <code>prove -lv</code> shows every assertion, and
+            <code>prove -lj4</code> runs four files in parallel.</p>
+
+        <div class="exercise">
+            <h5>Exercise 1</h5>
+            <p>Write <code>bin/logstat</code>, a program that reads log lines from files named on the command line (or
+                from standard input when none are named) and prints: the total line count, how many lines contain
+                <code>ERROR</code>, and the percentage. It must exit 0 when there are no errors and 1 when there are, so
+                it can be used in a shell conditional.</p>
+            <p>Then prove it works in a pipeline: <code>cat *.log | ./bin/logstat</code> and
+                <code>./bin/logstat a.log b.log</code> should both work without changing the code.</p>
+            <p>Hints: <code>while (&lt;&gt;)</code> handles both cases for free; <code>$.</code> is the current line
+                number; <code>exit</code> sets the status; <code>printf</code> formats the percentage.</p>
+        </div>
+
+        <details>
+            <summary>Solution 1 — open after trying</summary>
+            <pre><code>#!/usr/bin/env perl
+use v5.36;
+
+my ($lines, $errors) = (0, 0);
+
+while (my $line = &lt;&gt;) {
+    $lines++;
+    $errors++ if $line =~ /\bERROR\b/;
+}
+
+if ($lines == 0) {
+    warn "logstat: no input\n";
+    exit 2;
+}
+
+printf "%d lines, %d errors (%.2f%%)\n", $lines, $errors, 100 * $errors / $lines;
+exit($errors &gt; 0 ? 1 : 0);
+</code></pre>
+            <pre class="plain"><code>$ printf 'ERROR disk full\nINFO started\nERROR timeout\nWARN slow\n' | ./bin/logstat
+4 lines, 2 errors (50.00%)
+$ echo $?
+1
+</code></pre>
+            <p>Four things worth extracting.</p>
+            <ul>
+                <li><strong><code>while (my $line = &lt;&gt;)</code> is the entire input story.</strong> No arguments
+                    means standard input; arguments mean read each of those files in turn. Your program is a Unix filter
+                    with no extra work, which is why <code>cat x | prog</code> and <code>prog x</code> both work.</li>
+                <li><strong><code>\b</code> word boundaries matter.</strong> Without them, a line containing
+                    <code>NOERROR</code> or <code>ERRORS_TOTAL=0</code> counts as an error. Ninety per cent of wrong log
+                    analysis is a missing word boundary.</li>
+                <li><strong>Three exit codes, deliberately:</strong> 0 nothing found, 1 something found, 2 could not
+                    run. That is the <code>grep</code> convention, and following it means your tool composes with shell
+                    scripts people already know.</li>
+                <li><strong><code>warn</code> writes to standard error</strong>, <code>print</code> and <code>say</code>
+                    to standard output. Keeping diagnostics off stdout is what lets someone pipe your output into
+                    another program.</li>
+            </ul>
+            <p>One subtlety: <code>while (&lt;&gt;)</code> without assigning to a variable puts the line in
+                <code>$_</code>, which is idiomatic and slightly risky, because anything you call inside the loop might
+                also use <code>$_</code>. Assigning to a named variable, as here, is the safer habit in anything longer
+                than a one-liner.</p>
+        </details>
+
+        <div class="warn">
+            <h5>Common first-day errors</h5>
+            <ul>
+                <li><code>Can't locate Strata/Record.pm in @INC</code> — <code>lib/</code> is not on the search path.
+                    Use <code>perl -Ilib</code>, <code>use lib 'lib';</code>, or <code>prove -l</code>.</li>
+                <li><code>Strata/Record.pm did not return a true value</code> — you forgot the <code>1;</code> at the
+                    end of the module.</li>
+                <li><code>Global symbol "$count" requires explicit package name</code> — <code>use strict</code> is
+                    doing its job: you forgot <code>my</code>.</li>
+                <li><code>Use of uninitialized value in ...</code> — a warning, not an error, and almost always a real
+                    bug: you used a value that was never set, usually a capture group from a match that failed.</li>
+                <li><code>Can't call method "new" on an undefined value</code> — you forgot to <code>use</code> the
+                    module that defines the class.</li>
+                <li><code>syntax error at ... near "}"</code> — a missing semicolon on the previous line. Perl's error
+                    points at where parsing failed, not where you went wrong.</li>
+                <li>Using <code>==</code> to compare strings. <code>==</code> is numeric; <code>eq</code> is for
+                    strings. <code>"abc" == "def"</code> is <em>true</em>, because both convert to 0.</li>
+            </ul>
+        </div>
+
+        <h4>Checkpoint</h4>
+        <ol>
+            <li>What does <code>use v5.36;</code> switch on, and why is it better than
+                <code>use strict; use warnings;</code>?</li>
+            <li>Why must a module end with <code>1;</code>?</li>
+            <li>What is the difference between <code>//</code> and <code>||</code>, and when does it matter?</li>
+            <li>What does <code>while (&lt;&gt;)</code> read from?</li>
+            <li>Why should you never run <code>sudo cpanm</code>?</li>
+            <li>Which three <code>perldoc</code> pages would you open first for a regex question?</li>
+        </ol>
+
+        <hr>
+
+        <h2><span class="num">Course 3 · Part 2</span>Language crash course</h2>
+
+        <p>Only what the project needs, which is most of Perl's text machinery and none of its formats or tie magic.
+            Every output below is from a real run. Keep a terminal open and type them.</p>
+
+        <h3>2.1 Sigils and context, the rule with no equivalent elsewhere</h3>
+
+        <pre><code>use v5.36;
+
+my $count   = 42;
+my @steps   = ("fetch", "filter", "save");
+my %options = (topic =&gt; "AI", limit =&gt; 10);
+
+say "scalar: $count";
+say "array has ", scalar(@steps), " elements, last index $#steps";
+say "element: $steps[0], slice: @steps[0,1]";
+say "hash value: $options{topic}, keys: ", join(",", sort keys %options);
+
+my $n = @steps;              # array in scalar context: its length
+my ($first) = @steps;        # list context: its first element
+say "scalar context gives $n, list context gives $first";
+</code></pre>
+        <pre class="plain"><code>scalar: 42
+array has 3 elements, last index 2
+element: fetch, slice: fetch filter
+hash value: AI, keys: limit,topic
+scalar context gives 3, list context gives fetch
+</code></pre>
+
+        <p>Two rules explain that output, and together they are the thing that makes Perl feel alien for a week and
+            obvious afterwards.</p>
+
+        <p><strong>The sigil describes what you are asking for, not what the variable is.</strong> <code>@steps</code>
+            is the whole array; <code>$steps[0]</code> is <em>one scalar</em> from it, so it takes <code>$</code>;
+            <code>@steps[0,1]</code> is <em>several</em>, so it takes <code>@</code>. Likewise <code>%options</code> is
+            the hash and <code>$options{topic}</code> is one value from it. The rule is consistent, and it is the
+            opposite of what people assume ("<code>@</code> means array"), which is why <code>$steps[0]</code> looks
+            wrong to newcomers.</p>
+
+        <p><strong>Every expression is evaluated in scalar or list context, and many behave differently in
+                each.</strong> <code>my $n = @steps</code> asks for one value from an array, so you get its length;
+            <code>my ($first) = @steps</code> has a list on the left, so the array is unpacked and the first element
+            assigned. Those two lines differ only in parentheses and mean completely different things.</p>
+
+        <pre><code>my @words = split /,/, "a,b,c";
+my $words = split /,/, "a,b,c";     # scalar context: count
+say "list: @words / scalar: $words";
+say "reverse in list: ", join("", reverse @words);
+say "reverse in scalar: ", scalar reverse "hello";
+</code></pre>
+        <pre class="plain"><code>list: a b c / scalar: 3
+reverse in list: cba
+reverse in scalar: olleh
+</code></pre>
+
+        <p><code>reverse</code> reverses a list in list context and a string in scalar context. This is not a special
+            case; it is the design. When a Perl function surprises you, the first question is always "what context is
+            this in?", and <code>perldoc -f reverse</code> will tell you what it does in each.</p>
+
+        <div class="cmp">
+            <h5>Typical language vs Perl</h5>
+            <p>In Python, <code>len(xs)</code> is a function call and there is no way for an expression to know whether
+                its caller wants one value or many. Perl passes that information down, which makes code shorter
+                (<code>my ($x) = f()</code> versus <code>x = f()[0]</code>) and makes a category of bug possible that
+                exists nowhere else (<code>my $x = f()</code> quietly giving you a count instead of a value). The
+                mitigation is the same as the diagnosis: when a value is wrong in a confusing way, print
+                <code>scalar(@thing)</code> and check which context you are in.</p>
+        </div>
+
+        <h3>2.2 Arrays</h3>
+
+        <pre><code>my @nums = (5, 3, 9, 1);
+push @nums, 7;
+my $popped = pop @nums;
+say "after push/pop: @nums (popped $popped)";
+say "sorted numerically: ", join(",", sort { $a &lt;=&gt; $b } @nums);
+say "sorted as strings:  ", join(",", sort @nums);
+say "grep &gt; 3: ", join(",", grep { $_ &gt; 3 } @nums);
+say "map doubled: ", join(",", map { $_ * 2 } @nums);
+my @spliced = splice(@nums, 1, 2);
+say "spliced out @spliced leaving @nums";
+</code></pre>
+        <pre class="plain"><code>after push/pop: 5 3 9 1 (popped 7)
+sorted numerically: 1,3,5,9
+sorted as strings:  1,3,5,9
+grep &gt; 3: 5,9
+map doubled: 10,6,18,2
+spliced out 3 9 leaving 5 1
+</code></pre>
+
+        <ul>
+            <li><strong><code>sort</code> compares as strings by default.</strong> The two sorts agree here by luck; try
+                <code>(5, 30, 9)</code> and the default gives <code>30, 5, 9</code>. Always write the comparator:
+                <code>{ $a &lt;=&gt; $b }</code> numeric, <code>{ $a cmp $b }</code> string. <code>$a</code> and
+                <code>$b</code> are package globals the sort block sees, which is why they need no <code>my</code>.</li>
+            <li><code>grep</code> and <code>map</code> set <code>$_</code> to each element. <code>grep</code> keeps the
+                elements whose block is true; <code>map</code> returns whatever the block returns, and a block returning
+                two values makes the result longer than the input, which is occasionally exactly what you want.</li>
+            <li><code>splice</code> removes and optionally replaces a range in place. It is the general-purpose array
+                surgery tool.</li>
+            <li>An array interpolated into a string (<code>"@nums"</code>) joins with spaces. A hash does not
+                interpolate at all.</li>
+        </ul>
+
+        <h3>2.3 Hashes, and the counting idiom</h3>
+
+        <pre><code>my %count;
+$count{$_}++ for qw(fetch filter fetch save fetch);
+
+for my $k (sort { $count{$b} &lt;=&gt; $count{$a} || $a cmp $b } keys %count) {
+    say "  $k: $count{$k}";
+}
+
+say "exists: ", (exists $count{fetch} ? "yes" : "no");
+delete $count{fetch};
+say "after delete: ", join(",", sort keys %count);
+my @wanted = @count{qw(filter save)};      # hash slice
+say "slice: @wanted";
+</code></pre>
+        <pre class="plain"><code>  fetch: 3
+  filter: 1
+  save: 1
+exists: yes
+after delete: filter,save
+slice: 1 1
+</code></pre>
+
+        <p><strong><code>$count{$_}++ for @things</code> is the most-used line in Perl</strong>, and it is worth
+            unpacking completely. <code>%count</code> starts empty. <code>$count{$_}</code> on a missing key is
+            <code>undef</code>, and <code>++</code> on <code>undef</code> treats it as 0 and makes it 1, with no warning
+            because incrementing undef is explicitly allowed. The <code>for</code> at the end is a statement modifier: a
+            postfix loop, readable precisely because it is short.</p>
+
+        <p>The sort block chains two comparisons with <code>||</code>: compare counts descending
+            (<code>$count{$b} &lt;=&gt; $count{$a}</code>), and when they are equal (<code>&lt;=&gt;</code> returns 0,
+            which is false) fall through to comparing keys alphabetically. That is the standard multi-key sort and it
+            appears in every report you will ever write.</p>
+
+        <ul>
+            <li><strong><code>exists</code> versus truth versus defined</strong> are three different questions: is the
+                key there, is the value true, is the value not <code>undef</code>. A key with value 0 exists, is
+                defined, and is false.</li>
+            <li><strong>Hash order is not insertion order and not stable between runs</strong>, deliberately, as a
+                defence against algorithmic complexity attacks. Always <code>sort keys %h</code> when printing.</li>
+            <li><code>@count{qw(filter save)}</code> is a hash slice: several values at once, so the sigil is
+                <code>@</code>.</li>
+        </ul>
+
+        <h3>2.4 References and real data structures</h3>
+
+        <p>Arrays and hashes can only hold scalars, so nesting requires references: scalars that point at something.</p>
+
+        <pre><code>my @list = (1, 2, 3);
+my %opts = (a =&gt; 1);
+my $aref = \@list;              # reference to an existing array
+my $href = \%opts;
+my $anon = [ { name =&gt; "fetch", options =&gt; { from =&gt; "arxiv" } } ];   # anonymous
+
+say "deref whole: @$aref / @{$aref}";
+say "element: $aref-&gt;[0] and $$aref[0]";
+say "nested: $anon-&gt;[0]{name} -&gt; $anon-&gt;[0]{options}{from}";
+say "ref types: ", join(",", map { ref } ($aref, $href, $anon, sub {}, \"x"));
+push @$aref, 4;
+say "the original array sees it: @list";
+
+my %index;
+push @{ $index{ai} }, "paper1";      # autovivification
+push @{ $index{ai} }, "paper2";
+say "autovivified: ", join(",", @{ $index{ai} });
+</code></pre>
+        <pre class="plain"><code>deref whole: 1 2 3 / 1 2 3
+element: 1 and 1
+nested: fetch -&gt; arxiv
+ref types: ARRAY,HASH,ARRAY,CODE,SCALAR
+the original array sees it: 1 2 3 4
+autovivified: paper1,paper2
+</code></pre>
+
+        <p>Four rules cover almost everything:</p>
+        <ol>
+            <li><strong><code>\</code> takes a reference</strong>; <code>[ ... ]</code> and <code>{ ... }</code> create
+                anonymous arrays and hashes directly. Use the anonymous forms in data structures.</li>
+            <li><strong><code>-&gt;</code> both dereferences and indexes.</strong> <code>$aref-&gt;[0]</code>,
+                <code>$href-&gt;{key}</code>. The older <code>$$aref[0]</code> means the same thing and is harder to
+                read.</li>
+            <li><strong>The arrow is optional between subscripts.</strong> <code>$anon-&gt;[0]{name}{x}</code> is the
+                same as <code>$anon-&gt;[0]-&gt;{name}-&gt;{x}</code>. Write the first arrow, omit the rest; everyone
+                does.</li>
+            <li><strong>To use a reference as a whole aggregate, put the right sigil in front:</strong>
+                <code>@$aref</code>, <code>%$href</code>, <code>@{ $index{ai} }</code>. The braces are for
+                disambiguation and are never wrong.</li>
+        </ol>
+
+        <p><strong>Autovivification</strong> is the fifth line's real subject:
+            <code>push @{ $index{ai} }, "paper1"</code> works even though <code>$index{ai}</code> did not exist. Perl
+            saw it being used as an array reference and created one. This is enormously convenient for building nested
+            indexes (<code>push @{ $by_ip{$ip}{$day} }, $record;</code> just works) and it is a trap when you read a
+            structure you thought was there: merely <em>checking</em> <code>if ($index{missing}{deep})</code> creates
+            <code>$index{missing}</code> as an empty hash. Use <code>exists</code> for tests, and remember it when a
+            data structure grows keys nobody added.</p>
+
+        <p><code>Data::Dumper</code> is how you see what you have built:</p>
+
+        <pre><code>use Data::Dumper;
+$Data::Dumper::Indent = 1; $Data::Dumper::Sortkeys = 1;
+print Dumper($anon);
+</code></pre>
+        <pre class="plain"><code>$VAR1 = [
+  {
+    'name' =&gt; 'fetch',
+    'options' =&gt; {
+      'from' =&gt; 'arxiv'
+    }
+  }
+];
+</code></pre>
+
+        <p>Setting <code>Sortkeys</code> makes output deterministic, which matters if you ever compare dumps.
+            <code>perldoc perldsc</code> is the data-structures cookbook and is worth an hour early on.</p>
+
+        <h3>2.5 Subroutines</h3>
+
+        <pre><code>sub summarize ($text, $max_words = 5, %opts) {
+    my @words = split ' ', $text;
+    my $out = join " ", @words[0 .. ($max_words - 1 &lt; $#words ? $max_words - 1 : $#words)];
+    return $opts{upper} ? uc $out : $out;
+}
+
+say summarize("the quick brown fox jumps over the lazy dog");
+say summarize("the quick brown fox jumps", 3, upper =&gt; 1);
+
+sub minmax (@values) {
+    my @sorted = sort { $a &lt;=&gt; $b } @values;
+    return wantarray ? ($sorted[0], $sorted[-1]) : $sorted[-1];
+}
+
+my ($min, $max) = minmax(4, 9, 1);
+my $just_max    = minmax(4, 9, 1);
+say "list context: $min..$max / scalar context: $just_max";
+</code></pre>
+        <pre class="plain"><code>the quick brown fox jumps
+THE QUICK BROWN
+list context: 1..9 / scalar context: 9
+</code></pre>
+
+        <ul>
+            <li><strong>Signatures are the modern way</strong> and are enabled by <code>use v5.36</code>. Older code
+                unpacks the argument array by hand: <code>my ($text, $max) = @_;</code>. You will read a lot of that, so
+                know what <code>@_</code> is: all arguments, flattened into one list.</li>
+            <li><strong>Flattening is the thing to understand.</strong> Perl has no argument tuples:
+                <code>f(@a, @b)</code> passes one combined list and the callee cannot tell where one ended. To pass two
+                arrays separately, pass references: <code>f(\@a, \@b)</code>. This is the single most common source of
+                "my function got the wrong arguments".</li>
+            <li><strong><code>wantarray</code> asks what context the caller used</strong>, so one sub can return a pair
+                or a single value. Use it sparingly; it is clever, and clever is expensive to read.</li>
+            <li><code>split ' '</code> with a literal single-space string is a special case meaning "split on runs of
+                whitespace, ignoring leading whitespace", which is almost always what you want for text.</li>
+        </ul>
+
+        <h3>2.6 my, our, and local</h3>
+
+        <pre><code>our $depth = 0;
+sub show { say "  depth is $depth" }
+
+sub descend {
+    local $depth = $depth + 1;     # dynamic scope: visible to callees
+    show();
+}
+
+descend();
+show();
+</code></pre>
+        <pre class="plain"><code>  depth is 1
+  depth is 0
+</code></pre>
+
+        <table class="grid">
+            <tr>
+                <th>Keyword</th>
+                <th>Creates</th>
+                <th>Visible to</th>
+            </tr>
+            <tr>
+                <td><code>my</code></td>
+                <td>a lexical variable</td>
+                <td>the enclosing block and any closure made inside it. Use this by default.</td>
+            </tr>
+            <tr>
+                <td><code>our</code></td>
+                <td>an alias to a package global</td>
+                <td>everything, by full name too. For package-level constants and configuration.</td>
+            </tr>
+            <tr>
+                <td><code>local</code></td>
+                <td>a temporary value for an existing global</td>
+                <td>the rest of this block <em>and everything it calls</em>, restored on exit.</td>
+            </tr>
+        </table>
+
+        <p><code>local</code> is <strong>dynamic scoping</strong>, which almost no modern language has, and it is not a
+            way to make local variables (that is <code>my</code>). Its real use is temporarily changing Perl's special
+            variables safely:</p>
+
+        <pre><code>{
+    local $/ = undef;           # slurp mode: read the whole file at once
+    my $whole = &lt;$fh&gt;;
+}                               # $/ restored automatically, even on die
+
+{
+    local @ARGV = ("sample.log");   # make &lt;&gt; read this file
+    while (&lt;&gt;) { ... }
+}
+</code></pre>
+
+        <p>That pattern appears throughout this project, and it is the right tool because it cannot leak: the old value
+            comes back when the block exits by any route, including an exception.</p>
+
+        <h3>2.7 Regular expressions, part one: matching and capturing</h3>
+
+        <p>This is why you are here.</p>
+
+        <pre><code>my $line = '192.168.1.42 - alice [10/Oct/2026:13:55:36 +0000] "GET /papers?id=7 HTTP/1.1" 200 2326';
+
+if ($line =~ /^(\S+) \S+ (\S+) \[([^\]]+)\] "(\w+) (\S+)[^"]*" (\d{3}) (\d+)$/) {
+    say "ip=$1 user=$2 when=$3 method=$4 path=$5 status=$6 bytes=$7";
+}
+</code></pre>
+        <pre class="plain"><code>ip=192.168.1.42 user=alice when=10/Oct/2026:13:55:36 +0000 method=GET path=/papers?id=7 status=200 bytes=2326
+</code></pre>
+
+        <p>It works, and you should never ship it. Seven numbered captures means every future edit renumbers everything
+            after it, and nobody reading this in a year can tell what <code>$5</code> was. The maintainable version uses
+            named captures and <code>/x</code>:</p>
+
+        <pre><code>my $apache = qr{
+    ^(?&lt;ip&gt;\S+) \s+ \S+ \s+ (?&lt;user&gt;\S+) \s+      # client, identd, user
+    \[(?&lt;ts&gt;[^\]]+)\] \s+                          # [timestamp]
+    "(?&lt;method&gt;[A-Z]+) \s (?&lt;path&gt;\S+) [^"]*" \s+  # "GET /path HTTP/1.1"
+    (?&lt;status&gt;\d{3}) \s+ (?&lt;bytes&gt;\d+)             # status and size
+}x;
+
+if ($line =~ $apache) {
+    say "named: $+{ip} asked for $+{path} and got $+{status}";
+    say "capture names: ", join(",", sort keys %+);
+}
+</code></pre>
+        <pre class="plain"><code>named: 192.168.1.42 asked for /papers?id=7 and got 200
+capture names: bytes,ip,method,path,status,ts,user
+</code></pre>
+
+        <p>Four features doing the work:</p>
+        <ul>
+            <li><strong><code>/x</code></strong> makes whitespace and <code># comments</code> inside the pattern
+                insignificant, so a regex can be laid out and annotated like code. With <code>/x</code> you must write
+                real spaces as <code>\s</code> or <code>[ ]</code>, which is the small price. <strong>Any regex longer
+                    than about forty characters should use <code>/x</code>.</strong></li>
+            <li><strong><code>(?&lt;name&gt;...)</code></strong> names a capture, available afterwards in
+                <code>%+</code>. Renumbering stops being a problem, and the parsing code reads like the data.</li>
+            <li><strong><code>qr{...}</code></strong> compiles a pattern once into a value you can store, pass around,
+                interpolate into a bigger pattern, and reuse in a loop. In a parser that runs a million times, compiling
+                once matters; in readability terms it matters more, because it lets you build a library of named
+                patterns.</li>
+            <li><strong><code>{...}</code> as the delimiter</strong> instead of <code>/.../</code> avoids escaping every
+                slash in a path pattern. Perl lets you use almost any delimiter for <code>m</code>, <code>s</code>,
+                <code>qr</code> and <code>tr</code>, and choosing one that does not appear in the pattern is basic
+                hygiene.</li>
+        </ul>
+
+        <h3>2.8 Regular expressions, part two: global matching and substitution</h3>
+
+        <pre><code>my $text = "contact alice\@example.com or bob\@test.org today";
+
+my @emails = $text =~ /([\w.]+@[\w.]+)/g;      # list context + /g: every match
+say "all emails: @emails";
+
+while ($text =~ /(\w+)@([\w.]+)/g) {           # scalar context + /g: iterate
+    say "  user=$1 host=$2 at offset $-[0]";
+}
+
+(my $masked = $text) =~ s/([\w.]+)@([\w.]+)/[redacted]\@$2/g;
+say "masked: $masked";
+
+my $prices = "cost: 10, 20, 30";
+(my $doubled = $prices) =~ s/(\d+)/$1 * 2/ge;   # /e evaluates the replacement
+say "doubled: $doubled";
+</code></pre>
+        <pre class="plain"><code>all emails: alice@example.com bob@test.org
+  user=alice host=example.com at offset 8
+  user=bob host=test.org at offset 29
+masked: contact [redacted]@example.com or [redacted]@test.org today
+doubled: cost: 20, 40, 60
+</code></pre>
+
+        <ul>
+            <li><strong><code>/g</code> in list context returns every capture from every match.</strong> One line to
+                harvest every email in a document. If the pattern has no captures, you get the whole matches instead.
+            </li>
+            <li><strong><code>/g</code> in scalar context is an iterator</strong>, resuming from where it stopped (the
+                position is stored with the string, readable as <code>pos $text</code>). That is the <code>while</code>
+                loop above, and it is how you walk a large string without copying it.</li>
+            <li><strong><code>(my $copy = $original) =~ s/.../.../</code></strong> is the copy-then-modify idiom.
+                Substitution modifies in place, so without the copy you destroy your input. Perl 5.14 added the
+                <code>/r</code> flag for the same thing more clearly: <code>my $copy = $original =~ s/a/b/gr;</code>.
+            </li>
+            <li><strong><code>/e</code> treats the replacement as Perl code to evaluate.</strong>
+                <code>s/(\d+)/$1 * 2/ge</code> doubles every number in a string. This is a small superpower for data
+                cleanup: normalising units, decoding escapes, reformatting dates, all inline.</li>
+            <li><code>$-[0]</code> and <code>@+</code> hold the start and end offsets of the match, which you need when
+                reporting exactly where in a file something went wrong.</li>
+        </ul>
+
+        <h3>2.9 Greedy, lazy, and the mistakes everyone makes</h3>
+
+        <pre><code>my $html = '&lt;b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i&gt;';
+my ($greedy) = $html =~ /&lt;(.+)&gt;/;
+my ($lazy)   = $html =~ /&lt;(.+?)&gt;/;
+say "greedy: $greedy";
+say "lazy:   $lazy";
+say "count of tags: ", scalar(() = $html =~ /&lt;[^&gt;]+&gt;/g);
+</code></pre>
+        <pre class="plain"><code>greedy: b&gt;bold&lt;/b&gt; and &lt;i&gt;italic&lt;/i
+lazy:   b
+count of tags: 4
+</code></pre>
+
+        <p><code>.+</code> is greedy: it takes as much as it can and gives back only as needed, so it ran to the last
+            <code>&gt;</code> in the string. <code>.+?</code> is lazy and stops at the first. The third and best option
+            is usually neither: <strong><code>[^&gt;]+</code> says what you mean</strong> (characters that are not the
+            terminator), is faster because it cannot backtrack, and does not depend on remembering which flavour of
+            <code>.</code> you wanted.</p>
+
+        <p><code>scalar(() = $html =~ /.../g)</code> is the countof idiom: assign the match list to an empty list in
+            scalar context, which yields the number of elements. Ugly, universal, worth recognising.</p>
+
+        <div class="warn">
+            <h5>Regex mistakes that cost the most time</h5>
+            <ul>
+                <li><strong>Forgetting <code>\b</code>.</strong> <code>/ERROR/</code> matches <code>NOERROR</code> and
+                    <code>ERRORS=0</code>.</li>
+                <li><strong>Unanchored patterns on structured data.</strong> <code>/(\d{3})/</code> against a log line
+                    finds the first three digits anywhere, which may be part of the date. Anchor with <code>^</code>,
+                    <code>$</code>, or surrounding context.</li>
+                <li><strong>Using <code>.</code> where a negated class belongs.</strong> <code>"([^"]*)"</code> beats
+                    <code>"(.*?)"</code> for a quoted field: clearer and it cannot backtrack catastrophically.</li>
+                <li><strong>Catastrophic backtracking.</strong> Nested quantifiers like <code>(\s*\w+)*$</code> on a
+                    long non-matching line can take exponential time and hang your program. If a parser mysteriously
+                    stalls on one file, suspect this first.</li>
+                <li><strong>Parsing nested structures with regexes.</strong> HTML and XML are not regular. Use
+                    <code>XML::LibXML</code>; we will in Milestone 6.</li>
+                <li><strong>Not checking whether the match succeeded</strong> before using <code>$1</code>. On failure
+                    the capture variables keep their <em>previous</em> values, so a failed match silently reuses the
+                    last line's data. Always <code>if ($line =~ ...) { ... }</code>.</li>
+            </ul>
+        </div>
+
+        <h3>2.10 Files and streams</h3>
+
+        <pre><code>open my $fh, "&lt;", "sample.log" or die "cannot open sample.log: $!";
+my $errors = 0;
+while (my $line = &lt;$fh&gt;) {
+    chomp $line;
+    $errors++ if $line =~ /^ERROR\b/;
+}
+close $fh;
+say "errors: $errors";
+
+open my $out, "&gt;", "summary.txt" or die "cannot write: $!";
+say {$out} "errors=$errors";
+close $out;
+</code></pre>
+        <pre class="plain"><code>errors: 2
+wrote: errors=2
+</code></pre>
+
+        <ul>
+            <li><strong>Three-argument <code>open</code> with a lexical filehandle</strong> is the only correct form.
+                The mode is separate from the filename, so a file called <code>&gt;evil</code> cannot become a
+                redirection. Two-argument <code>open</code> with the mode inside the string is a genuine security hole,
+                and you will see it in old code.</li>
+            <li><strong><code>or die "...: $!"</code></strong> — <code>$!</code> is the system error message ("No such
+                file or directory"). An error message without <code>$!</code> tells you something failed but not why.
+            </li>
+            <li><strong><code>while (my $line = &lt;$fh&gt;)</code> reads one line at a time</strong>, so memory is
+                constant whether the file is 2&nbsp;KB or 200&nbsp;GB. This is the whole reason the project can claim to
+                stream, and it is the default rather than something you opt into.</li>
+            <li><strong><code>chomp</code> removes the trailing newline</strong> (strictly, the current value of
+                <code>$/</code>). Forgetting it means your "ip" ends with a newline and every comparison fails
+                mysteriously.</li>
+            <li><code>say {$out} "..."</code> — the braces disambiguate a filehandle expression. With a simple handle,
+                <code>say $out "..."</code> also works, with no comma, which looks wrong forever.</li>
+        </ul>
+
+        <p>Encoding deserves a line now and a milestone later. A file is bytes; treating it as text requires knowing the
+            encoding:</p>
+
+        <pre><code>open my $fh, "&lt;:encoding(UTF-8)", $path or die "$path: $!";
+# and for data that claims to be UTF-8 and is not, in milestone 7:
+open my $fh, "&lt;:raw", $path or die "$path: $!";   # bytes, decode manually
+</code></pre>
+
+        <h3>2.11 Errors</h3>
+
+        <pre><code>my $result = eval {
+    die "something broke\n";
+    1;
+};
+say "eval returned ", (defined $result ? $result : "undef"), " and \$\@ is: $@";
+</code></pre>
+        <pre class="plain"><code>eval returned undef and $@ is: something broke
+</code></pre>
+
+        <p>Perl's exception mechanism is <code>die</code> to throw and <code>eval { }</code> to catch. The block returns
+            <code>undef</code> on failure and the error lands in <code>$@</code>. Two conventions: <strong>end your
+                message with <code>\n</code></strong> or Perl appends " at script.pl line 12", which is useful for bugs
+            and noise for expected failures; and <strong>put <code>1;</code> as the last statement</strong> of the eval
+            block so success is unambiguous.</p>
+
+        <p><code>$@</code> is a global, and it is easy to clobber between the <code>eval</code> and the check (a
+            destructor running, a cleanup call). The community solution is <code>Try::Tiny</code>:</p>
+
+        <pre><code>use Try::Tiny;
+
+try {
+    die { code =&gt; 503, message =&gt; "service unavailable" };
+} catch {
+    my $err = $_;
+    say "Try::Tiny caught a ", ref($err), " with code $err-&gt;{code}";
+};
+</code></pre>
+        <pre class="plain"><code>Try::Tiny caught a HASH with code 503
+</code></pre>
+
+        <p>Note that <code>die</code> can throw <em>any</em> reference, not just a string, which is how Perl does
+            structured exceptions: a hash reference with a code and a message, or an object from a class like
+            <code>Throwable</code>. For this project, structured errors matter because "line 40,112 of users.csv had
+            unbalanced quotes" needs to be data, not prose.</p>
+
+        <h3>2.12 Packages and modules</h3>
+
+        <pre><code>package Strata::Record;
+use v5.36;
+
+sub new ($class, %args) {
+    my $self = {
+        source =&gt; $args{source} // "unknown",
+        fields =&gt; $args{fields} // {},
+    };
+    return bless $self, $class;
+}
+
+sub source ($self) { return $self-&gt;{source} }
+sub field  ($self, $name) { return $self-&gt;{fields}{$name} }
+
+sub to_line ($self) {
+    my $f = $self-&gt;{fields};
+    return join " ", map { "$_=$f-&gt;{$_}" } sort keys %$f;
+}
+
+1;   # a module must return a true value
+</code></pre>
+
+        <pre class="plain"><code>apache: ip=10.0.0.1 status=200
+ref: Strata::Record isa: yes
+</code></pre>
+
+        <p><strong>Perl's object system is three rules.</strong> A class is a package. An object is a reference that has
+            been <code>bless</code>ed into that package. A method call <code>$obj-&gt;method(@args)</code> calls the
+            package's sub with the object as the first argument. That is all <code>bless</code> does: it writes the
+            package name onto the reference so method lookup knows where to go.</p>
+
+        <p>It is minimal to the point of being spartan: no attribute declarations, no encapsulation (anyone can reach
+            into <code>$self-&gt;{fields}</code>), no type checking. In production Perl most people use
+            <strong>Moo</strong> or <strong>Moose</strong>, which add attributes, types, roles and defaults on top. And
+            since 5.38 there is a real class syntax, still marked experimental:</p>
+
+        <pre><code>use v5.38;
+use experimental 'class';
+
+class Strata::Entity {
+    field $type :param;
+    field $value :param;
+    field $count = 1;
+
+    method type  { $type }
+    method seen  { $count++; $self }
+    method to_string { "$type($value) x$count" }
+}
+
+my $e = Strata::Entity-&gt;new(type =&gt; "ip", value =&gt; "10.0.0.1");
+$e-&gt;seen-&gt;seen;
+say $e-&gt;to_string;
+</code></pre>
+        <pre class="plain"><code>ip(10.0.0.1) x3
+</code></pre>
+
+        <p>Genuinely pleasant, genuinely encapsulated (those fields are not reachable from outside), and genuinely
+            experimental: the syntax may still change and it will warn unless you ask for it. This project uses plain
+            <code>bless</code>, because it is what you will meet in existing code and because understanding it explains
+            how Moo, Moose and the new <code>class</code> all work underneath.</p>
+
+        <div class="exercise">
+            <h5>Exercise 2.A</h5>
+            <p>Write a sub <code>parse_apache_line($line)</code> that returns a hash reference of named fields for a
+                combined-format Apache line, or <code>undef</code> if the line does not match. Requirements: use
+                <code>qr//</code> with <code>/x</code> and named captures; handle the <code>-</code> that appears for a
+                missing user or a zero byte count by normalising it to <code>undef</code> and <code>0</code>
+                respectively; and split the request field into method, path and protocol.</p>
+            <p>Then write a second sub <code>summarise(@lines)</code> returning a hash reference with total lines,
+                parsed lines, failed lines, and a count by status code. Test it with three good lines and two
+                deliberately broken ones.</p>
+        </div>
+
+        <details>
+            <summary>Solution 2.A — open after trying</summary>
+            <pre><code>use v5.36;
+
+my $APACHE = qr{
+    ^ (?&lt;ip&gt;\S+) \s+ (?&lt;identd&gt;\S+) \s+ (?&lt;user&gt;\S+) \s+
+    \[ (?&lt;ts&gt;[^\]]+) \] \s+
+    " (?&lt;request&gt;[^"]*) " \s+
+    (?&lt;status&gt;\d{3}) \s+ (?&lt;bytes&gt;\d+|-)
+    (?: \s+ " (?&lt;referer&gt;[^"]*) " \s+ " (?&lt;agent&gt;[^"]*) " )?   # combined format
+    \s* $
+}x;
+
+sub parse_apache_line ($line) {
+    return undef unless $line =~ $APACHE;
+
+    my %f = %+;                       # copy: %+ is reset by the next match
+
+    # "-" is Apache's way of saying "nothing here".
+    $f{user}  = undef if $f{user} eq "-";
+    $f{bytes} = 0     if $f{bytes} eq "-";
+
+    if ($f{request} =~ m{^(?&lt;method&gt;[A-Z]+) \s+ (?&lt;path&gt;\S+) (?: \s+ (?&lt;proto&gt;\S+))?$}x) {
+        @f{qw(method path proto)} = @+{qw(method path proto)};
+    } else {
+        $f{problem} = "unparsable request line";
+    }
+
+    return \%f;
+}
+
+sub summarise (@lines) {
+    my %out = (total =&gt; 0, parsed =&gt; 0, failed =&gt; 0, by_status =&gt; {});
+
+    for my $line (@lines) {
+        $out{total}++;
+        my $rec = parse_apache_line($line);
+        if ($rec) {
+            $out{parsed}++;
+            $out{by_status}{ $rec-&gt;{status} }++;
+        } else {
+            $out{failed}++;
+        }
+    }
+    return \%out;
+}
+</code></pre>
+            <p>Five things worth taking from this.</p>
+            <ul>
+                <li><strong><code>my %f = %+;</code> copies the capture hash immediately.</strong> <code>%+</code> is
+                    global and is reset by the <em>next</em> successful match anywhere, including the one two lines
+                    later that splits the request. Copying first is not optional; forgetting it produces a bug that
+                    appears only when you add a second regex.</li>
+                <li><strong>The optional group makes one pattern handle two formats.</strong> Common and combined log
+                    formats differ only by the trailing referer and user-agent, so <code>(?: ... )?</code> parses both,
+                    and the fields are simply absent for the shorter one.</li>
+                <li><strong>Normalising <code>-</code> at the boundary</strong> means the rest of the program never
+                    thinks about Apache's conventions. Every parser in this project will do this: the Record that comes
+                    out should not betray which format it came from.</li>
+                <li><strong>A failed sub-parse becomes a <code>problem</code> field, not a discarded line.</strong> This
+                    is the project's central policy in miniature: keep the record, mark what is wrong with it, and let
+                    the caller decide. A line you throw away is a line you cannot investigate.</li>
+                <li><strong><code>@f{qw(method path proto)} = @+{qw(method path proto)}</code></strong> is a hash slice
+                    on both sides: three assignments in one statement. This is where Perl's sigil rules start paying you
+                    back.</li>
+            </ul>
+        </details>
+
+        <h3>2.13 Sorting, formatting, and the report idioms</h3>
+
+        <pre><code>my %bytes_by_ip = ("10.0.0.1" =&gt; 4_112_883, "10.0.0.2" =&gt; 55_201, "10.0.0.9" =&gt; 913_004);
+
+for my $ip (sort { $bytes_by_ip{$b} &lt;=&gt; $bytes_by_ip{$a} } keys %bytes_by_ip) {
+    printf "  %-15s %10s\n", $ip, commify($bytes_by_ip{$ip});
+}
+
+sub commify ($n) {
+    1 while $n =~ s/^(\d+)(\d{3})/$1,$2/;
+    return $n;
+}
+</code></pre>
+        <pre class="plain"><code>  10.0.0.1          4,112,883
+  10.0.0.9            913,004
+  10.0.0.2             55,201
+</code></pre>
+
+        <p><code>printf</code> with <code>%-15s</code> (left-aligned, 15 wide) and <code>%10s</code> (right-aligned) is
+            how every Perl report is formatted. <code>commify</code> is a classic: <code>1 while s/.../.../</code>
+            repeats a substitution until it stops matching, which is a loop written as an expression. Numeric literals
+            can contain underscores for readability.</p>
+
+        <p>When sorting by an expensive computed key, use the <strong>Schwartzian transform</strong>, which computes
+            each key once:</p>
+
+        <pre><code>my @sorted = map  { $_-&gt;[1] }
+             sort { $a-&gt;[0] &lt;=&gt; $b-&gt;[0] }
+             map  { [ expensive_key($_), $_ ] } @records;
+</code></pre>
+
+        <p>Read it bottom-up: decorate each record with its key, sort by the key, undecorate. It is the standard idiom
+            precisely because a naive <code>sort { expensive($a) &lt;=&gt; expensive($b) }</code> calls the expensive
+            function O(n log n) times instead of n.</p>
+
+        <div class="exercise">
+            <h5>Exercise 2.B — the capstone of Part 2</h5>
+            <p>Write a single program, <code>bin/toptalkers</code>, that reads Apache logs from files or standard input
+                and prints a report. Requirements:</p>
+            <ul>
+                <li>Top 5 client IPs by request count, with their byte totals and error rates.</li>
+                <li>A count by status class (2xx, 3xx, 4xx, 5xx).</li>
+                <li>The five slowest-growing minutes by request volume (bucket timestamps to the minute).</li>
+                <li>A trailing line reporting how many lines could not be parsed, with the first three offending line
+                    numbers.</li>
+                <li>It must never load the whole file into memory, must work in a pipeline, and must exit 0 unless more
+                    than 1% of lines failed to parse, in which case exit 1.</li>
+            </ul>
+            <p>Test it on a file with a few thousand lines, including some you have deliberately truncated mid-line.</p>
+        </div>
+
+        <details>
+            <summary>Solution 2.B — open after trying</summary>
+            <pre><code>#!/usr/bin/env perl
+use v5.36;
+
+my $APACHE = qr{
+    ^ (?&lt;ip&gt;\S+) \s+ \S+ \s+ (?&lt;user&gt;\S+) \s+
+    \[ (?&lt;ts&gt;[^\]]+) \] \s+ " (?&lt;request&gt;[^"]*) " \s+
+    (?&lt;status&gt;\d{3}) \s+ (?&lt;bytes&gt;\d+|-)
+}x;
+
+my (%hits, %bytes, %errors, %by_minute, %status_class);
+my ($total, $failed, @first_failures) = (0, 0);
+
+while (my $line = &lt;&gt;) {
+    $total++;
+
+    unless ($line =~ $APACHE) {
+        $failed++;
+        push @first_failures, "$ARGV:$." if @first_failures &lt; 3;
+        next;
+    }
+
+    my %f = %+;
+    my $bytes = $f{bytes} eq "-" ? 0 : $f{bytes};
+
+    $hits{ $f{ip} }++;
+    $bytes{ $f{ip} } += $bytes;
+    $errors{ $f{ip} }++ if $f{status} &gt;= 400;
+    $status_class{ substr($f{status}, 0, 1) . "xx" }++;
+
+    # 10/Oct/2026:13:55:36 +0000  -&gt;  10/Oct/2026:13:55
+    $by_minute{$1}++ if $f{ts} =~ /^(\d+\/\w+\/\d+:\d+:\d+)/;
+}
+
+say "top talkers";
+my @top = (sort { $hits{$b} &lt;=&gt; $hits{$a} || $a cmp $b } keys %hits)[0 .. 4];
+for my $ip (grep { defined } @top) {
+    printf "  %-15s %8d hits  %12s bytes  %5.1f%% errors\n",
+        $ip, $hits{$ip}, commify($bytes{$ip}),
+        100 * ($errors{$ip} // 0) / $hits{$ip};
+}
+
+say "\nstatus classes";
+printf "  %s %8d\n", $_, $status_class{$_} for sort keys %status_class;
+
+say "\nbusiest minutes";
+my @busy = (sort { $by_minute{$b} &lt;=&gt; $by_minute{$a} } keys %by_minute)[0 .. 4];
+printf "  %-22s %8d\n", $_, $by_minute{$_} for grep { defined } @busy;
+
+my $rate = $total ? 100 * $failed / $total : 0;
+printf "\n%d lines, %d unparsed (%.2f%%)%s\n", $total, $failed, $rate,
+    @first_failures ? " first at: " . join(", ", @first_failures) : "";
+
+exit($rate &gt; 1 ? 1 : 0);
+
+sub commify ($n) { 1 while $n =~ s/^(\d+)(\d{3})/$1,$2/; return $n }
+</code></pre>
+            <p>Six details that are the actual lesson.</p>
+            <ul>
+                <li><strong>Five hashes, one pass.</strong> Everything is accumulated in a single traversal, so memory
+                    is proportional to the number of <em>distinct</em> IPs and minutes, not to the file. That is the
+                    shape of every streaming aggregation you will write.</li>
+                <li><strong><code>$ARGV</code> and <code>$.</code> give you free provenance.</strong> Inside
+                    <code>&lt;&gt;</code>, <code>$ARGV</code> is the file currently being read and <code>$.</code> is
+                    the line number, so "where did this come from" costs nothing. (One caveat worth knowing:
+                    <code>$.</code> does not reset between files unless you <code>close ARGV</code> at
+                    <code>eof</code>.)</li>
+                <li><strong>Unparsed lines are counted and located, never silently dropped.</strong> Keeping the first
+                    three line numbers rather than all of them bounds the memory a pathological file can cost you.</li>
+                <li><strong><code>(sort ...)[0 .. 4]</code> takes a slice of a list</strong> without an intermediate
+                    array, and <code>grep { defined }</code> handles the case where fewer than five exist. Slicing past
+                    the end gives <code>undef</code>, not an error, which is convenient and requires the guard.</li>
+                <li><strong><code>($errors{$ip} // 0)</code></strong> because an IP with no errors has no key, and
+                    arithmetic on <code>undef</code> warns. Defined-or is the right operator: a genuine zero must
+                    survive.</li>
+                <li><strong>The exit code encodes a judgement</strong> (more than 1% unparsed means something is wrong),
+                    which makes the tool usable in a cron job that alerts when a log format changes underneath you. That
+                    is a real failure mode and this is how you catch it.</li>
+            </ul>
+            <p>If you built something close to this, Milestones 1 through 3 will feel like tidying rather than learning,
+                which is the intention.</p>
+        </details>
+
+        <div class="warn">
+            <h5>Common mistakes in Part 2</h5>
+            <ul>
+                <li><strong>Using <code>==</code> on strings</strong> or <code>eq</code> on numbers.
+                    <code>"10" == "10.0"</code> is true; <code>"10" eq "10.0"</code> is false. Both are sometimes what
+                    you want.</li>
+                <li><strong>Forgetting <code>chomp</code></strong>, then wondering why <code>$fields[-1]</code> never
+                    matches anything.</li>
+                <li><strong>Using <code>$1</code> without checking the match succeeded.</strong> It holds the previous
+                    match's value.</li>
+                <li><strong>Not copying <code>%+</code> before the next match.</strong> Same class of bug, more
+                    surprising.</li>
+                <li><strong>Sorting without a comparator</strong> and getting string order on numbers.</li>
+                <li><strong>Passing two arrays to a sub</strong> and receiving one flattened list. Pass references.</li>
+                <li><strong>Accidental autovivification</strong> when testing nested keys. Use <code>exists</code>.</li>
+                <li><strong>Two-argument <code>open</code></strong>, ever.</li>
+                <li><strong>Slurping a file</strong> (<code>my @lines = &lt;$fh&gt;</code>) out of habit. It works until
+                    the file is 40&nbsp;GB.</li>
+            </ul>
+        </div>
+
+        <h4>Part 2 checkpoint</h4>
+        <ol>
+            <li>Why is it <code>$steps[0]</code> and not <code>@steps[0]</code>?</li>
+            <li>Give two expressions that behave differently in scalar and list context, and say what each does.</li>
+            <li>What does <code>$count{$_}++ for @items</code> do, step by step?</li>
+            <li>Why does nesting data require references, and what is autovivification?</li>
+            <li>When would you use <code>local</code> rather than <code>my</code>?</li>
+            <li>What do <code>/x</code>, <code>qr//</code> and <code>(?&lt;name&gt;...)</code> each buy you?</li>
+            <li>What is the difference between <code>/g</code> in list context and in scalar context?</li>
+            <li>Why must you copy <code>%+</code> immediately?</li>
+            <li>Why is three-argument <code>open</code> the only acceptable form?</li>
+            <li>What does <code>bless</code> actually do?</li>
+        </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here? (Part 2 summary)</h5>
+            <p>Look back at the capstone solution. The regex is a first-class value with named fields laid out over five
+                commented lines; the input loop handles files and pipes with no imports; five aggregations happen in one
+                pass with hashes that spring into existence as needed; provenance comes free in <code>$ARGV</code> and
+                <code>$.</code>; and the whole thing is sixty lines and streams a file of any size. The equivalent
+                Python is perhaps twice as long and has <code>re.compile</code>, <code>fileinput</code>,
+                <code>defaultdict</code> and <code>argparse</code> visible in it. That difference is Perl's argument,
+                and for this kind of work it is a strong one.</p>
+            <p>The costs are equally visible. Context means <code>my $x = f()</code> and <code>my ($x) = f()</code> are
+                different programs. Capture variables are global and get clobbered. <code>local</code> is a scoping rule
+                most programmers have never met. Sigils change with what you are asking for rather than what the
+                variable is. None of these is hard once learned, and all of them are sharp edges that a language
+                designed in 2010 would not have.</p>
+            <p>The discipline that makes Perl maintainable is not subtle, and it is all in this part:
+                <code>use v5.36</code>, named captures, <code>/x</code> on anything long, real data structures instead
+                of clever parallel arrays, and tests from day one.</p>
+        </div>
+
+        <h3>What is next</h3>
+
+        <p>Milestone 1 turns the one-liner instinct into a program: a filter with proper option handling, exit codes and
+            tests. Milestone 2 adds the aggregation you just wrote by hand. Milestone 3 is where the parser becomes
+            serious, with a pattern library, failure accounting, and the first fixtures of deliberately broken input.
+        </p>
+
+        <p>Before then: run the one-liners from Part 1 against a log file on your own machine, and read
+            <code>perldoc perlretut</code>. It is the best forty minutes available to you at this point.</p>
+
+        <footer class="end">
+            <p>Instalment 11 of the five-course curriculum. Next: Perl Milestones 1–4, where the filter becomes a tool,
+                hashes become reports, regexes become a parser, and records become a data model. Say <em>continue</em>
+                when you are ready.</p>
+        </footer>
+
+    </div>
+</body>
+
+</html>
