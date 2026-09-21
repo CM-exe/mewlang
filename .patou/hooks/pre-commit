@@ -1,0 +1,29 @@
+#!/bin/sh
+# Patou pre-commit hook. Self-contained: no patou binary required.
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+config="$dir/../config.toml"
+
+raw=$(awk '
+  /^\[branch\]/ { in_section=1; next }
+  /^\[/ { in_section=0 }
+  in_section && /^pattern[[:space:]]*=/ { print; exit }
+' "$config")
+raw=${raw#*=}
+raw=$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+raw=${raw#\'}
+pattern=${raw%\'}
+
+if [ -z "$pattern" ]; then
+  exit 0
+fi
+
+# Not on a branch (detached HEAD, e.g. mid-rebase) - nothing to validate.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
+
+if printf '%s' "$branch" | grep -Eq "$pattern"; then
+  exit 0
+fi
+
+echo "branch name rejected: \"$branch\"" >&2
+echo "must match pattern: $pattern" >&2
+exit 1

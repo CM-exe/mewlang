@@ -8,3 +8,18 @@
 # the commit-msg hook (plain shell) and `patou check` read the exact same
 # bytes.
 pattern = '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9-]+\))?: [A-Z].{0,71}$'
+
+[branch]
+# Branch naming convention, enforced by the pre-commit hook on every commit.
+# Defaults: `main`; `develop`/`dev` (drop these two if your workflow has no
+# long-lived integration branch); and `<type>/<description>` for
+# feature/fix/hotfix/refactor/chore/docs branches.
+pattern = '^(main|develop|dev|(feature|fix|hotfix|refactor|chore|docs)/[a-zA-Z0-9._/-]+)$'
+
+[tag]
+# Tag naming convention, enforced by the pre-push hook when tags are pushed
+# (git has no hook that fires on local tag creation - only pre-push sees
+# the refs, tags included, before they leave the machine).
+# Defaults: semantic version tags `v<MAJOR>.<MINOR>.<PATCH>` (e.g. v1.4.0),
+# and `<type>/<description>` for build/deploy/release tags.
+pattern = '^(v[0-9]+\.[0-9]+\.[0-9]+|(build|deploy|release)/[a-zA-Z0-9._/-]+)$'
