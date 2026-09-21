@@ -79,6 +79,44 @@ header p {
     color: var(--ink-soft);
 }
 
+nav.menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem .6rem;
+    margin-top: 1.5rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82rem;
+}
+
+nav.menu a,
+nav.menu .soon {
+    padding: .4rem .85rem;
+    border-radius: 999px;
+    line-height: 1.1;
+}
+
+nav.menu a {
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+nav.menu a:hover,
+nav.menu a:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+nav.menu .soon {
+    border: 1px dashed var(--rule);
+    color: var(--ink-soft);
+}
+
+nav.menu .soon small {
+    font-size: .85em;
+}
+
 main {
     padding: 1.5rem 0 2rem;
 }
@@ -111,6 +149,20 @@ main section h3:not(:first-child) {
 
 main section blockquote {
     margin-bottom: 1.5rem;
+}
+
+main section p.start {
+    margin: -.75rem 0 1.5rem;
+    font-size: .92rem;
+}
+
+main section p.start a {
+    font-weight: 600;
+}
+
+main section p.start.soon {
+    color: var(--ink-soft);
+    font-style: italic;
 }
 
 body > footer {
