@@ -1,825 +1,622 @@
-/* ===========================================================================
-   Mewlang global stylesheet.
+@import "tailwindcss";
 
-   Structure:
-   1. Shared warning hue (--amber), identical across every course.
-   2. Base reset + typography + every reusable component class (.why, .cmp,
-      .warn, .note, .exercise, .toc, .button, table.grid, pre/code, etc).
-      These rules reference --paper/--ink/--accent/etc. but never set them.
-   3. Landing-page-only layout (header/main/footer/nav.menu on the home page).
-   4. Per-course theme classes (.theme-index, .theme-go, .theme-ruby,
-      .theme-perl) — each defines the palette + accent variables and is
-      applied as a wrapper className by the page that uses it.
-   5. The floating site nav (components/FloatingMenu.jsx), theme-independent.
+/* ===========================================================================
+   Mewlang design system, built on Tailwind CSS v4.
+
+   1. @theme — design tokens. Tailwind auto-generates utilities from these
+      (--color-paper → bg-paper/text-paper/border-paper, etc). The values
+      here are the *defaults*; each course overrides the same custom
+      properties inside its own `.theme-*` scope below, and because CSS
+      custom properties resolve through the normal cascade, every utility
+      built from them (bg-paper, text-accent, border-why, ...) automatically
+      picks up the active course's palette wherever it's used.
+   2. @layer base — typography defaults Preflight (Tailwind's reset) doesn't
+      set for us.
+   3. @layer components — the site's recurring content patterns (.wrap,
+      .masthead, .why/.cmp/.warn/.note, .exercise, table.grid, etc.),
+      built with @apply so they're genuinely Tailwind-composed rather than
+      hand-rolled CSS living next to Tailwind. Arbitrary-value utilities
+      (e.g. text-[.82rem]) are used where the original design's exact
+      values don't land on Tailwind's default scale — preserving the
+      original pixel-perfect design was prioritized over quantizing every
+      value to the nearest default token.
+   4. Theme scopes (.theme-index/.theme-go/.theme-ruby/.theme-perl) and the
+      floating nav, which is deliberately theme-independent.
    =========================================================================== */
 
-:root {
-    --amber: #8A5A00;
+@theme {
+  --color-paper: #F2F4F1;
+  --color-ink: #1B2320;
+  --color-ink-soft: #4C5A54;
+  --color-rule: #CBD4CD;
+  --color-code: #EAEEE9;
+  --color-panel: #E7ECE6;
+  --color-accent: #0F5C56;
+  --color-accent-2: #6B2D5B;
+  --color-why: #0F5C56;
+  --color-cmp: #6B2D5B;
+  --color-amber: #8A5A00;
+  --color-select: rgba(15, 92, 86, .16);
+
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --amber: #E0B25E;
-    }
+@layer base {
+  body {
+    @apply font-serif text-[19px] leading-[1.62] font-normal;
+  }
+
+  ::selection {
+    background: var(--color-select);
+  }
+
+  h2 {
+    @apply text-[1.85rem] leading-[1.15] font-semibold mt-[3.4rem] mb-[.3rem] tracking-[-.01em];
+  }
+
+  h3 {
+    @apply text-[1.3rem] font-semibold mt-[2.3rem] mb-[.4rem];
+  }
+
+  h4 {
+    @apply text-[1.06rem] font-semibold mt-[1.7rem] mb-[.3rem];
+  }
+
+  h5 {
+    @apply text-[.95rem] font-semibold mt-[1.2rem] mb-[.2rem] text-ink-soft;
+  }
+
+  p {
+    @apply my-3;
+  }
+
+  a {
+    @apply text-accent no-underline decoration-1 underline-offset-2 hover:underline;
+  }
+
+  a:focus-visible,
+  summary:focus-visible {
+    @apply outline outline-2 outline-accent outline-offset-[3px] rounded-[2px];
+  }
+
+  ul,
+  ol {
+    @apply pl-[1.3rem] my-[.7rem];
+  }
+
+  li {
+    @apply my-[.32rem];
+  }
+
+  code {
+    @apply font-mono text-[.86em] bg-code px-[.32em] py-[.1em] rounded-[3px];
+  }
+
+  pre {
+    @apply bg-code border-l-2 border-accent p-4 pr-[1.1rem] my-4 overflow-x-auto rounded-r;
+  }
+
+  pre code {
+    @apply bg-transparent p-0 text-[.8rem] leading-[1.55] block whitespace-pre;
+  }
+
+  blockquote {
+    @apply my-[1.2rem] pl-4 border-l-2 border-cmp text-ink-soft italic;
+  }
+
+  hr {
+    @apply border-0 border-t border-rule my-12;
+  }
+
+  details {
+    @apply my-4 border border-rule rounded bg-panel px-4 py-[.15rem];
+  }
+
+  details[open] {
+    @apply pb-[.8rem];
+  }
+
+  summary {
+    @apply cursor-pointer font-semibold py-[.7rem] text-[.95rem];
+  }
+
+  summary::marker {
+    color: var(--color-accent);
+  }
 }
 
-:root[data-theme="dark"] {
-    --amber: #E0B25E;
-}
+@layer components {
+  .wrap {
+    @apply max-w-[50rem] mx-auto px-5 pb-24;
+  }
 
-* {
-    box-sizing: border-box
-}
+  .masthead {
+    @apply border-b border-rule pt-16 pb-8 mb-8;
+  }
 
-html {
-    -webkit-text-size-adjust: 100%
-}
+  .kicker {
+    @apply font-mono text-[.8rem] text-accent mb-4 block;
+  }
 
-body {
-    margin: 0;
-    font-family: "Newsreader", Georgia, "Times New Roman", serif;
-    font-size: 19px;
-    line-height: 1.62;
-    font-weight: 400;
-}
+  .masthead h1 {
+    @apply text-[clamp(2rem,5.5vw,3.1rem)] leading-[1.1] font-semibold mb-4 tracking-[-.015em];
+  }
 
-::selection {
-    background: var(--sel)
-}
+  .lede {
+    @apply text-[1.12rem] text-ink-soft max-w-[34rem];
+  }
 
-.wrap {
-    max-width: 50rem;
-    margin: 0 auto;
-    padding: 0 1.25rem 6rem
-}
+  .num {
+    @apply font-mono text-[.8rem] font-semibold text-accent block mb-[.45rem];
+  }
 
-header.masthead {
-    border-bottom: 1px solid var(--rule);
-    padding: 4rem 0 2rem;
-    margin-bottom: 2rem
-}
+  .plain {
+    border-left-color: var(--color-rule);
+  }
 
-header.masthead .kicker {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: .8rem;
-    color: var(--accent);
-    margin: 0 0 1rem
-}
+  .bad {
+    border-left-color: var(--color-amber);
+  }
 
-header.masthead h1 {
-    font-size: clamp(2rem, 5.5vw, 3.1rem);
-    line-height: 1.1;
-    font-weight: 600;
-    margin: 0 0 1rem;
-    letter-spacing: -.015em
-}
+  .grid {
+    @apply w-full border-collapse text-[.88rem] my-5 block overflow-x-auto;
+  }
 
-header.masthead p.lede {
-    font-size: 1.12rem;
-    color: var(--ink-soft);
-    margin: 0;
-    max-width: 34rem
-}
+  .grid th,
+  .grid td {
+    @apply border-b border-rule py-2 pr-[.7rem] text-left align-top;
+  }
 
-table.index {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 2rem;
-    font-size: .95rem
-}
+  .grid th {
+    @apply font-semibold border-b-2 border-rule;
+  }
 
-table.index td {
-    padding: .55rem .6rem .55rem 0;
-    border-top: 1px solid var(--rule);
-    vertical-align: top
-}
+  .grid td:first-child {
+    @apply font-mono text-[.82rem] whitespace-nowrap;
+  }
 
-table.index td:first-child {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-weight: 600;
-    color: var(--accent);
-    white-space: nowrap;
-    width: 5.5rem
-}
+  .index {
+    @apply w-full border-collapse mt-8 text-[.95rem];
+  }
 
-h2 {
-    font-size: 1.85rem;
-    line-height: 1.15;
-    font-weight: 600;
-    margin: 3.4rem 0 .3rem;
-    letter-spacing: -.01em
-}
+  .index td {
+    @apply py-[.55rem] pr-[.6rem] border-t border-rule align-top;
+  }
 
-h2 .num {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: .8rem;
-    font-weight: 600;
-    color: var(--accent);
-    display: block;
-    margin-bottom: .45rem
-}
+  .index td:first-child {
+    @apply font-mono font-semibold text-accent whitespace-nowrap w-[5.5rem];
+  }
 
-h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 2.3rem 0 .4rem
-}
+  .why,
+  .note,
+  .warn,
+  .cmp {
+    @apply my-6 px-[1.15rem] py-4 bg-panel rounded;
+  }
 
-h4 {
-    font-size: 1.06rem;
-    font-weight: 600;
-    margin: 1.7rem 0 .3rem
-}
+  .why {
+    border-top: 3px solid var(--color-why);
+  }
 
-h5 {
-    font-size: .95rem;
-    font-weight: 600;
-    margin: 1.2rem 0 .2rem;
-    color: var(--ink-soft)
-}
+  .cmp {
+    border-top: 3px solid var(--color-cmp);
+  }
 
-p {
-    margin: .75rem 0
-}
+  .warn {
+    border-top: 3px solid var(--color-amber);
+  }
 
-a {
-    color: var(--accent);
-    text-underline-offset: 2px
-}
+  .note {
+    @apply border-t-[3px] border-rule;
+  }
 
-a:focus-visible,
-summary:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-    border-radius: 2px
-}
+  .why h5,
+  .cmp h5,
+  .warn h5,
+  .note h5 {
+    @apply mt-0 text-ink;
+  }
 
-ul,
-ol {
-    padding-left: 1.3rem;
-    margin: .7rem 0
-}
+  .why p:last-child,
+  .cmp p:last-child,
+  .warn p:last-child,
+  .note p:last-child,
+  .why ul:last-child,
+  .cmp ul:last-child,
+  .warn ul:last-child,
+  .note ul:last-child {
+    @apply mb-0;
+  }
 
-li {
-    margin: .32rem 0
-}
+  .exercise {
+    @apply border-l-2 border-accent-2 pl-4 my-[1.4rem];
+  }
 
-code {
-    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-    font-size: .86em;
-    background: var(--code-bg);
-    padding: .1em .32em;
-    border-radius: 3px
-}
+  .exercise h5 {
+    @apply text-accent-2 mt-0;
+  }
 
-pre {
-    background: var(--code-bg);
-    border-left: 2px solid var(--accent);
-    padding: 1rem 1.1rem;
-    overflow-x: auto;
-    margin: 1rem 0;
-    border-radius: 0 4px 4px 0
-}
+  .milestone-head {
+    @apply border-t-2 border-ink pt-[1.2rem] mt-16;
+  }
 
-pre code {
-    background: none;
-    padding: 0;
-    font-size: .8rem;
-    line-height: 1.55;
-    display: block;
-    white-space: pre
-}
+  .qs > li {
+    @apply my-[.55rem];
+  }
 
-pre.plain {
-    border-left-color: var(--rule)
-}
+  footer.end {
+    @apply border-t border-rule mt-16 pt-6 text-ink-soft text-[.92rem];
+  }
 
-pre.bad {
-    border-left-color: var(--amber)
-}
+  .toc {
+    @apply text-[.95rem] bg-panel px-[1.4rem] py-[1.2rem] rounded my-8;
+  }
 
-table.grid {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .88rem;
-    margin: 1.2rem 0;
-    display: block;
-    overflow-x: auto
-}
+  .toc ol {
+    @apply my-[.4rem] pl-5;
+  }
 
-table.grid th,
-table.grid td {
-    border-bottom: 1px solid var(--rule);
-    padding: .5rem .7rem .5rem 0;
-    text-align: left;
-    vertical-align: top
-}
+  .toc h5 {
+    @apply mt-0;
+  }
 
-table.grid th {
-    font-weight: 600;
-    border-bottom: 2px solid var(--rule)
-}
-
-table.grid td:first-child {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: .82rem
-}
-
-.why,
-.note,
-.warn,
-.cmp {
-    margin: 1.5rem 0;
-    padding: 1rem 1.15rem;
-    background: var(--panel);
-    border-radius: 4px
-}
-
-.why {
-    border-top: 3px solid var(--why-accent)
-}
-
-.cmp {
-    border-top: 3px solid var(--cmp-accent)
-}
-
-.warn {
-    border-top: 3px solid var(--amber)
-}
-
-.note {
-    border-top: 3px solid var(--rule)
-}
-
-.why h5,
-.cmp h5,
-.warn h5,
-.note h5 {
-    margin-top: 0;
-    color: var(--ink)
-}
-
-.why p:last-child,
-.cmp p:last-child,
-.warn p:last-child,
-.note p:last-child,
-.why ul:last-child,
-.cmp ul:last-child,
-.warn ul:last-child,
-.note ul:last-child {
-    margin-bottom: 0
-}
-
-details {
-    margin: 1rem 0;
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: .15rem 1rem;
-    background: var(--panel)
-}
-
-details[open] {
-    padding-bottom: .8rem
-}
-
-summary {
-    cursor: pointer;
-    font-weight: 600;
-    padding: .7rem 0;
-    font-size: .95rem
-}
-
-summary::marker {
-    color: var(--accent)
-}
-
-blockquote {
-    margin: 1.2rem 0;
-    padding-left: 1rem;
-    border-left: 2px solid var(--cmp-accent);
-    color: var(--ink-soft);
-    font-style: italic
-}
-
-hr {
-    border: none;
-    border-top: 1px solid var(--rule);
-    margin: 3rem 0
-}
-
-.exercise {
-    border-left: 2px solid var(--accent-2);
-    padding-left: 1rem;
-    margin: 1.4rem 0
-}
-
-.exercise h5 {
-    color: var(--accent-2);
-    margin-top: 0
-}
-
-.milestone-head {
-    border-top: 2px solid var(--ink);
-    padding-top: 1.2rem;
-    margin-top: 4rem
-}
-
-ol.qs>li {
-    margin: .55rem 0
-}
-
-footer.end {
-    border-top: 1px solid var(--rule);
-    margin-top: 4rem;
-    padding-top: 1.5rem;
-    color: var(--ink-soft);
-    font-size: .92rem
-}
-
-.toc {
-    font-size: .95rem;
-    background: var(--panel);
-    padding: 1.2rem 1.4rem;
-    border-radius: 4px;
-    margin: 2rem 0
-}
-
-.toc ol {
-    margin: .4rem 0;
-    padding-left: 1.2rem
-}
-
-.toc h5 {
-    margin-top: 0
-}
-
-.button {
-    display: inline-block;
-    margin-top: 1rem;
-    padding: .6rem 1.1rem;
-    border-radius: 4px;
-    background: var(--accent);
-    color: var(--paper);
-    font-weight: 600;
-    text-decoration: none
-}
-
-.button:hover {
-    opacity: .9
+  .button {
+    @apply inline-block mt-4 px-[1.1rem] py-[.6rem] rounded bg-accent text-paper font-semibold no-underline hover:opacity-90;
+  }
 }
 
 /* ---------------------------------------------------------------------------
    Landing page (index route) layout. Only matches elements that exist on
    that page (bare header/main/footer, no .masthead) so it's safe to keep
-   global rather than scoping it under .theme-index.
+   global rather than folding it into @layer components.
    --------------------------------------------------------------------------- */
 
-header,
-main,
-footer.end,
-body>footer {
+@layer components {
+
+  header,
+  main,
+  footer.end,
+  body>footer {
     width: min(100% - 2.5rem, 50rem);
-    margin-left: auto;
-    margin-right: auto;
-}
+    @apply mx-auto;
+  }
 
-header {
-    padding: 3.5rem 0 2.5rem;
-    border-bottom: 1px solid var(--rule);
-}
+  header {
+    @apply pt-14 pb-10 border-b border-rule;
+  }
 
-header img {
-    display: block;
+  header img {
+    @apply block mx-auto mb-4;
     width: min(220px, 70vw);
-    height: auto;
-    margin: 0 auto 1rem;
-}
+  }
 
-header h1 {
-    margin: 0 0 .5rem;
+  header h1 {
+    @apply mb-2 leading-[1.1] tracking-[-.02em];
     font-size: clamp(2.2rem, 7vw, 3.5rem);
-    line-height: 1.1;
-    letter-spacing: -.02em;
-}
+  }
 
-header p {
-    max-width: 38rem;
-    margin: 0 auto;
-    color: var(--ink-soft);
-}
+  header p {
+    @apply max-w-[38rem] mx-auto text-ink-soft;
+  }
 
-nav.menu {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: .5rem .6rem;
-    margin-top: 1.5rem;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: .82rem;
-}
+  .menu {
+    @apply flex flex-wrap justify-center gap-x-[.6rem] gap-y-2 mt-6 font-mono text-[.82rem];
+  }
 
-nav.menu a,
-nav.menu .soon {
-    padding: .4rem .85rem;
-    border-radius: 999px;
-    line-height: 1.1;
-}
+  .menu a,
+  .menu .soon {
+    @apply px-[.85rem] py-[.4rem] rounded-full leading-[1.1];
+  }
 
-nav.menu a {
-    border: 1px solid var(--rule);
-    color: var(--ink);
-    text-decoration: none;
-}
+  .menu a {
+    @apply border border-rule text-ink no-underline hover:border-accent hover:text-accent;
+  }
 
-nav.menu a:hover,
-nav.menu a:focus-visible {
-    border-color: var(--accent);
-    color: var(--accent);
-}
+  .menu .soon {
+    @apply border border-dashed border-rule text-ink-soft;
+  }
 
-nav.menu .soon {
-    border: 1px dashed var(--rule);
-    color: var(--ink-soft);
-}
+  .menu .soon small {
+    @apply text-[.85em];
+  }
 
-nav.menu .soon small {
-    font-size: .85em;
-}
+  main {
+    @apply py-8;
+  }
 
-main {
-    padding: 1.5rem 0 2rem;
-}
+  main>h2 {
+    @apply border-t border-rule pt-5;
+  }
 
-main>h2 {
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--rule);
-}
+  main>h2:first-of-type {
+    @apply mt-8;
+  }
 
-main>h2:first-of-type {
-    margin-top: 2rem;
-}
+  main section {
+    @apply my-4 mb-8 px-[1.15rem] bg-panel rounded-r;
+    border-left: 3px solid var(--color-accent);
+  }
 
-main section {
-    margin: 1rem 0 2rem;
-    padding: 0 1.15rem;
-    border-left: 3px solid var(--teal);
-    background: var(--panel);
-    border-radius: 0 4px 4px 0;
-}
+  main section h3 {
+    @apply pt-[1.4rem] mt-0;
+  }
 
-main section h3 {
-    padding-top: 1.4rem;
-    margin-top: 0;
-}
+  main section h3:not(:first-child) {
+    @apply border-t border-rule;
+  }
 
-main section h3:not(:first-child) {
-    border-top: 1px solid var(--rule);
-}
+  main section blockquote {
+    @apply mb-6;
+  }
 
-main section blockquote {
-    margin-bottom: 1.5rem;
-}
+  main section .start {
+    @apply -mt-3 mb-6 text-[.92rem];
+  }
 
-main section p.start {
-    margin: -.75rem 0 1.5rem;
-    font-size: .92rem;
-}
+  main section .start a {
+    @apply font-semibold;
+  }
 
-main section p.start a {
-    font-weight: 600;
-}
+  main section .start.soon {
+    @apply text-ink-soft italic;
+  }
 
-main section p.start.soon {
-    color: var(--ink-soft);
-    font-style: italic;
-}
+  body>footer {
+    @apply border-t border-rule pt-4 pb-16 text-ink-soft;
+  }
 
-body>footer {
-    border-top: 1px solid var(--rule);
-    padding: 1rem 0 4rem;
-    color: var(--ink-soft);
-}
-
-body>footer h2 {
-    margin-top: 1rem;
-    border: 0;
+  body>footer h2 {
+    @apply mt-4 border-0;
+  }
 }
 
 @media (max-width: 38rem) {
 
-    header,
-    main,
-    footer.end,
-    body>footer {
-        width: min(100% - 1.5rem, 50rem);
-    }
+  header,
+  main,
+  footer.end,
+  body>footer {
+    width: min(100% - 1.5rem, 50rem);
+  }
 
-    main section {
-        padding: 0 .85rem;
-    }
+  main section {
+    @apply px-[.85rem];
+  }
 }
 
 /* ---------------------------------------------------------------------------
-   Per-course theme classes. Applied as a wrapper className around each
-   page's content by the page component. Each one supplies the full palette
-   (light default, dark override) plus the --accent/--accent-2/--why-accent/
-   --cmp-accent aliases that the component rules above consume.
+   Per-course theme scopes. Applied as a wrapper className around each
+   page's content. Each one overrides the @theme defaults above (light,
+   then dark via prefers-color-scheme and the manual [data-theme] escape
+   hatch) plus the --color-why/--color-cmp aliases those component classes
+   use. Utilities built from these tokens (bg-paper, text-accent, ...)
+   resolve correctly wherever they're used beneath the scope, because
+   custom properties cascade normally.
    --------------------------------------------------------------------------- */
 
 .theme-index,
 .theme-go,
 .theme-ruby,
 .theme-perl {
-    display: block;
-    min-height: 100vh;
-    padding-top: 3.25rem;
-    /* clearance for the fixed FloatingMenu */
-    background: var(--paper);
-    color: var(--ink);
+  @apply block min-h-screen pt-13 bg-paper text-ink;
 }
 
-.theme-index {
-    --paper: #F2F4F1;
-    --ink: #1B2320;
-    --ink-soft: #4C5A54;
-    --rule: #CBD4CD;
-    --teal: #0F5C56;
-    --plum: #6B2D5B;
-    --code-bg: #EAEEE9;
-    --panel: #E7ECE6;
-    --sel: rgba(15, 92, 86, .16);
-    --accent: var(--teal);
-    --accent-2: var(--plum);
-    --why-accent: var(--teal);
-    --cmp-accent: var(--plum);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-index {
-        --paper: #101613;
-        --ink: #E4EAE4;
-        --ink-soft: #A3B2AA;
-        --rule: #2C3833;
-        --teal: #6FD0C2;
-        --plum: #D79BC6;
-        --code-bg: #17201C;
-        --panel: #161E1A;
-        --sel: rgba(111, 208, 194, .18);
-    }
-}
-
-:root[data-theme="dark"] .theme-index {
-    --paper: #101613;
-    --ink: #E4EAE4;
-    --ink-soft: #A3B2AA;
-    --rule: #2C3833;
-    --teal: #6FD0C2;
-    --plum: #D79BC6;
-    --code-bg: #17201C;
-    --panel: #161E1A;
-    --sel: rgba(111, 208, 194, .18);
-}
-
+.theme-index,
 .theme-go {
-    --paper: #F2F4F1;
-    --ink: #1B2320;
-    --ink-soft: #4C5A54;
-    --rule: #CBD4CD;
-    --teal: #0F5C56;
-    --plum: #6B2D5B;
-    --code-bg: #EAEEE9;
-    --panel: #E7ECE6;
-    --sel: rgba(15, 92, 86, .16);
-    --accent: var(--teal);
-    --accent-2: var(--plum);
-    --why-accent: var(--teal);
-    --cmp-accent: var(--plum);
+  --color-paper: #F2F4F1;
+  --color-ink: #1B2320;
+  --color-ink-soft: #4C5A54;
+  --color-rule: #CBD4CD;
+  --color-code: #EAEEE9;
+  --color-panel: #E7ECE6;
+  --color-accent: #0F5C56;
+  --color-accent-2: #6B2D5B;
+  --color-why: #0F5C56;
+  --color-cmp: #6B2D5B;
+  --color-select: rgba(15, 92, 86, .16);
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-go {
-        --paper: #101613;
-        --ink: #E4EAE4;
-        --ink-soft: #A3B2AA;
-        --rule: #2C3833;
-        --teal: #6FD0C2;
-        --plum: #D79BC6;
-        --code-bg: #17201C;
-        --panel: #161E1A;
-        --sel: rgba(111, 208, 194, .18);
-    }
+
+  :root:not([data-theme="light"]) .theme-index,
+  :root:not([data-theme="light"]) .theme-go {
+    --color-paper: #101613;
+    --color-ink: #E4EAE4;
+    --color-ink-soft: #A3B2AA;
+    --color-rule: #2C3833;
+    --color-code: #17201C;
+    --color-panel: #161E1A;
+    --color-accent: #6FD0C2;
+    --color-accent-2: #D79BC6;
+    --color-why: #6FD0C2;
+    --color-cmp: #D79BC6;
+    --color-select: rgba(111, 208, 194, .18);
+  }
 }
 
+:root[data-theme="dark"] .theme-index,
 :root[data-theme="dark"] .theme-go {
-    --paper: #101613;
-    --ink: #E4EAE4;
-    --ink-soft: #A3B2AA;
-    --rule: #2C3833;
-    --teal: #6FD0C2;
-    --plum: #D79BC6;
-    --code-bg: #17201C;
-    --panel: #161E1A;
-    --sel: rgba(111, 208, 194, .18);
+  --color-paper: #101613;
+  --color-ink: #E4EAE4;
+  --color-ink-soft: #A3B2AA;
+  --color-rule: #2C3833;
+  --color-code: #17201C;
+  --color-panel: #161E1A;
+  --color-accent: #6FD0C2;
+  --color-accent-2: #D79BC6;
+  --color-why: #6FD0C2;
+  --color-cmp: #D79BC6;
+  --color-select: rgba(111, 208, 194, .18);
 }
 
 .theme-ruby {
-    --paper: #F4F2F4;
-    --ink: #211B22;
-    --ink-soft: #574C59;
-    --rule: #D2CBD4;
-    --teal: #0F5C56;
-    --plum: #6B2D5B;
-    --code-bg: #EDE9EE;
-    --panel: #E9E4EA;
-    --sel: rgba(107, 45, 91, .16);
-    --accent: var(--plum);
-    --accent-2: var(--teal);
-    --why-accent: var(--teal);
-    --cmp-accent: var(--plum);
+  --color-paper: #F4F2F4;
+  --color-ink: #211B22;
+  --color-ink-soft: #574C59;
+  --color-rule: #D2CBD4;
+  --color-code: #EDE9EE;
+  --color-panel: #E9E4EA;
+  --color-accent: #6B2D5B;
+  --color-accent-2: #0F5C56;
+  --color-why: #0F5C56;
+  --color-cmp: #6B2D5B;
+  --color-select: rgba(107, 45, 91, .16);
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-ruby {
-        --paper: #141017;
-        --ink: #E8E3EA;
-        --ink-soft: #ADA2B2;
-        --rule: #332A36;
-        --teal: #6FD0C2;
-        --plum: #D79BC6;
-        --code-bg: #1C1620;
-        --panel: #1A1420;
-        --sel: rgba(215, 155, 198, .18);
-    }
+  :root:not([data-theme="light"]) .theme-ruby {
+    --color-paper: #141017;
+    --color-ink: #E8E3EA;
+    --color-ink-soft: #ADA2B2;
+    --color-rule: #332A36;
+    --color-code: #1C1620;
+    --color-panel: #1A1420;
+    --color-accent: #D79BC6;
+    --color-accent-2: #6FD0C2;
+    --color-why: #6FD0C2;
+    --color-cmp: #D79BC6;
+    --color-select: rgba(215, 155, 198, .18);
+  }
 }
 
 :root[data-theme="dark"] .theme-ruby {
-    --paper: #141017;
-    --ink: #E8E3EA;
-    --ink-soft: #ADA2B2;
-    --rule: #332A36;
-    --teal: #6FD0C2;
-    --plum: #D79BC6;
-    --code-bg: #1C1620;
-    --panel: #1A1420;
-    --sel: rgba(215, 155, 198, .18);
+  --color-paper: #141017;
+  --color-ink: #E8E3EA;
+  --color-ink-soft: #ADA2B2;
+  --color-rule: #332A36;
+  --color-code: #1C1620;
+  --color-panel: #1A1420;
+  --color-accent: #D79BC6;
+  --color-accent-2: #6FD0C2;
+  --color-why: #6FD0C2;
+  --color-cmp: #D79BC6;
+  --color-select: rgba(215, 155, 198, .18);
 }
 
 .theme-perl {
-    --paper: #F3F0E9;
-    --ink: #232019;
-    --ink-soft: #5A5346;
-    --rule: #D5CEBF;
-    --umber: #7A4E2D;
-    --slate: #2F5754;
-    --code-bg: #ECE7DC;
-    --panel: #E8E2D4;
-    --sel: rgba(122, 78, 45, .16);
-    --accent: var(--umber);
-    --accent-2: var(--slate);
-    --why-accent: var(--slate);
-    --cmp-accent: var(--umber);
+  --color-paper: #F3F0E9;
+  --color-ink: #232019;
+  --color-ink-soft: #5A5346;
+  --color-rule: #D5CEBF;
+  --color-code: #ECE7DC;
+  --color-panel: #E8E2D4;
+  --color-accent: #7A4E2D;
+  --color-accent-2: #2F5754;
+  --color-why: #2F5754;
+  --color-cmp: #7A4E2D;
+  --color-select: rgba(122, 78, 45, .16);
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-perl {
-        --paper: #15130E;
-        --ink: #EAE4D6;
-        --ink-soft: #ADA593;
-        --rule: #332E24;
-        --umber: #D79A6A;
-        --slate: #7FC3BC;
-        --code-bg: #1D1A13;
-        --panel: #1C1913;
-        --sel: rgba(215, 154, 106, .18);
-    }
+  :root:not([data-theme="light"]) .theme-perl {
+    --color-paper: #15130E;
+    --color-ink: #EAE4D6;
+    --color-ink-soft: #ADA593;
+    --color-rule: #332E24;
+    --color-code: #1D1A13;
+    --color-panel: #1C1913;
+    --color-accent: #D79A6A;
+    --color-accent-2: #7FC3BC;
+    --color-why: #7FC3BC;
+    --color-cmp: #D79A6A;
+    --color-select: rgba(215, 154, 106, .18);
+  }
 }
 
 :root[data-theme="dark"] .theme-perl {
-    --paper: #15130E;
-    --ink: #EAE4D6;
-    --ink-soft: #ADA593;
-    --rule: #332E24;
-    --umber: #D79A6A;
-    --slate: #7FC3BC;
-    --code-bg: #1D1A13;
-    --panel: #1C1913;
-    --sel: rgba(215, 154, 106, .18);
+  --color-paper: #15130E;
+  --color-ink: #EAE4D6;
+  --color-ink-soft: #ADA593;
+  --color-rule: #332E24;
+  --color-code: #1D1A13;
+  --color-panel: #1C1913;
+  --color-accent: #D79A6A;
+  --color-accent-2: #7FC3BC;
+  --color-why: #7FC3BC;
+  --color-cmp: #D79A6A;
+  --color-select: rgba(215, 154, 106, .18);
 }
 
 /* ---------------------------------------------------------------------------
-   Floating site nav. Fixed to the top of every page, independent of the
-   active course's theme so it stays visually consistent site-wide.
+   Floating site nav. Fixed to the top of every page, deliberately outside
+   any .theme-* scope so it reads the same regardless of the active course.
    --------------------------------------------------------------------------- */
 
 .floating-menu {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: .15rem;
-    height: 3.25rem;
-    padding: 0 .75rem;
-    background: rgba(242, 244, 241, .88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(27, 35, 32, .1);
-    overflow-x: auto;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: .8rem;
+  @apply fixed inset-x-0 top-0 z-50 flex items-center gap-[.15rem] h-13 px-3;
+  @apply bg-[#F2F4F1]/90 backdrop-blur border-b border-black/10 overflow-x-auto font-mono text-[.8rem];
 }
 
 .floating-menu-brand {
-    font-weight: 600;
-    color: #1B2320;
-    text-decoration: none;
-    white-space: nowrap;
-    margin-right: .5rem;
-    padding: .35rem .5rem;
-    border-radius: 999px;
+  @apply font-semibold text-[#1B2320] no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
 }
 
 .floating-menu-links {
-    display: flex;
-    align-items: center;
-    gap: .15rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  @apply flex items-center gap-[.15rem] list-none m-0 p-0;
 }
 
 .floating-menu a,
 .floating-menu span.soon {
-    white-space: nowrap;
-    padding: .4rem .75rem;
-    border-radius: 999px;
-    text-decoration: none;
+  @apply whitespace-nowrap px-3 py-[.4rem] rounded-full no-underline;
 }
 
 .floating-menu a {
-    color: rgba(27, 35, 32, .65);
+  color: rgb(27 35 32 / .65);
 }
 
 .floating-menu a:hover,
 .floating-menu a:focus-visible,
 .floating-menu a[data-active="true"] {
-    background: rgba(27, 35, 32, .08);
-    color: #1B2320;
+  @apply bg-black/[.08] text-[#1B2320];
 }
 
 .floating-menu span.soon {
-    color: rgba(27, 35, 32, .32);
-    font-style: italic;
+  @apply text-black/30 italic;
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .floating-menu {
-        background: rgba(16, 22, 19, .88);
-        border-bottom-color: rgba(228, 234, 228, .12);
-    }
+  :root:not([data-theme="light"]) .floating-menu {
+    @apply bg-[#101613]/90 border-white/10;
+  }
 
-    :root:not([data-theme="light"]) .floating-menu-brand {
-        color: #E4EAE4;
-    }
+  :root:not([data-theme="light"]) .floating-menu-brand {
+    @apply text-[#E4EAE4];
+  }
 
-    :root:not([data-theme="light"]) .floating-menu a {
-        color: rgba(228, 234, 228, .68);
-    }
+  :root:not([data-theme="light"]) .floating-menu a {
+    color: rgb(228 234 228 / .68);
+  }
 
-    :root:not([data-theme="light"]) .floating-menu a:hover,
-    :root:not([data-theme="light"]) .floating-menu a:focus-visible,
-    :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
-        background: rgba(228, 234, 228, .14);
-        color: #E4EAE4;
-    }
+  :root:not([data-theme="light"]) .floating-menu a:hover,
+  :root:not([data-theme="light"]) .floating-menu a:focus-visible,
+  :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
+    @apply bg-white/[.14] text-[#E4EAE4];
+  }
 
-    :root:not([data-theme="light"]) .floating-menu span.soon {
-        color: rgba(228, 234, 228, .32);
-    }
+  :root:not([data-theme="light"]) .floating-menu span.soon {
+    @apply text-white/30;
+  }
 }
 
 :root[data-theme="dark"] .floating-menu {
-    background: rgba(16, 22, 19, .88);
-    border-bottom-color: rgba(228, 234, 228, .12);
+  @apply bg-[#101613]/90 border-white/10;
 }
 
 :root[data-theme="dark"] .floating-menu-brand {
-    color: #E4EAE4;
+  @apply text-[#E4EAE4];
 }
 
 :root[data-theme="dark"] .floating-menu a {
-    color: rgba(228, 234, 228, .68);
+  color: rgb(228 234 228 / .68);
 }
 
 :root[data-theme="dark"] .floating-menu a:hover,
 :root[data-theme="dark"] .floating-menu a:focus-visible,
 :root[data-theme="dark"] .floating-menu a[data-active="true"] {
-    background: rgba(228, 234, 228, .14);
-    color: #E4EAE4;
+  @apply bg-white/[.14] text-[#E4EAE4];
 }
 
 :root[data-theme="dark"] .floating-menu span.soon {
-    color: rgba(228, 234, 228, .32);
+  @apply text-white/30;
 }

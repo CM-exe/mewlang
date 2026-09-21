@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const LINKS = [
+interface CourseLink {
+  href: string;
+  label: string;
+}
+
+interface SoonLink {
+  label: string;
+  soon: true;
+}
+
+const LINKS: Array<CourseLink | SoonLink> = [
   { href: '/overview/', label: 'Overview' },
   { href: '/go-course/instalment/', label: 'Go' },
   { href: '/ruby-course/instalment/', label: 'Ruby' },
@@ -11,6 +21,10 @@ const LINKS = [
   { label: 'Erlang', soon: true },
   { label: 'Racket', soon: true },
 ];
+
+function isSoon(link: CourseLink | SoonLink): link is SoonLink {
+  return 'soon' in link;
+}
 
 export default function FloatingMenu() {
   const pathname = usePathname();
@@ -22,7 +36,7 @@ export default function FloatingMenu() {
       </Link>
       <ul className="floating-menu-links">
         {LINKS.map((link) =>
-          link.soon ? (
+          isSoon(link) ? (
             <li key={link.label}>
               <span className="soon">{link.label}</span>
             </li>

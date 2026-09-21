@@ -1,7 +1,9 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import FloatingMenu from '../components/FloatingMenu';
 import './globals.css';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
     default: 'Mewlang',
     template: '%s · Mewlang',
@@ -13,7 +15,7 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
