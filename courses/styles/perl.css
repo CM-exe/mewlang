@@ -1,0 +1,44 @@
+/* Perl course palette. Load after common.css. */
+
+:root {
+    --paper: #F3F0E9;
+    --ink: #232019;
+    --ink-soft: #5A5346;
+    --rule: #D5CEBF;
+    --umber: #7A4E2D;
+    --slate: #2F5754;
+    --code-bg: #ECE7DC;
+    --panel: #E8E2D4;
+    --sel: rgba(122, 78, 45, .16);
+
+    --accent: var(--umber);
+    --accent-2: var(--slate);
+    --why-accent: var(--slate);
+    --cmp-accent: var(--umber);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --paper: #15130E;
+        --ink: #EAE4D6;
+        --ink-soft: #ADA593;
+        --rule: #332E24;
+        --umber: #D79A6A;
+        --slate: #7FC3BC;
+        --code-bg: #1D1A13;
+        --panel: #1C1913;
+        --sel: rgba(215, 154, 106, .18);
+    }
+}
+
+:root[data-theme="dark"] {
+    --paper: #15130E;
+    --ink: #EAE4D6;
+    --ink-soft: #ADA593;
+    --rule: #332E24;
+    --umber: #D79A6A;
+    --slate: #7FC3BC;
+    --code-bg: #1D1A13;
+    --panel: #1C1913;
+    --sel: rgba(215, 154, 106, .18);
+}

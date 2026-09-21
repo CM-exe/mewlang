@@ -1,3 +1,6 @@
+/* Landing-page palette and layout. Load after common.css, which supplies
+   the reset, typography and code/quote styling this page also needs. */
+
 :root {
     --paper: #F2F4F1;
     --ink: #1B2320;
@@ -5,10 +8,14 @@
     --rule: #CBD4CD;
     --teal: #0F5C56;
     --plum: #6B2D5B;
-    --amber: #8A5A00;
     --code-bg: #EAEEE9;
     --panel: #E7ECE6;
     --sel: rgba(15, 92, 86, .16);
+
+    --accent: var(--teal);
+    --accent-2: var(--plum);
+    --why-accent: var(--teal);
+    --cmp-accent: var(--plum);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,7 +26,6 @@
         --rule: #2C3833;
         --teal: #6FD0C2;
         --plum: #D79BC6;
-        --amber: #E0B25E;
         --code-bg: #17201C;
         --panel: #161E1A;
         --sel: rgba(111, 208, 194, .18);
@@ -33,32 +39,9 @@
     --rule: #2C3833;
     --teal: #6FD0C2;
     --plum: #D79BC6;
-    --amber: #E0B25E;
     --code-bg: #17201C;
     --panel: #161E1A;
     --sel: rgba(111, 208, 194, .18);
-}
-
-* {
-    box-sizing: border-box
-}
-
-html {
-    -webkit-text-size-adjust: 100%
-}
-
-body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Newsreader", Georgia, "Times New Roman", serif;
-    font-size: 19px;
-    line-height: 1.62;
-    font-weight: 400;
-}
-
-::selection {
-    background: var(--sel)
 }
 
 /* Mewlang landing page */
