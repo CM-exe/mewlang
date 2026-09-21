@@ -1,0 +1,825 @@
+/* ===========================================================================
+   Mewlang global stylesheet.
+
+   Structure:
+   1. Shared warning hue (--amber), identical across every course.
+   2. Base reset + typography + every reusable component class (.why, .cmp,
+      .warn, .note, .exercise, .toc, .button, table.grid, pre/code, etc).
+      These rules reference --paper/--ink/--accent/etc. but never set them.
+   3. Landing-page-only layout (header/main/footer/nav.menu on the home page).
+   4. Per-course theme classes (.theme-index, .theme-go, .theme-ruby,
+      .theme-perl) — each defines the palette + accent variables and is
+      applied as a wrapper className by the page that uses it.
+   5. The floating site nav (components/FloatingMenu.jsx), theme-independent.
+   =========================================================================== */
+
+:root {
+    --amber: #8A5A00;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --amber: #E0B25E;
+    }
+}
+
+:root[data-theme="dark"] {
+    --amber: #E0B25E;
+}
+
+* {
+    box-sizing: border-box
+}
+
+html {
+    -webkit-text-size-adjust: 100%
+}
+
+body {
+    margin: 0;
+    font-family: "Newsreader", Georgia, "Times New Roman", serif;
+    font-size: 19px;
+    line-height: 1.62;
+    font-weight: 400;
+}
+
+::selection {
+    background: var(--sel)
+}
+
+.wrap {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 0 1.25rem 6rem
+}
+
+header.masthead {
+    border-bottom: 1px solid var(--rule);
+    padding: 4rem 0 2rem;
+    margin-bottom: 2rem
+}
+
+header.masthead .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .8rem;
+    color: var(--accent);
+    margin: 0 0 1rem
+}
+
+header.masthead h1 {
+    font-size: clamp(2rem, 5.5vw, 3.1rem);
+    line-height: 1.1;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    letter-spacing: -.015em
+}
+
+header.masthead p.lede {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 34rem
+}
+
+table.index {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    font-size: .95rem
+}
+
+table.index td {
+    padding: .55rem .6rem .55rem 0;
+    border-top: 1px solid var(--rule);
+    vertical-align: top
+}
+
+table.index td:first-child {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    width: 5.5rem
+}
+
+h2 {
+    font-size: 1.85rem;
+    line-height: 1.15;
+    font-weight: 600;
+    margin: 3.4rem 0 .3rem;
+    letter-spacing: -.01em
+}
+
+h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .45rem
+}
+
+h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 2.3rem 0 .4rem
+}
+
+h4 {
+    font-size: 1.06rem;
+    font-weight: 600;
+    margin: 1.7rem 0 .3rem
+}
+
+h5 {
+    font-size: .95rem;
+    font-weight: 600;
+    margin: 1.2rem 0 .2rem;
+    color: var(--ink-soft)
+}
+
+p {
+    margin: .75rem 0
+}
+
+a {
+    color: var(--accent);
+    text-underline-offset: 2px
+}
+
+a:focus-visible,
+summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px
+}
+
+ul,
+ol {
+    padding-left: 1.3rem;
+    margin: .7rem 0
+}
+
+li {
+    margin: .32rem 0
+}
+
+code {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .86em;
+    background: var(--code-bg);
+    padding: .1em .32em;
+    border-radius: 3px
+}
+
+pre {
+    background: var(--code-bg);
+    border-left: 2px solid var(--accent);
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    border-radius: 0 4px 4px 0
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    font-size: .8rem;
+    line-height: 1.55;
+    display: block;
+    white-space: pre
+}
+
+pre.plain {
+    border-left-color: var(--rule)
+}
+
+pre.bad {
+    border-left-color: var(--amber)
+}
+
+table.grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+    margin: 1.2rem 0;
+    display: block;
+    overflow-x: auto
+}
+
+table.grid th,
+table.grid td {
+    border-bottom: 1px solid var(--rule);
+    padding: .5rem .7rem .5rem 0;
+    text-align: left;
+    vertical-align: top
+}
+
+table.grid th {
+    font-weight: 600;
+    border-bottom: 2px solid var(--rule)
+}
+
+table.grid td:first-child {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .82rem
+}
+
+.why,
+.note,
+.warn,
+.cmp {
+    margin: 1.5rem 0;
+    padding: 1rem 1.15rem;
+    background: var(--panel);
+    border-radius: 4px
+}
+
+.why {
+    border-top: 3px solid var(--why-accent)
+}
+
+.cmp {
+    border-top: 3px solid var(--cmp-accent)
+}
+
+.warn {
+    border-top: 3px solid var(--amber)
+}
+
+.note {
+    border-top: 3px solid var(--rule)
+}
+
+.why h5,
+.cmp h5,
+.warn h5,
+.note h5 {
+    margin-top: 0;
+    color: var(--ink)
+}
+
+.why p:last-child,
+.cmp p:last-child,
+.warn p:last-child,
+.note p:last-child,
+.why ul:last-child,
+.cmp ul:last-child,
+.warn ul:last-child,
+.note ul:last-child {
+    margin-bottom: 0
+}
+
+details {
+    margin: 1rem 0;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: .15rem 1rem;
+    background: var(--panel)
+}
+
+details[open] {
+    padding-bottom: .8rem
+}
+
+summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: .7rem 0;
+    font-size: .95rem
+}
+
+summary::marker {
+    color: var(--accent)
+}
+
+blockquote {
+    margin: 1.2rem 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--cmp-accent);
+    color: var(--ink-soft);
+    font-style: italic
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 3rem 0
+}
+
+.exercise {
+    border-left: 2px solid var(--accent-2);
+    padding-left: 1rem;
+    margin: 1.4rem 0
+}
+
+.exercise h5 {
+    color: var(--accent-2);
+    margin-top: 0
+}
+
+.milestone-head {
+    border-top: 2px solid var(--ink);
+    padding-top: 1.2rem;
+    margin-top: 4rem
+}
+
+ol.qs>li {
+    margin: .55rem 0
+}
+
+footer.end {
+    border-top: 1px solid var(--rule);
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    color: var(--ink-soft);
+    font-size: .92rem
+}
+
+.toc {
+    font-size: .95rem;
+    background: var(--panel);
+    padding: 1.2rem 1.4rem;
+    border-radius: 4px;
+    margin: 2rem 0
+}
+
+.toc ol {
+    margin: .4rem 0;
+    padding-left: 1.2rem
+}
+
+.toc h5 {
+    margin-top: 0
+}
+
+.button {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: .6rem 1.1rem;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--paper);
+    font-weight: 600;
+    text-decoration: none
+}
+
+.button:hover {
+    opacity: .9
+}
+
+/* ---------------------------------------------------------------------------
+   Landing page (index route) layout. Only matches elements that exist on
+   that page (bare header/main/footer, no .masthead) so it's safe to keep
+   global rather than scoping it under .theme-index.
+   --------------------------------------------------------------------------- */
+
+header,
+main,
+footer.end,
+body>footer {
+    width: min(100% - 2.5rem, 50rem);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+header {
+    padding: 3.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+header img {
+    display: block;
+    width: min(220px, 70vw);
+    height: auto;
+    margin: 0 auto 1rem;
+}
+
+header h1 {
+    margin: 0 0 .5rem;
+    font-size: clamp(2.2rem, 7vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+}
+
+header p {
+    max-width: 38rem;
+    margin: 0 auto;
+    color: var(--ink-soft);
+}
+
+nav.menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem .6rem;
+    margin-top: 1.5rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82rem;
+}
+
+nav.menu a,
+nav.menu .soon {
+    padding: .4rem .85rem;
+    border-radius: 999px;
+    line-height: 1.1;
+}
+
+nav.menu a {
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+nav.menu a:hover,
+nav.menu a:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+nav.menu .soon {
+    border: 1px dashed var(--rule);
+    color: var(--ink-soft);
+}
+
+nav.menu .soon small {
+    font-size: .85em;
+}
+
+main {
+    padding: 1.5rem 0 2rem;
+}
+
+main>h2 {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+}
+
+main>h2:first-of-type {
+    margin-top: 2rem;
+}
+
+main section {
+    margin: 1rem 0 2rem;
+    padding: 0 1.15rem;
+    border-left: 3px solid var(--teal);
+    background: var(--panel);
+    border-radius: 0 4px 4px 0;
+}
+
+main section h3 {
+    padding-top: 1.4rem;
+    margin-top: 0;
+}
+
+main section h3:not(:first-child) {
+    border-top: 1px solid var(--rule);
+}
+
+main section blockquote {
+    margin-bottom: 1.5rem;
+}
+
+main section p.start {
+    margin: -.75rem 0 1.5rem;
+    font-size: .92rem;
+}
+
+main section p.start a {
+    font-weight: 600;
+}
+
+main section p.start.soon {
+    color: var(--ink-soft);
+    font-style: italic;
+}
+
+body>footer {
+    border-top: 1px solid var(--rule);
+    padding: 1rem 0 4rem;
+    color: var(--ink-soft);
+}
+
+body>footer h2 {
+    margin-top: 1rem;
+    border: 0;
+}
+
+@media (max-width: 38rem) {
+
+    header,
+    main,
+    footer.end,
+    body>footer {
+        width: min(100% - 1.5rem, 50rem);
+    }
+
+    main section {
+        padding: 0 .85rem;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Per-course theme classes. Applied as a wrapper className around each
+   page's content by the page component. Each one supplies the full palette
+   (light default, dark override) plus the --accent/--accent-2/--why-accent/
+   --cmp-accent aliases that the component rules above consume.
+   --------------------------------------------------------------------------- */
+
+.theme-index,
+.theme-go,
+.theme-ruby,
+.theme-perl {
+    display: block;
+    min-height: 100vh;
+    padding-top: 3.25rem;
+    /* clearance for the fixed FloatingMenu */
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.theme-index {
+    --paper: #F2F4F1;
+    --ink: #1B2320;
+    --ink-soft: #4C5A54;
+    --rule: #CBD4CD;
+    --teal: #0F5C56;
+    --plum: #6B2D5B;
+    --code-bg: #EAEEE9;
+    --panel: #E7ECE6;
+    --sel: rgba(15, 92, 86, .16);
+    --accent: var(--teal);
+    --accent-2: var(--plum);
+    --why-accent: var(--teal);
+    --cmp-accent: var(--plum);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-index {
+        --paper: #101613;
+        --ink: #E4EAE4;
+        --ink-soft: #A3B2AA;
+        --rule: #2C3833;
+        --teal: #6FD0C2;
+        --plum: #D79BC6;
+        --code-bg: #17201C;
+        --panel: #161E1A;
+        --sel: rgba(111, 208, 194, .18);
+    }
+}
+
+:root[data-theme="dark"] .theme-index {
+    --paper: #101613;
+    --ink: #E4EAE4;
+    --ink-soft: #A3B2AA;
+    --rule: #2C3833;
+    --teal: #6FD0C2;
+    --plum: #D79BC6;
+    --code-bg: #17201C;
+    --panel: #161E1A;
+    --sel: rgba(111, 208, 194, .18);
+}
+
+.theme-go {
+    --paper: #F2F4F1;
+    --ink: #1B2320;
+    --ink-soft: #4C5A54;
+    --rule: #CBD4CD;
+    --teal: #0F5C56;
+    --plum: #6B2D5B;
+    --code-bg: #EAEEE9;
+    --panel: #E7ECE6;
+    --sel: rgba(15, 92, 86, .16);
+    --accent: var(--teal);
+    --accent-2: var(--plum);
+    --why-accent: var(--teal);
+    --cmp-accent: var(--plum);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-go {
+        --paper: #101613;
+        --ink: #E4EAE4;
+        --ink-soft: #A3B2AA;
+        --rule: #2C3833;
+        --teal: #6FD0C2;
+        --plum: #D79BC6;
+        --code-bg: #17201C;
+        --panel: #161E1A;
+        --sel: rgba(111, 208, 194, .18);
+    }
+}
+
+:root[data-theme="dark"] .theme-go {
+    --paper: #101613;
+    --ink: #E4EAE4;
+    --ink-soft: #A3B2AA;
+    --rule: #2C3833;
+    --teal: #6FD0C2;
+    --plum: #D79BC6;
+    --code-bg: #17201C;
+    --panel: #161E1A;
+    --sel: rgba(111, 208, 194, .18);
+}
+
+.theme-ruby {
+    --paper: #F4F2F4;
+    --ink: #211B22;
+    --ink-soft: #574C59;
+    --rule: #D2CBD4;
+    --teal: #0F5C56;
+    --plum: #6B2D5B;
+    --code-bg: #EDE9EE;
+    --panel: #E9E4EA;
+    --sel: rgba(107, 45, 91, .16);
+    --accent: var(--plum);
+    --accent-2: var(--teal);
+    --why-accent: var(--teal);
+    --cmp-accent: var(--plum);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-ruby {
+        --paper: #141017;
+        --ink: #E8E3EA;
+        --ink-soft: #ADA2B2;
+        --rule: #332A36;
+        --teal: #6FD0C2;
+        --plum: #D79BC6;
+        --code-bg: #1C1620;
+        --panel: #1A1420;
+        --sel: rgba(215, 155, 198, .18);
+    }
+}
+
+:root[data-theme="dark"] .theme-ruby {
+    --paper: #141017;
+    --ink: #E8E3EA;
+    --ink-soft: #ADA2B2;
+    --rule: #332A36;
+    --teal: #6FD0C2;
+    --plum: #D79BC6;
+    --code-bg: #1C1620;
+    --panel: #1A1420;
+    --sel: rgba(215, 155, 198, .18);
+}
+
+.theme-perl {
+    --paper: #F3F0E9;
+    --ink: #232019;
+    --ink-soft: #5A5346;
+    --rule: #D5CEBF;
+    --umber: #7A4E2D;
+    --slate: #2F5754;
+    --code-bg: #ECE7DC;
+    --panel: #E8E2D4;
+    --sel: rgba(122, 78, 45, .16);
+    --accent: var(--umber);
+    --accent-2: var(--slate);
+    --why-accent: var(--slate);
+    --cmp-accent: var(--umber);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-perl {
+        --paper: #15130E;
+        --ink: #EAE4D6;
+        --ink-soft: #ADA593;
+        --rule: #332E24;
+        --umber: #D79A6A;
+        --slate: #7FC3BC;
+        --code-bg: #1D1A13;
+        --panel: #1C1913;
+        --sel: rgba(215, 154, 106, .18);
+    }
+}
+
+:root[data-theme="dark"] .theme-perl {
+    --paper: #15130E;
+    --ink: #EAE4D6;
+    --ink-soft: #ADA593;
+    --rule: #332E24;
+    --umber: #D79A6A;
+    --slate: #7FC3BC;
+    --code-bg: #1D1A13;
+    --panel: #1C1913;
+    --sel: rgba(215, 154, 106, .18);
+}
+
+/* ---------------------------------------------------------------------------
+   Floating site nav. Fixed to the top of every page, independent of the
+   active course's theme so it stays visually consistent site-wide.
+   --------------------------------------------------------------------------- */
+
+.floating-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: .15rem;
+    height: 3.25rem;
+    padding: 0 .75rem;
+    background: rgba(242, 244, 241, .88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(27, 35, 32, .1);
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8rem;
+}
+
+.floating-menu-brand {
+    font-weight: 600;
+    color: #1B2320;
+    text-decoration: none;
+    white-space: nowrap;
+    margin-right: .5rem;
+    padding: .35rem .5rem;
+    border-radius: 999px;
+}
+
+.floating-menu-links {
+    display: flex;
+    align-items: center;
+    gap: .15rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.floating-menu a,
+.floating-menu span.soon {
+    white-space: nowrap;
+    padding: .4rem .75rem;
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+.floating-menu a {
+    color: rgba(27, 35, 32, .65);
+}
+
+.floating-menu a:hover,
+.floating-menu a:focus-visible,
+.floating-menu a[data-active="true"] {
+    background: rgba(27, 35, 32, .08);
+    color: #1B2320;
+}
+
+.floating-menu span.soon {
+    color: rgba(27, 35, 32, .32);
+    font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .floating-menu {
+        background: rgba(16, 22, 19, .88);
+        border-bottom-color: rgba(228, 234, 228, .12);
+    }
+
+    :root:not([data-theme="light"]) .floating-menu-brand {
+        color: #E4EAE4;
+    }
+
+    :root:not([data-theme="light"]) .floating-menu a {
+        color: rgba(228, 234, 228, .68);
+    }
+
+    :root:not([data-theme="light"]) .floating-menu a:hover,
+    :root:not([data-theme="light"]) .floating-menu a:focus-visible,
+    :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
+        background: rgba(228, 234, 228, .14);
+        color: #E4EAE4;
+    }
+
+    :root:not([data-theme="light"]) .floating-menu span.soon {
+        color: rgba(228, 234, 228, .32);
+    }
+}
+
+:root[data-theme="dark"] .floating-menu {
+    background: rgba(16, 22, 19, .88);
+    border-bottom-color: rgba(228, 234, 228, .12);
+}
+
+:root[data-theme="dark"] .floating-menu-brand {
+    color: #E4EAE4;
+}
+
+:root[data-theme="dark"] .floating-menu a {
+    color: rgba(228, 234, 228, .68);
+}
+
+:root[data-theme="dark"] .floating-menu a:hover,
+:root[data-theme="dark"] .floating-menu a:focus-visible,
+:root[data-theme="dark"] .floating-menu a[data-active="true"] {
+    background: rgba(228, 234, 228, .14);
+    color: #E4EAE4;
+}
+
+:root[data-theme="dark"] .floating-menu span.soon {
+    color: rgba(228, 234, 228, .32);
+}
