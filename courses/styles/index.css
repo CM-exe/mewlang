@@ -1,0 +1,155 @@
+:root {
+    --paper: #F2F4F1;
+    --ink: #1B2320;
+    --ink-soft: #4C5A54;
+    --rule: #CBD4CD;
+    --teal: #0F5C56;
+    --plum: #6B2D5B;
+    --amber: #8A5A00;
+    --code-bg: #EAEEE9;
+    --panel: #E7ECE6;
+    --sel: rgba(15, 92, 86, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --paper: #101613;
+        --ink: #E4EAE4;
+        --ink-soft: #A3B2AA;
+        --rule: #2C3833;
+        --teal: #6FD0C2;
+        --plum: #D79BC6;
+        --amber: #E0B25E;
+        --code-bg: #17201C;
+        --panel: #161E1A;
+        --sel: rgba(111, 208, 194, .18);
+    }
+}
+
+:root[data-theme="dark"] {
+    --paper: #101613;
+    --ink: #E4EAE4;
+    --ink-soft: #A3B2AA;
+    --rule: #2C3833;
+    --teal: #6FD0C2;
+    --plum: #D79BC6;
+    --amber: #E0B25E;
+    --code-bg: #17201C;
+    --panel: #161E1A;
+    --sel: rgba(111, 208, 194, .18);
+}
+
+* {
+    box-sizing: border-box
+}
+
+html {
+    -webkit-text-size-adjust: 100%
+}
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, "Times New Roman", serif;
+    font-size: 19px;
+    line-height: 1.62;
+    font-weight: 400;
+}
+
+::selection {
+    background: var(--sel)
+}
+
+/* Mewlang landing page */
+header,
+main,
+footer.end,
+body > footer {
+    width: min(100% - 2.5rem, 50rem);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+header {
+    padding: 3.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+header img {
+    display: block;
+    width: min(220px, 70vw);
+    height: auto;
+    margin: 0 auto 1rem;
+}
+
+header h1 {
+    margin: 0 0 .5rem;
+    font-size: clamp(2.2rem, 7vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+}
+
+header p {
+    max-width: 38rem;
+    margin: 0 auto;
+    color: var(--ink-soft);
+}
+
+main {
+    padding: 1.5rem 0 2rem;
+}
+
+main > h2 {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+}
+
+main > h2:first-of-type {
+    margin-top: 2rem;
+}
+
+main section {
+    margin: 1rem 0 2rem;
+    padding: 0 1.15rem;
+    border-left: 3px solid var(--teal);
+    background: var(--panel);
+    border-radius: 0 4px 4px 0;
+}
+
+main section h3 {
+    padding-top: 1.4rem;
+    margin-top: 0;
+}
+
+main section h3:not(:first-child) {
+    border-top: 1px solid var(--rule);
+}
+
+main section blockquote {
+    margin-bottom: 1.5rem;
+}
+
+body > footer {
+    border-top: 1px solid var(--rule);
+    padding: 1rem 0 4rem;
+    color: var(--ink-soft);
+}
+
+body > footer h2 {
+    margin-top: 1rem;
+    border: 0;
+}
+
+@media (max-width: 38rem) {
+    header,
+    main,
+    footer.end,
+    body > footer {
+        width: min(100% - 1.5rem, 50rem);
+    }
+
+    main section {
+        padding: 0 .85rem;
+    }
+}
