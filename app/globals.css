@@ -395,10 +395,10 @@
    custom properties cascade normally.
    --------------------------------------------------------------------------- */
 
-.theme-index,
-.theme-go,
-.theme-ruby,
-.theme-perl {
+.theme-index:not(.floating-menu),
+.theme-go:not(.floating-menu),
+.theme-ruby:not(.floating-menu),
+.theme-perl:not(.floating-menu) {
   @apply block min-h-screen pt-13 bg-paper text-ink;
 }
 
