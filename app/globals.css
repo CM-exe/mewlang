@@ -25,18 +25,18 @@
    =========================================================================== */
 
 @theme {
-  --color-paper: #F2F4F1;
-  --color-ink: #1B2320;
-  --color-ink-soft: #4C5A54;
-  --color-rule: #CBD4CD;
-  --color-code: #EAEEE9;
-  --color-panel: #E7ECE6;
-  --color-accent: #0F5C56;
-  --color-accent-2: #6B2D5B;
-  --color-why: #0F5C56;
-  --color-cmp: #6B2D5B;
+  --color-paper: #FFF8F0;
+  --color-ink: #2A211C;
+  --color-ink-soft: #6B5A4D;
+  --color-rule: #E4D4C4;
+  --color-code: #F5EADF;
+  --color-panel: #F3E6D8;
+  --color-accent: #B34A2F;
+  --color-accent-2: #7A4E9B;
+  --color-why: #B34A2F;
+  --color-cmp: #7A4E9B;
   --color-amber: #8A5A00;
-  --color-select: rgba(15, 92, 86, .16);
+  --color-select: rgba(179, 74, 47, .16);
 
   --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;

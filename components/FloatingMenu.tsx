@@ -20,8 +20,8 @@ const LINKS: Array<CourseLink | SoonLink> = [
   { href: '/go-course/instalment/', label: 'Go' },
   { href: '/ruby-course/instalment/', label: 'Ruby' },
   { href: '/perl-course/instalment/', label: 'Perl' },
-  { label: 'Erlang', soon: true },
-  { label: 'Racket', soon: true },
+  { href: '/erlang-course/instalment/', label: 'Erlang' },
+  { href: '/racket-course/instalment/', label: 'Racket' },
 ];
 
 function isSoon(link: CourseLink | SoonLink): link is SoonLink {

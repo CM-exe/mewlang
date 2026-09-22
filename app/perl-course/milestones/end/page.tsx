@@ -394,14 +394,14 @@ export default function Page() {
           A dependency-light Perl distribution across roughly a dozen modules, five parsers behind one contract, a SQLite-backed correlation and graph engine with measured order-of-magnitude performance differences, a command-line tool that behaves correctly under a signal and inside a pipeline, a fuzzer that found a real bug in under a second, and a live log tailer that survives both ways a log file can change out from under you. More importantly: a habit of writing the hostile fixture before trusting the code that has to survive it, and of measuring a claimed speedup before writing it down.
         </p>
         <p>The central question of this curriculum was <em>what kinds of problems does this language make unusually natural to solve?</em> Perl's answer, stated as precisely as this project allows: <strong>problems where the input is real-world messy, the shape of "correct" is "did not corrupt or lose the awkward 10% of records", and the win comes from CPAN's decades of exactly-this-format modules plus a handful of small, sharp built-in idioms — context, autovivification, <code>foreach</code> aliasing, <code>alarm()</code>, <code>fork</code> — that read as strange in isolation and as exactly right once you have needed them once.</strong> Not the fastest, not the most structured, not the friendliest first error message. The one where a text file nobody designed on purpose stops being a mystery in an afternoon.</p>
-        <p>Courses 4 and 5 continue the same comparison — Erlang's processes and supervision trees against Go's goroutines and Perl's <code>fork</code>, and Racket's macros against the recursive-descent parser built in this instalment's advanced phase — but are not written yet. The <Link href="/overview/">syllabus overview</Link> describes what they will cover.</p>
+        <p>Courses 4 and 5 continue the same comparison — Erlang's processes and supervision trees against Go's goroutines and Perl's <code>fork</code>, and Racket's macros against the recursive-descent parser built in this instalment's advanced phase. The <Link href="/overview/">syllabus overview</Link> describes what they cover.</p>
         <footer className="end">
           <p>
             <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="160" loading="lazy" />
-            Instalment 15 of the five-course curriculum, and the end of Course 3. Courses 4 (Erlang) and 5 (Racket) are next in the curriculum but not yet written.
+            Instalment 15 of the five-course curriculum, and the end of Course 3. Course 4 (Erlang) is next.
           </p>
         </footer>
-         <Link className="button" href="/">Back to Mewlang</Link> 
+         <Link className="button" href="/erlang-course/instalment/">Next: Erlang instalment</Link> 
       </div>
     </div>
   );

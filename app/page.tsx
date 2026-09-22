@@ -17,7 +17,7 @@ export default function Page() {
         <img src={img1.src} alt="Mewlang logo" width="220" loading="lazy" />
         <h1>Mewlang</h1>
         <p><strong>Learn programming languages by building things that make each language worth learning.</strong></p>
-        <nav className="menu" aria-label="Course navigation"> <Link href="/overview/">Curriculum overview</Link> <Link href="/go-course/instalment/">Go</Link> <Link href="/ruby-course/instalment/">Ruby</Link> <Link href="/perl-course/instalment/">Perl</Link> <span className="soon">Erlang <small>(coming soon)</small></span> <span className="soon">Racket <small>(coming soon)</small></span> </nav>
+        <nav className="menu" aria-label="Course navigation"> <Link href="/overview/">Curriculum overview</Link> <Link href="/go-course/instalment/">Go</Link> <Link href="/ruby-course/instalment/">Ruby</Link> <Link href="/perl-course/instalment/">Perl</Link> <Link href="/erlang-course/instalment/">Erlang</Link> <Link href="/racket-course/instalment/">Racket</Link> </nav>
       </header>
       <main>
         <p>Mewlang is a hands-on programming-language learning project built around one idea:</p>
@@ -60,12 +60,12 @@ export default function Page() {
           <p><strong>Explore:</strong> Processes, message passing, pattern matching, <code>receive</code>, links, monitors, OTP, <code>gen_server</code>, supervision trees, distributed systems, and fault tolerance.</p>
           <p>Eventually, deliberately destroy parts of the network and watch it recover.</p>
           <blockquote>What if failure wasn't an exception, but a normal operating condition?</blockquote>
-          <p className="start soon">Course pages coming soon.</p>
+          <p className="start"><Link href="/erlang-course/instalment/">Start the Erlang course →</Link></p>
           <h3>🧪 Racket — Language Factory</h3>
           <p>Build a toolkit for creating small domain-specific programming languages for finance, robots, configuration, and games.</p>
           <p><strong>Explore:</strong> Functional programming, higher-order functions, structs, macros, syntax objects, hygienic macros, parsers, ASTs, interpreters, compilers, <code>#lang</code>, and language-oriented programming.</p>
           <blockquote>What if learning a programming language meant learning how to create one?</blockquote>
-          <p className="start soon">Course pages coming soon.</p>
+          <p className="start"><Link href="/racket-course/instalment/">Start the Racket course →</Link></p>
         </section>
         <h2>🎯 Philosophy</h2>
         <ol>
