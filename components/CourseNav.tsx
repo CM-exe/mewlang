@@ -31,7 +31,7 @@ export default function CourseNav() {
           className="course-nav-btn course-nav-prev"
           aria-label={`Previous: ${entry.prev.label}`}
         >
-          <img src={walkPrev.src} alt="" className="course-nav-mascot" />
+          <img src={walkPrev.src} alt="" loading="lazy" className="course-nav-mascot" />
           <span className="course-nav-caption">
             <span className="course-nav-arrow" aria-hidden="true">‹</span>
             {entry.prev.label}
@@ -44,7 +44,7 @@ export default function CourseNav() {
           className="course-nav-btn course-nav-next"
           aria-label={`Next: ${entry.next.label}`}
         >
-          <img src={walkNext.src} alt="" className="course-nav-mascot" />
+          <img src={walkNext.src} alt="" loading="lazy" className="course-nav-mascot" />
           <span className="course-nav-caption">
             {entry.next.label}
             <span className="course-nav-arrow" aria-hidden="true">›</span>

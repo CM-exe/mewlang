@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 5</span>The execution engine</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a curious quarter-profile pose" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a curious quarter-profile pose" width="120" loading="lazy" />
           Replace the one-line <code>reduce</code> with a real interpreter: a context that flows through the pipeline, a result object recording what happened to every step, and a middleware chain so cross-cutting concerns (logging, timing, dry runs, retries) are not hard-coded into the runner.
         </p>
         <h3>Concepts</h3>
@@ -135,7 +135,7 @@ export default function Page() {
         <h3>Two bugs I hit writing this</h3>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wide-eyed with surprise" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wide-eyed with surprise" width="120" loading="lazy" />
             Bug 1: a local variable silently shadowed a DSL verb
           </h5>
           <pre className="bad"><code>{"flaky = Automation.define(\"flaky\") do\n  retry_on IOError, times: 4\n  flaky                       # <- intended: the step named :flaky\nend"}</code></pre>
@@ -269,7 +269,7 @@ export default function Page() {
           <h5>Exercise 7</h5>
           <ol>
             <li>
-              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
               <strong>Types.</strong> Add <code>option :max_words, type: Integer</code> and have the validator report a type mismatch at build time, with the same file and line treatment.
             </li>
             <li><strong>Loading.</strong> Implement <code>Automation.load_plugins(dir)</code> that requires every <code>.rb</code> in a directory and registers any <code>Automation::Plugin</code> subclass it finds. Handle a plugin file that raises on load without taking down the process, and report which file failed.</li>
@@ -367,7 +367,7 @@ export default function Page() {
         <p>Real HTTP over a real socket, a real filter, a pluggable summariser, and a record on disk, driven by this: </p>
         <pre><code>{"  research = Automation.define(\"research\") do\n    retry_on Automation::HttpError, times: 3, backoff: :exponential, base_delay: 0.05\n    fetch from: url\n    filter field: :topic, matching: \"AI\"\n    summarize field: :abstract, max_words: 8\n    save_to collection: \"papers\"\n    when_failed { |error, step| warn \"  ! #{step.name}: #{error.message}\" }\n  end\n"}</code></pre>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" loading="lazy" />
           That is the Part 0 sketch, working, eight milestones in.
         </p>
         <div className="exercise">
@@ -391,7 +391,7 @@ export default function Page() {
         <div className="warn">
           <ul>
             <li>
-              <img className="mascot-right" src={img5.src} alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" />
+              <img className="mascot-right" src={img5.src} alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" loading="lazy" />
               <strong>Reading <code>ENV</code> inside a step.</strong> Untestable, unconfigurable, invisible.
             </li>
             <li><strong><code>to_i</code> on configuration.</strong> <code>"abc".to_i</code> is <code>0</code>; use <code>Integer()</code> and <code>Float()</code>.</li>
@@ -423,7 +423,7 @@ export default function Page() {
         <pre className="plain"><code>{"$ ruby -Ilib -Itest test/all.rb\n28 runs, 74 assertions, 0 failures, 0 errors, 0 skips\n$ git commit -am \"milestone 8: real adapters, config, and tests against a real socket\"\n"}</code></pre>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, strolling forward" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, strolling forward" width="150" loading="lazy" />
             Instalment 8 of the five-course curriculum. Next: Ruby Milestones 9–12, where testing gets its own DSL, pipelines learn to inspect and describe themselves, they start rewriting themselves at run time, and the whole thing ships as a gem with a CLI.
           </p>
         </footer>

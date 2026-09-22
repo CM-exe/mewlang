@@ -254,22 +254,30 @@
      courses/assets/expressions/). left_to_right/right_to_left variants are
      mirror images whose gaze/motion reads toward the right or left
      respectively — pair left_to_right with .mascot-left (the cat "looks
-     into" the text beside it) and right_to_left with .mascot-right. */
+     into" the text beside it) and right_to_left with .mascot-right.
+
+     Responsive: below `sm`, floating a ~112px image squeezes the
+     surrounding prose into an uncomfortably narrow column next to it, so
+     the mobile default is block-level and centered — sitting above the
+     text it illustrates instead of beside it — and only becomes a float
+     from `sm` up, where there's enough width for text to wrap beside it
+     comfortably. */
   .mascot-left,
   .mascot-right {
-    @apply w-28 max-w-[42%] h-auto;
+    @apply block w-24 max-w-[50%] h-auto mx-auto mb-3;
+    @apply sm:w-28 sm:max-w-[42%] sm:mx-0 sm:mb-2 sm:mt-1;
   }
 
   .mascot-left {
-    @apply float-left mt-1 mr-4 mb-2;
+    @apply sm:float-left sm:mr-4;
   }
 
   .mascot-right {
-    @apply float-right mt-1 ml-4 mb-2;
+    @apply sm:float-right sm:ml-4;
   }
 
   .mascot-center {
-    @apply block mx-auto w-40 h-auto my-8;
+    @apply block mx-auto w-32 sm:w-40 h-auto max-w-[60%] my-8;
   }
 
   /* A small inline Mewlang-logo stamp used in place of the old cat emoji

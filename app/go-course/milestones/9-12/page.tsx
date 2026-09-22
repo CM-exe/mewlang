@@ -75,7 +75,7 @@ export default function Page() {
         <div className="warn">
           <h5>The pprof import is a trap worth knowing</h5>
           <p>
-            <img className="mascot-right" src={img1.src} alt="The Mewlang cat, giving a disapproving look" width="120" />
+            <img className="mascot-right" src={img1.src} alt="The Mewlang cat, giving a disapproving look" width="120" loading="lazy" />
             Almost every Go tutorial tells you to write <code>import _ "net/http/pprof"</code>. The underscore means "import for side effects only", and the side effect is that the package's <code>init()</code> registers its handlers on <code>http.DefaultServeMux</code>. If anything in your program then serves <code>DefaultServeMux</code> on a public port, you have published heap profiles, goroutine stacks, command-line arguments and a CPU profiler to the internet. This has caused real incidents.
           </p>
           <p>Mounting the handlers yourself on your own mux, as above, makes the exposure a deliberate decision. In production you would bind this listener to localhost or an internal interface and reach it through a tunnel.</p>
@@ -83,7 +83,7 @@ export default function Page() {
         </div>
         <h4>Wiring it in</h4>
         <p>
-          <img className="mascot-left" src={img2.src} alt="The Mewlang cat, yawning" width="120" />
+          <img className="mascot-left" src={img2.src} alt="The Mewlang cat, yawning" width="120" loading="lazy" />
           The engine gets an embedded <code>metrics.Set</code>, and the interesting instrumentation is two lines in the request path:
         </p>
         <pre><code>{"func (e *Engine) handle(r request) {\n\te.M.Requests.Inc()\n\te.M.QueueDepth.Set(int64(len(e.reqs)))\n\t...\n}\n"}</code></pre>
@@ -147,7 +147,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 10</span>A live picture, in the terminal and the browser </h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, looking up curiously" width="120" loading="lazy" />
           See the colony. An ANSI-redrawn terminal view for a quick look, and a browser page fed by server-sent events for a good one. Neither may ever slow the simulation down.
         </p>
         <h3>Concepts</h3>
@@ -271,7 +271,7 @@ export default function Page() {
         <div className="warn">
           <h5>This trades safety for speed, deliberately</h5>
           <p>
-            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
             The single-owner design had a property we are giving up: every world access was validated by one authority that saw everything in order. Now an ant computes its own position, so a buggy behaviour can put itself somewhere impossible; a drop is fire-and-forget, so nobody tells the ant it was rejected. We keep validation exactly where correctness demands it (a pickup still needs an authoritative answer about who got the unit) and drop it where the ant can be trusted.
           </p>
           <p>Do this <em>after</em> a profile, never before. The Milestone 5 engine is the one I would ship if 3 million requests a second were enough, and it is the one to write first in any new system.</p>
@@ -294,7 +294,7 @@ export default function Page() {
         <p>The first version passed <code>-race</code> cleanly and failed this:</p>
         <pre className="plain"><code>{"--- FAIL: TestFastEngineConservesFood (0.74s)\n    fast_test.go:22: food not conserved: 359 != 500\n        (ants 500 carrying 182 delivered 81 food left 96)\n"}</code></pre>
         <p>
-          <img className="mascot-center" src={img5.src} alt="The Mewlang cat, wide-eyed with surprise" width="150" />
+          <img className="mascot-center" src={img5.src} alt="The Mewlang cat, wide-eyed with surprise" width="150" loading="lazy" />
           141 units of food had ceased to exist. No race, no panic, no error in any log. Instrumenting the ledger showed 336 successful pickups, 216 drops, 90 ants carrying: 30 units taken from the ground that no ant held and nobody delivered.
         </p>
         <p>The cause was two shutdown bugs, both of them the kind that only appear at the boundary:</p>
@@ -447,7 +447,7 @@ export default function Page() {
         <pre className="plain"><code>{"$ gofmt -l . && go vet ./... && go test -race ./...\nok  \tgithub.com/yourname/antfarm/internal/netsim\t0.705s\nok  \tgithub.com/yourname/antfarm/internal/sim\t12.426s\nok  \tgithub.com/yourname/antfarm/internal/world\t0.001s\n$ git commit -am \"milestone 12: the world moves to another process\"\n"}</code></pre>
         <footer className="end">
           <p>
-            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" loading="lazy" />
             Instalment 4 of the five-course curriculum. Next, and last for Go: the advanced phase, the final challenge with acceptance criteria and a withheld solution, the full knowledge check (20 conceptual, 10 code-reading, 5 debugging, 5 implementation questions plus one substantial challenge), the README and GitHub description, portfolio notes and interview questions. Then Course 2 begins.
           </p>
         </footer>

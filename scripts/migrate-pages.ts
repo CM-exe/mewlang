@@ -418,6 +418,18 @@ function serializeElement(
     propParts.unshift(`className="${classNameParts.join(' ')}"`);
   }
 
+  // Every migrated <img> gets native lazy-loading, unconditionally — course
+  // pages run to hundreds of KB of code samples and now carry several
+  // mascot images apiece, and none of it needs to compete with the page's
+  // own text for bandwidth on first paint. This is not something
+  // courses/*.html authors have to remember to add per image: the browser's
+  // own "how close is this to the viewport" heuristic already keeps a
+  // same-viewport image (e.g. the homepage's hero logo) loading promptly,
+  // so there is no real image on this site worth excluding from it.
+  if (tag === 'img') {
+    propParts.push('loading="lazy"');
+  }
+
   const propsStr = propParts.length ? ' ' + propParts.join(' ') : '';
 
   if (VOID_ELEMENTS.has(tag)) {

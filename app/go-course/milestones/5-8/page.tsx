@@ -31,7 +31,7 @@ export default function Page() {
         <p>Ownership as a design principle, request/response over channels, per-client reply channels, buffered channels as leak prevention, the "ask the owner" pattern for reading state, and value types as messages.</p>
         <h3>Design</h3>
         <p>
-          <img className="mascot-right" src={img1.src} alt="The Mewlang cat, glancing over curiously" width="120" />
+          <img className="mascot-right" src={img1.src} alt="The Mewlang cat, glancing over curiously" width="120" loading="lazy" />
           The failure of Milestone 4 was structural: many goroutines reaching into one mutable object. There are only three ways out of that, and it is worth seeing all three before picking one.
         </p>
         <table className="grid">
@@ -142,7 +142,7 @@ export default function Page() {
           <h5>Common mistakes in Milestone 5</h5>
           <ul>
             <li>
-              <img className="mascot-left" src={img2.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <img className="mascot-left" src={img2.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
               <strong>An unbuffered reply channel.</strong> The owner blocks forever on <code>r.reply {'<'}- resp</code> if the ant has stopped listening. The whole simulation freezes and the stack dump shows every goroutine blocked on the same channel. Buffer of one, always. 
             </li>
             <li><strong>Forgetting the stale-reply drain.</strong> Symptom: after the first timeout, an ant starts behaving as if it is one step behind reality. Very hard to spot without the counter.</li>
@@ -197,7 +197,7 @@ export default function Page() {
         <p>Same seed, same world, same wall-clock budget, 300 ants on a 64×64 grid with six food sources of 200 units each:</p>
         <pre className="plain"><code>{"forager: delivered 323, pheromone left 1693\ntrail  : delivered 404, pheromone left 397\n"}</code></pre>
         <p>
-          <img className="mascot-right" src={img3.src} alt="The Mewlang cat, beaming with delight" width="120" />
+          <img className="mascot-right" src={img3.src} alt="The Mewlang cat, beaming with delight" width="120" loading="lazy" />
           A 25% improvement in delivered food, measured rather than asserted. Two details in those numbers are more interesting than the headline.
         </p>
         <p>The <code>forager</code> run has <em>more</em> pheromone left at the end (1693 against 397) even though it ignores pheromone entirely. Deposition happens at the owner for any carrying ant, so both runs lay trails; only one reads them. The forager's trails accumulate because its ants take longer random-walk journeys and are more spread out, while the trail follower's ants concentrate on short paths that evaporation keeps trimmed. A metric moving in the direction you did not predict is usually the most informative thing on the screen.</p>
@@ -247,7 +247,7 @@ export default function Page() {
         <p>Context trees and derived cancellation, <code>signal.NotifyContext</code>, shutdown ordering, the <code>WaitGroup</code> misuse that bites concurrent supervisors, and goroutine leak detection. </p>
         <h3>Design</h3>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in profile, thinking it over" width="120" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in profile, thinking it over" width="120" loading="lazy" />
           "Just cancel everything" is wrong, and the reason is worth spelling out. The last thing <code>Run</code> does is collect final statistics, which requires sending a request to the owner and getting a reply. If the owner was cancelled along with everyone else, that request hangs until it times out and you get empty results. So shutdown has an order, and the order is the reverse of the dependency graph:
         </p>
         <pre className="plain"><code>{"  ctx cancelled (Ctrl-C, timeout, or the caller's choice)\n        │\n        ▼\n  1. supervisor stops          no new ants will be started\n        │\n        ▼\n  2. ants drain and exit       each finishes its current round trip\n        │\n        ▼\n  3. final Stats collected     the owner is still alive to answer\n        │\n        ▼\n  4. evaporator stops          nothing left that needs a clock\n        │\n        ▼\n  5. owner stops               last to go, because everyone needed it\n"}</code></pre>
@@ -310,7 +310,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 8</span>Chaos: crashes, dropped messages, slow ants</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving a mischievous wink" width="120" />
+          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving a mischievous wink" width="120" loading="lazy" />
           Break the colony on purpose and keep it running. Ants panic at random and a supervisor restarts them. The owner drops messages at random and clients time out and retry. Ants stall at random and the queue absorbs it. Every failure becomes a number you can watch.
         </p>
         <h3>Concepts</h3>
@@ -453,7 +453,7 @@ export default function Page() {
         </div>
         <footer className="end">
           <p>
-            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" loading="lazy" />
             Instalment 3 of the five-course curriculum. Next: Milestones 9–12, where metrics get an HTTP endpoint and a profiler, the colony gets a live view you can watch in a browser, backpressure and sharding make it fast, and the world moves into a separate process that you can kill.
           </p>
         </footer>

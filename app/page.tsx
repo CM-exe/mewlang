@@ -14,7 +14,7 @@ export default function Page() {
   return (
     <div className="theme-index">
       <header className="text-center">
-        <img src={img1.src} alt="Mewlang logo" width="220" />
+        <img src={img1.src} alt="Mewlang logo" width="220" loading="lazy" />
         <h1>Mewlang</h1>
         <p><strong>Learn programming languages by building things that make each language worth learning.</strong></p>
         <nav className="menu" aria-label="Course navigation"> <Link href="/overview/">Curriculum overview</Link> <Link href="/go-course/instalment/">Go</Link> <Link href="/ruby-course/instalment/">Ruby</Link> <Link href="/perl-course/instalment/">Perl</Link> <span className="soon">Erlang <small>(coming soon)</small></span> <span className="soon">Racket <small>(coming soon)</small></span> </nav>
@@ -23,7 +23,7 @@ export default function Page() {
         <p>Mewlang is a hands-on programming-language learning project built around one idea:</p>
         <blockquote><strong>Don't just learn a language. Discover what it makes possible.</strong></blockquote>
         <p>
-          <img className="mascot-right" src={img2.src} alt="The Mewlang cat looking up, curious" width="150" />
+          <img className="mascot-right" src={img2.src} alt="The Mewlang cat looking up, curious" width="150" loading="lazy" />
           Instead of following syntax tutorials or building the same CRUD application in every language, Mewlang explores programming languages through projects designed around their unique strengths, philosophies, and programming models.
         </p>
         <h2>🧠 The idea</h2>
@@ -43,10 +43,7 @@ export default function Page() {
           <p><strong>Explore:</strong> Goroutines, channels, concurrency, synchronization, context cancellation, worker pools, race detection, fault injection, and distributed systems.</p>
           <blockquote>What happens when concurrency becomes the natural way to model the world?</blockquote>
           <p className="start"><Link href="/go-course/instalment/">Start the Go course →</Link></p>
-          <h3>
-            <img className="brand-icon" src={img1.src} alt="" width="26" />
-            Ruby — Programmable Automation DSL
-          </h3>
+          <h3>🐱 Ruby — Programmable Automation DSL</h3>
           <p>Build a Ruby-based automation framework where pipelines can be written almost like a programming language:</p>
           <pre><code>{"pipeline \"research\" do\n\tfetch \"papers\"\n\tfilter topic: \"AI\"\n\tsummarize\n\tsave_to \"knowledge_base\"\nend"}</code></pre>
           <p><strong>Explore:</strong> Blocks, Procs, lambdas, objects, reflection, <code>method_missing</code>, dynamic methods, metaprogramming, DSL design, and runtime introspection.</p>
@@ -88,13 +85,13 @@ export default function Page() {
         <p>Choose a language and start with its project. You don't need to know the language beforehand.</p>
         <pre><code>{"Language basics\n\t\t\t↓\nTiny exercises\n\t\t\t↓\nSmall prototype\n\t\t\t↓\nProject milestone\n\t\t\t↓\nMore language features\n\t\t\t↓\nAdvanced architecture\n\t\t\t↓\nFinal challenge"}</code></pre>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat's paw, raised for a high five" width="110" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat's paw, raised for a high five" width="110" loading="lazy" />
           The objective isn't to memorize syntax, but to reach the point where you can think: <strong>“This language would be interesting for this.”</strong>
         </p>
         <p><Link className="button" href="/overview/">Read the full curriculum →</Link></p>
         <h2>🧩 Why “Mewlang”?</h2>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking" width="110" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking" width="110" loading="lazy" />
           Because programming languages are weird creatures. Some are good at concurrency, some manipulate text beautifully, some reshape the language itself, some survive failure, and some make types do incredible things.
         </p>
         <p>Different languages. Different powers. Different ways of thinking.</p>
@@ -107,10 +104,10 @@ export default function Page() {
       </main>
       <footer className="text-center">
         <h2>
-          <img className="brand-icon" src={img1.src} alt="" width="30" />
+          <img className="brand-icon" src={img1.src} alt="" width="30" loading="lazy" />
           Welcome to Mewlang.
         </h2>
-        <img className="mascot-center" src={img5.src} alt="The Mewlang cat, walking off with its tail up" width="130" />
+        <img className="mascot-center" src={img5.src} alt="The Mewlang cat, walking off with its tail up" width="130" loading="lazy" />
       </footer>
     </div>
   );

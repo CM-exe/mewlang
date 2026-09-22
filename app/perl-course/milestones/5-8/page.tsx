@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 5</span>Making it a distribution</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" loading="lazy" />
           Turn a folder of scripts into something installable: a version, documentation, declared dependencies, a build file, and the two tests every Perl distribution should have before it has any others.
         </p>
         <h3>Concepts</h3>
@@ -133,7 +133,7 @@ export default function Page() {
         <pre className="bad"><code>{"share/fixtures/hard/access.log.gz  csv                 0 records     19.7KB  [gzip]\nshare/fixtures/hard/latin1.log     apache              2 records        60B"}</code></pre>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" loading="lazy" />
             Bug: sniffing looked at the compressed bytes
           </h5>
           <p>The gzipped Apache log was detected as CSV with zero records. The registry opened the file itself and scored the <em>raw bytes</em>, which for a gzip file are compressed noise that happens to contain a consistent number of commas. Meanwhile the <code>Source</code> was decompressing correctly, so the parser was reading real log lines and finding no CSV in them.</p>
@@ -224,7 +224,7 @@ export default function Page() {
         <p>The BOM bug is worth dwelling on because it is so common and so invisible: your CSV's first header becomes <code>\x{'{'}feff{'}'}id</code> instead of <code>id</code>, every lookup of <code>id</code> returns undef, and the file looks perfect in every editor you open it in. Excel writes these by default.</p>
         <div className="warn">
           <h5>
-            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" />
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" loading="lazy" />
             The finding I did not expect: Perl's default replacement is not U+FFFD
           </h5>
           <p>My test asserted that an invalid byte becomes the replacement character. It failed, and the actual decoded characters were:</p>
@@ -306,7 +306,7 @@ export default function Page() {
         <pre><code>{"# days_from_civil: the standard branch-free calendar algorithm (Howard\n# Hinnant's). Converting a date to a day number with arithmetic avoids\n# constructing an object per line, which is what actually costs.\nsub _days_from_civil ($y, $m, $d) {\n    $y -= $m <= 2;\n    my $era = int(($y >= 0 ? $y : $y - 399) / 400);\n    my $yoe = $y - $era * 400;                                  # [0, 399]\n    my $doy = int((153 * ($m + ($m > 2 ? -3 : 9)) + 2) / 5) + $d - 1;\n    my $doe = $yoe * 365 + int($yoe / 4) - int($yoe / 100) + $doy;\n    return $era * 146_097 + $doe - 719_468;\n}\n"}</code></pre>
         <pre className="plain"><code>{"arithmetic fast path: 0.47s (425,794/sec)\nTime::Piece strptime: 1.90s (105,445/sec)\nspeedup: 4.0x"}</code></pre>
         <p>
-          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="110" />
+          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="110" loading="lazy" />
           Four times faster, and every correctness test still passes, which is the only reason the rewrite was safe to attempt. Three lessons, in order of importance: <strong>a comment claiming a speedup is a claim, and claims get measured</strong>; the cost was object construction rather than parsing, which the benchmark told me and intuition did not; and a table of correctness tests written before the optimisation is what turns a risky rewrite into a routine one.
         </p>
         <h3>Running it</h3>
@@ -314,7 +314,7 @@ export default function Page() {
         <p>Entities ranked across two files of different formats, and a histogram over a time axis that did not exist until this milestone. That last block is the foundation of Milestone 9: once every record has a comparable instant, "what else happened within ninety seconds of this" becomes a query rather than a research project. </p>
         <div className="exercise">
           <h5>
-            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" />
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" loading="lazy" />
             Exercise 8
           </h5>
           <ol>
@@ -356,7 +356,7 @@ export default function Page() {
         <pre className="plain"><code>{"$ prove -l t/\nAll tests successful.  Files=7, Tests=46\n$ git commit -am \"milestones 5-8: distribution, formats, hardened reading, entities\"\n"}</code></pre>
         <footer className="end">
           <p>
-            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, stretching contentedly" width="120" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, stretching contentedly" width="120" loading="lazy" />
             Instalment 13 of the five-course curriculum. Next: Perl Milestones 9–12, where records go into SQLite and become correlated events, the CLI grows real option handling and Unix manners, the parser gets fuzzed and profiled, and the whole thing becomes a queryable knowledge graph.
           </p>
         </footer>

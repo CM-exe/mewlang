@@ -27,7 +27,7 @@ export default function Page() {
         <h2><span className="num">Course 3 · Part 0</span>What are we building?</h2>
         <h3>The final result</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" loading="lazy" />
           A command-line tool called <code>strata</code> that you point at a directory of unexplained files and interrogate.
         </p>
         <pre className="plain"><code>{"$ strata ingest ./incident-2026-09-12/ --recursive\n  apache/access.log        412,884 lines   apache_combined     3.2s\n  apache/error.log          18,221 lines   apache_error        0.4s\n  app/service.log          904,110 lines   json_lines          8.1s\n  exports/users.csv          9,412 rows    csv                 0.3s\n  config/nginx.conf            420 lines   nginx_config        0.0s\n  unknown/dump.txt          33,900 lines   unstructured        1.1s\n  corrupt/partial.log        2,004 lines   apache_combined     0.1s  (91 malformed, kept)\n\n  1,381,051 records, 214,882 entities, 46,203 events in 13.2s (104k lines/sec)\n\n$ strata entities --type ip --top 5\n  10.14.22.9        88,214 occurrences   6 files   first 13:02:11  last 14:47:52\n  10.14.22.31       41,002 occurrences   4 files   ...\n\n$ strata timeline --entity ip:10.14.22.9 --around '13:44:10' --window 90s\n  13:43:58  apache/access.log:88214   GET /api/export  200  1.2MB\n  13:44:02  app/service.log:551203    export.start  user=4412 rows=900000\n  13:44:09  apache/error.log:9902     upstream timed out\n  13:44:10  app/service.log:551288    ERROR OOM killed worker pid=8823\n  13:44:11  apache/access.log:88240   GET /api/export  502\n\n$ strata graph --entity user:4412 --depth 2 --format dot | dot -Tsvg > incident.svg\n"}</code></pre>
@@ -47,7 +47,7 @@ export default function Page() {
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" loading="lazy" />
             For the middle of this project (streaming, regex-heavy, line-oriented transformation with Unix plumbing), Perl is still the best tool in existence, and the reason is not nostalgia: no other language has put regular expressions, context, and the input loop into the syntax itself.
           </p>
           <p>Where it is not the answer, and we will say so at the time:</p>
@@ -275,7 +275,7 @@ export default function Page() {
         </details>
         <div className="warn">
           <h5>
-            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="110" />
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="110" loading="lazy" />
             Common first-day errors
           </h5>
           <ul>
@@ -418,7 +418,7 @@ export default function Page() {
         <p><code>scalar(() = $html =~ /.../g)</code> is the countof idiom: assign the match list to an empty list in scalar context, which yields the number of elements. Ugly, universal, worth recognising.</p>
         <div className="warn">
           <h5>
-            <img className="mascot-left" src={img4.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            <img className="mascot-left" src={img4.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" loading="lazy" />
             Regex mistakes that cost the most time
           </h5>
           <ul>
@@ -485,7 +485,7 @@ export default function Page() {
         <div className="exercise">
           <h5>Exercise 2.B — the capstone of Part 2</h5>
           <p>
-            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
             Write a single program, <code>bin/toptalkers</code>, that reads Apache logs from files or standard input and prints a report. Requirements:
           </p>
           <ul>
@@ -549,7 +549,7 @@ export default function Page() {
         <p>Before then: run the one-liners from Part 1 against a log file on your own machine, and read <code>perldoc perlretut</code>. It is the best forty minutes available to you at this point.</p>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="150" loading="lazy" />
             Instalment 11 of the five-course curriculum. Next: Perl Milestones 1–4, where the filter becomes a tool, hashes become reports, regexes become a parser, and records become a data model.
           </p>
         </footer>

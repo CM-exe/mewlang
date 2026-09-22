@@ -23,7 +23,7 @@ export default function Page() {
         <p>while a browser tab shows the grid with pheromone trails intensifying along routes the colony has discovered, a Prometheus-style metrics endpoint exposes counters, and <code>go tool pprof</code> can attach to the running process and tell you where the CPU is going. In the final milestone the colony runs split across several operating-system processes that talk over TCP, and you can kill one of them and watch the rest continue.</p>
         <h3>Why this project is interesting</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" loading="lazy" />
           Ant colonies are the canonical example of emergent behaviour: no ant knows where the food is, no ant is in charge, and yet the colony reliably finds short paths to food. The algorithm behind it is real (ant colony optimisation is a genuine technique for routing and scheduling problems), and it happens to be an almost perfect Go exercise, because the natural implementation is thousands of independent activities exchanging small messages.
         </p>
         <p>It is also a trap, in a useful way. The obvious first implementation puts the world in a shared data structure and lets every ant touch it. That works until you add concurrency, at which point it corrupts itself in ways that only appear under load. Milestone 4 walks you into that bug deliberately, and Milestone 5 walks you out of it using the idiom Go actually recommends. That sequence is the single most valuable thing in this course.</p>
@@ -38,7 +38,7 @@ export default function Page() {
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
             Honestly: Erlang would be better at the fault-tolerance half of this project, and you will see why in Course 4. Erlang gives you supervision, isolated heaps, and true preemption; in Go, a panicking goroutine kills the whole process unless you catch it, and a goroutine stuck in a tight loop cannot be cancelled by force. In Milestone 8 you will hand-build a supervisor that Erlang would have given you. 
           </p>
           <p>What Go wins on is the combination: it is fast, statically typed, trivially deployable, has excellent profiling, and its concurrency is cheap enough for this scale while remaining familiar enough that you can be productive in a week. Python's <code>asyncio</code> could express the structure but would be roughly two orders of magnitude slower at 50,000 agents; Rust would be faster and safer but would spend your attention on the borrow checker instead of on concurrency design; Java's virtual threads (Project Loom) are now genuinely comparable and would be a fair alternative.</p>
@@ -134,7 +134,7 @@ export default function Page() {
         </table>
         <h3>Installing</h3>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, typing on a laptop" width="120" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, typing on a laptop" width="120" loading="lazy" />
           You want Go 1.22 or newer for this course, because we use a few features introduced there (ranging over integers, and the corrected loop-variable semantics). At the time of writing the current release is in the 1.25/1.26 range; my knowledge of releases stops in mid-2026, so check <a href="https://go.dev/dl/">go.dev/dl</a> for what is current and prefer the newest stable version.
         </p>
         <h5>macOS</h5>
@@ -211,7 +211,7 @@ export default function Page() {
           <h5>Common first-day errors</h5>
           <ul>
             <li>
-              <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
               <code>go: cannot find main module</code> — you are not inside a directory containing <code>go.mod</code>, or below one. Run <code>go mod init</code>. 
             </li>
             <li><code>imported and not used: "runtime"</code> — remove the import, or use it. Not a warning.</li>
@@ -518,7 +518,7 @@ export default function Page() {
         <div className="exercise">
           <h5>Exercise 2.C — the capstone of Part 2</h5>
           <p>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw for a high-five" width="120" />
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw for a high-five" width="120" loading="lazy" />
             Write a small program that models a very simple version of what we are about to build. Requirements:
           </p>
           <ul>
@@ -566,7 +566,7 @@ export default function Page() {
         </ol>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, seen from behind, walking off" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, seen from behind, walking off" width="150" loading="lazy" />
             Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.
           </p>
         </footer>

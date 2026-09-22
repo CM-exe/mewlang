@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 1</span>A filter that counts what it reads</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, typing on a laptop" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, typing on a laptop" width="120" loading="lazy" />
           The smallest useful program: read files or standard input, count what you find, report it, and exit with a status that means something. No modules, no objects, no parsing.
         </p>
         <h3>Concepts</h3>
@@ -114,7 +114,7 @@ export default function Page() {
         <p>Four questions answered in one pass over the file, with the unparsed lines counted and located rather than silently skipped. That last line is the most important one in the output, and Milestone 3 is about taking it seriously.</p>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, visibly startled" width="110" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, visibly startled" width="110" loading="lazy" />
             The report quietly lies, and the failure count is how you find out
           </h5>
           <p>Line 2001 of the fixture is this:</p>
@@ -218,7 +218,7 @@ export default function Page() {
         <p>Most importantly: <strong>the interesting tests are the failure cases.</strong> Six of the assertions concern lines that do not parse, because the whole point of the parser is what it does when the data is wrong.</p>
         <div className="exercise">
           <h5>
-            <img className="mascot-right" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" />
+            <img className="mascot-right" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" loading="lazy" />
             Exercise 3
           </h5>
           <ol>
@@ -303,7 +303,7 @@ export default function Page() {
         <p>And memory, peak resident set on a 21 MB file:</p>
         <pre className="plain"><code>{"strata ingest (streaming)                     9,036 KB\nbare read loop                                4,992 KB\nslurping the file into an array              43,292 KB\n"}</code></pre>
         <p>
-          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, unimpressed" width="110" />
+          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, unimpressed" width="110" loading="lazy" />
           Two findings, and the second one is uncomfortable.
         </p>
         <p><strong>Streaming works.</strong> The pipeline uses 9 MB regardless of file size, while slurping a 21 MB file into an array costs 43 MB, about twice the file, because every line becomes a Perl scalar with its own overhead. On a 21 GB file that is 43 GB and the difference between a tool and an outage.</p>
@@ -311,7 +311,7 @@ export default function Page() {
         <p>Is it worth it? For now, yes, and I want to be precise about why rather than waving at "clean code". The pipeline buys pluggable formats (Milestone 6), reusable stages, provenance that survives, and a testable seam. A flat script buys none of those and would have to be rewritten to gain any of them. <strong>But the number is now on the table, it is the reason Milestone 11 exists, and the honest answer at that point may be that the hot loop gets specialised while the architecture stays.</strong> This is exactly the trade the Go course made in reverse: there, the profile said channel overhead dominated and we removed it; here, the profile will say object creation dominates, and we will decide what to do with that evidence rather than guessing now.</p>
         <div className="exercise">
           <h5>
-            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" />
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" loading="lazy" />
             Exercise 4
           </h5>
           <ol>
@@ -362,7 +362,7 @@ export default function Page() {
         <pre className="plain"><code>{"$ prove -l t/\nAll tests successful.  Files=2, Tests=9\n$ git commit -am \"milestone 4: a record model and a streaming pipeline\"\n"}</code></pre>
         <footer className="end">
           <p>
-            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, walking forward" width="120" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, walking forward" width="120" loading="lazy" />
             Instalment 12 of the five-course curriculum. Next: Perl Milestones 5–8, where the code becomes a distributable module with a cpanfile, CSV, JSON and XML parsers arrive behind a sniffing dispatch table, the reader learns to survive gzip, mixed encodings and truncation, and entity extraction turns records into things you can correlate.
           </p>
         </footer>

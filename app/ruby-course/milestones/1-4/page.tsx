@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 1</span>The gem, a Step, and a Registry</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, typing on a laptop" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, typing on a laptop" width="120" loading="lazy" />
           A working gem skeleton with three ideas in it: a <code>Step</code> that describes work, a <code>Registry</code> that knows how to perform it, and an error hierarchy that a user can rescue. No DSL yet.
         </p>
         <h3>Concepts</h3>
@@ -88,7 +88,7 @@ export default function Page() {
           <h5>Common mistakes in Milestone 1</h5>
           <ul>
             <li>
-              <img className="mascot-right" src={img2.src} alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" />
+              <img className="mascot-right" src={img2.src} alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" loading="lazy" />
               <strong>Defining <code>==</code> without <code>hash</code> and <code>eql?</code>.</strong> Everything looks fine until <code>uniq</code>, <code>group_by</code> or a Hash key behaves strangely.
             </li>
             <li><strong>Forgetting <code>super</code> in a custom exception's <code>initialize</code>.</strong> The message silently becomes the class name.</li>
@@ -112,7 +112,7 @@ export default function Page() {
         <p><code>yield</code> and block parameters, <code>reduce</code> as an interpreter, exception wrapping with automatic <code>cause</code>, and the difference between a build-time and a run-time error.</p>
         <h3>Design</h3>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
           Three objects, each with one job:
         </p>
         <pre className="plain"><code>{"  Automation.pipeline(name) { |p| ... }\n        │\n        ├─ creates a Builder, hands it to the block\n        │\n        ├─ Builder#step collects Step descriptions\n        │\n        └─ Builder#to_pipeline produces a frozen Pipeline\n\n  Pipeline#run  →  reduce over the steps, looking each one up\n"}</code></pre>
@@ -196,7 +196,7 @@ export default function Page() {
         <pre className="plain"><code>{"[\"default_topic()\", \"filter(topic: #<Automation::NaiveDSL:0x00007f754b7183c0 @name=\\\"r\\\",\n @steps=[#<Automation::Step:0x00007f754b718118 @name=:default_topic, ...>]>)\"]\n"}</code></pre>
         <p>Look at what happened. <code>default_topic</code> was not a <code>NoMethodError</code>; it was captured by <code>method_missing</code> and became a <em>step</em> called <code>default_topic</code>. Then, because <code>method_missing</code> returns <code>self</code>, its return value was the builder, which got passed as the <code>topic:</code> option of the next step. The user asked for one step and got two, one of which contains a builder as data.</p>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
           <strong>This is the worst kind of bug</strong>: no exception, no warning, a plausible-looking result, and a failure that surfaces somewhere else entirely. It is the price of <code>method_missing</code> accepting everything.
         </p>
         <h4>Failure 2: a step name that collides with an Object method</h4>
@@ -437,7 +437,7 @@ export default function Page() {
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
             Milestone 3 is the strongest case for Ruby in this curriculum. Four lines of <code>instance_eval</code> plus <code>method_missing</code> turned a builder API into something that reads like a language, and the loop example (<code>3.times {'{'} summarize index: i {'}'}</code> producing three steps) shows what you get that a data format cannot offer at any price.
           </p>
           <p>Milestone 4 is the honest correction. Everything we built there (source locations, a validator, an allow-list for untrusted input, a test asserting that building does not execute) is work that a compiled language would either give you free or make unnecessary. Racket, in Course 5, will do this <em>at compile time</em>: a typo in a step name becomes an error before the program runs, with the source location handled by the macro system rather than by counting stack frames. That comparison is the reason these two courses are adjacent in my recommended order.</p>
@@ -449,7 +449,7 @@ export default function Page() {
         <p>Note that <code>pipeline.rb</code> and <code>dsl.rb</code> are still there. Keep them: they are the Milestone 2 and 3 designs, they still pass their tests, and a reader of your repository can follow the same progression you did. Deleting the earlier versions is throwing away the argument.</p>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, stretching and relaxed" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, stretching and relaxed" width="150" loading="lazy" />
             Instalment 7 of the five-course curriculum. Next: Ruby Milestones 5–8, where the runner grows a context and middleware, failures get retries and handlers that actually work, plugins arrive via <code>define_method</code> and <code>method_missing</code>, and the steps start doing real work against HTTP, the filesystem and SQLite.
           </p>
         </footer>

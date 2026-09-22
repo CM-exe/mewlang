@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 9</span>Testing, including testing other people's pipelines</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" loading="lazy" />
           Ship an <code>Automation::Testing</code> module so that anyone using the gem can test their pipelines and plugins without inventing their own scaffolding. Then use it to test our own.
         </p>
         <h3>Concepts</h3>
@@ -67,7 +67,7 @@ export default function Page() {
         <p><code>test_assertions_about_shape_need_no_execution</code> is the one to copy into your own projects: it checks the pipeline is well-formed without running a thing, which is only possible because building produces data.</p>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, winking playfully" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, winking playfully" width="120" loading="lazy" />
             The shadowing bug, a second time, in my own test
           </h5>
           <p>My first version of the first test read:</p>
@@ -122,7 +122,7 @@ export default function Page() {
         <pre><code>{"    def explain(pipeline, registry: Automation.registry)\n      lines = [\"#{pipeline.name} (#{pipeline.location})\"]\n\n      pipeline.steps.each_with_index do |step, i|\n        known = registry.registered?(step.name)\n        marker = known ? \" \" : \"?\"\n        lines << format(\"  %s%-2d %-40s %s\", marker, i + 1, step.to_s, step.location)\n\n        doc = known ? registry.entry(step.name).doc : \"UNKNOWN STEP\"\n        lines << \"        #{doc}\" if doc\n      end\n\n      pipeline.handlers.each do |handler|\n        detail = handler.kind == :retry_on ? handler.callable.to_s : \"a block\"\n        lines << format(\"  * %-42s %s\", \"#{handler.kind}: #{detail}\", handler.location)\n      end\n\n      lines.join(\"\\n\")\n    end\n"}</code></pre>
         <pre className="plain"><code>{"$ automation explain examples/research.rb\nresearch (research.rb:5)\n   1  fetch(from: \"https://example.invalid/papers.json\", limit: 20) research.rb:7\n        Fetch a JSON array of records from an HTTP endpoint.\n   2  filter(field: :topic, matching: \"AI\")    research.rb:8\n        Keep records whose field matches a value or pattern.\n   3  summarize(field: :abstract, max_words: 40) research.rb:9\n        Summarise a field of each record into :summary.\n   4  save_to(collection: \"knowledge_base\")    research.rb:10\n        Append records to a collection in the knowledge base.\n  * retry_on: retry Automation::HttpError up to 3x (exponential) research.rb:6\n  * when_failed: a block                       research.rb:12\n"}</code></pre>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
           Every piece of that output was declared somewhere else for another reason: the step names and options by the DSL, the locations by <code>caller_locations</code> in Milestone 4, the documentation by the <code>doc</code> class macro in Milestone 7, the retry description by <code>RetryPolicy#to_s</code> in Milestone 6. <strong>Nothing here is a feature; it is a report over decisions already made.</strong> That is what people mean when they say a good data model pays for itself.
         </p>
         <h4>Drawing itself</h4>
@@ -216,7 +216,7 @@ export default function Page() {
         <pre><code>{"result = Automation.run(measured)\n\nslow = result.results.select { |r| r.seconds > 0.01 }.map { |r| r.step.name }\nsuccessor = slow.reduce(measured) do |acc, name|\n  acc.rewrite { insert_before name, step(:cache, for: name) }\nend\n"}</code></pre>
         <pre className="plain"><code>{"slow steps: [:slow_step]\n[:log_start, :fetch, :cache, :slow_step]\n{:for=>:slow_step}\n"}</code></pre>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" loading="lazy" />
           The run produced measurements; the measurements produced a transformation; the transformation produced a new pipeline. Nothing was mutated, the original <code>measured</code> is still valid and still describes the run that happened, and the successor can be inspected, diffed, reviewed, persisted or thrown away.
         </p>
         <p>That loop (<em>observe, decide, generate a new version</em>) is the honest form of "a program that modifies itself", and it is the form used by query planners, JIT compilers and autoscalers. The fantasy version, where code edits itself in place while running, is not what any of those systems actually do.</p>
@@ -272,7 +272,7 @@ export default function Page() {
         </ul>
         <div className="warn">
           <h5>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
             A bug worth showing: two methods called <code>run</code>
           </h5>
           <p>My first version named the entry point <code>run(argv)</code> and the subcommand handler <code>run(name, options)</code>. The second definition silently replaced the first, and the delegation I had written to paper over it produced:</p>
@@ -326,7 +326,7 @@ export default function Page() {
         <pre className="plain"><code>{"$ rake test\n34 runs, 94 assertions, 0 failures, 0 errors, 0 skips\n"}</code></pre>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, happy and celebrating" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, happy and celebrating" width="150" loading="lazy" />
             Instalment 9 of the five-course curriculum. Next, and last for Ruby: the advanced phase (refinements, lazy enumerators, Ractors, contract testing, performance), the final challenge with acceptance criteria and a withheld solution, the full knowledge check, and the README, portfolio and interview material. Then Course 3 begins: Perl, and the text archaeologist.
           </p>
         </footer>

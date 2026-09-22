@@ -27,7 +27,7 @@ export default function Page() {
         <h2><span className="num">Course 2 · Part 0</span>What are we building?</h2>
         <h3>The final result</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up with curiosity" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up with curiosity" width="120" loading="lazy" />
           A gem called <code>automation</code>. By the end of the course, someone who has never seen your source can write this file:
         </p>
         <pre><code>{"Automation.define do\n  pipeline \"research\" do\n    fetch      \"papers\", from: \"arxiv:cs.AI\", since: \"7d\"\n    filter     topic: \"AI\", min_citations: 5\n    summarize  with: :local_model, max_words: 200\n    save_to    \"knowledge_base\"\n\n    retry_on Timeout::Error, times: 3, backoff: :exponential\n\n    when_failed do |error, step|\n      notify \"me\", subject: \"#{step.name} failed: #{error.message}\"\n    end\n  end\nend\n"}</code></pre>
@@ -51,7 +51,7 @@ export default function Page() {
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
             Honestly, for the front end of this project Ruby is close to unmatched, and it is the reason Rails, RSpec, Rake, Chef, Puppet, Homebrew, Vagrant and Fastlane all exist in Ruby rather than elsewhere. A generation of tools with a DSL at the front chose Ruby for exactly the features above.
           </p>
           <p>Where Ruby is <em>not</em> the answer, and we will say so at the time:</p>
@@ -266,7 +266,7 @@ export default function Page() {
           <h5>Common first-day errors</h5>
           <ul>
             <li>
-              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
               <code>cannot load such file -- automation (LoadError)</code> — <code>lib/</code> is not on the load path. Run with <code>ruby -Ilib ...</code>, or use <code>require_relative</code>, or run through <code>rake</code>/<code>bundle exec</code>, which set it up for you.
             </li>
             <li><code>undefined method 'greet' for Automation:Module</code> — you wrote <code>def greet</code> instead of <code>def self.greet</code>, so it is an instance method on a module that has no instances.</li>
@@ -308,7 +308,7 @@ export default function Page() {
         <div className="warn">
           <h5>The frozen-literal surprise</h5>
           <p>
-            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking playfully" width="120" />
+            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking playfully" width="120" loading="lazy" />
             Run the same snippet in a file that starts with <code># frozen_string_literal: true</code> and the first line prints <strong>true</strong>: identical frozen literals are deduplicated into one object. So <code>equal?</code> (object identity) gives different answers depending on a comment at the top of the file. This is worth knowing before it confuses you at 2am. The lesson is not to avoid the magic comment; it is to use <code>==</code> for comparisons and <code>equal?</code> essentially never.
           </p>
         </div>
@@ -426,7 +426,7 @@ export default function Page() {
         <div className="exercise">
           <h5>Exercise 2.A</h5>
           <p>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
             Write a method <code>retrying(times:, on: StandardError)</code> that takes a block, calls it, and retries up to <code>times</code> attempts if the block raises an exception of the given class, re-raising if it never succeeds. It should return the block's value on success, and it should be usable as:
           </p>
           <pre className="plain"><code>{"result = retrying(times: 3) { flaky_call }"}</code></pre>
@@ -591,7 +591,7 @@ export default function Page() {
         </ol>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, viewed from behind, walking away" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, viewed from behind, walking away" width="150" loading="lazy" />
             Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks become a DSL, <code>instance_eval</code> earns and costs, and the whole thing turns into an AST.
           </p>
         </footer>

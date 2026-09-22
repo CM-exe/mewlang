@@ -22,7 +22,7 @@ export default function Page() {
         </header>
         <h2><span className="num">Part A</span>The advanced phase</h2>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" loading="lazy" />
           The tool works: it ingests five formats, survives hostile files, extracts and normalises entities, correlates them into events in SQLite, behaves under a pipe and under <code>Ctrl-C</code>, fuzzes and profiles itself, and walks its own correlations as a graph. These five topics are what you would reach for next if Strata were something you had to operate rather than something you had to finish.
         </p>
         <h3>A1 · A plugin architecture for parsers</h3>
@@ -57,7 +57,7 @@ export default function Page() {
         <hr />
         <h2><span className="num">Part B</span>The final challenge</h2>
         <p>
-          <img className="mascot-right" src={img2.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          <img className="mascot-right" src={img2.src} alt="The Mewlang cat, looking up curiously" width="120" loading="lazy" />
           Everything up to here had a solution a few paragraphs later. This one does not, and it is deliberately at the edge of what you can now do. Spend real time on it before opening the last section.
         </p>
         <h3>Tailing logs that rotate, truncate, and disappear out from under you</h3>
@@ -95,7 +95,7 @@ export default function Page() {
           <li>For the CPU constraint: a modest fixed poll interval (hundreds of milliseconds, not microseconds) already satisfies the requirement at the stated scale of fifty files. Say in your write-up at roughly what file count this approach stops being fine, and what you would reach for instead.</li>
         </ul>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" loading="lazy" />
           Attempt it before reading on. Even a partial implementation with an honest account of what you didn't solve is worth more than the section below.
         </p>
         <details>
@@ -318,7 +318,7 @@ export default function Page() {
         </ul>
         <h3>D5 · What to put in your portfolio</h3>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in a thoughtful three-quarter pose" width="110" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in a thoughtful three-quarter pose" width="110" loading="lazy" />
           Do not present this as "a log parser". Present it as what it is: <strong>a forensics pipeline built to survive hostile input at every stage, with every claim about performance and robustness backed by a number you actually measured.</strong> The narrative that makes it interesting is the sequence of real bugs found by testing for them on purpose, not the feature list.
         </p>
         <ol>
@@ -390,14 +390,14 @@ export default function Page() {
         <hr />
         <h2><span className="num">Course 3 complete</span>What you built</h2>
         <p>
-          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw in celebration" width="120" loading="lazy" />
           A dependency-light Perl distribution across roughly a dozen modules, five parsers behind one contract, a SQLite-backed correlation and graph engine with measured order-of-magnitude performance differences, a command-line tool that behaves correctly under a signal and inside a pipeline, a fuzzer that found a real bug in under a second, and a live log tailer that survives both ways a log file can change out from under you. More importantly: a habit of writing the hostile fixture before trusting the code that has to survive it, and of measuring a claimed speedup before writing it down.
         </p>
         <p>The central question of this curriculum was <em>what kinds of problems does this language make unusually natural to solve?</em> Perl's answer, stated as precisely as this project allows: <strong>problems where the input is real-world messy, the shape of "correct" is "did not corrupt or lose the awkward 10% of records", and the win comes from CPAN's decades of exactly-this-format modules plus a handful of small, sharp built-in idioms — context, autovivification, <code>foreach</code> aliasing, <code>alarm()</code>, <code>fork</code> — that read as strange in isolation and as exactly right once you have needed them once.</strong> Not the fastest, not the most structured, not the friendliest first error message. The one where a text file nobody designed on purpose stops being a mystery in an afternoon.</p>
         <p>Courses 4 and 5 continue the same comparison — Erlang's processes and supervision trees against Go's goroutines and Perl's <code>fork</code>, and Racket's macros against the recursive-descent parser built in this instalment's advanced phase — but are not written yet. The <Link href="/overview/">syllabus overview</Link> describes what they will cover.</p>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="160" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="160" loading="lazy" />
             Instalment 15 of the five-course curriculum, and the end of Course 3. Courses 4 (Erlang) and 5 (Racket) are next in the curriculum but not yet written.
           </p>
         </footer>

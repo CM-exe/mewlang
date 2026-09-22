@@ -27,7 +27,7 @@ export default function Page() {
         <h2><span className="num">Part A</span>The advanced phase</h2>
         <h3>A1 · The object model as a debugging tool</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a neutral curious side pose" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a neutral curious side pose" width="120" loading="lazy" />
           Metaprogramming makes "where did this method come from?" a real question. Ruby answers it directly, and these four calls will save you hours:
         </p>
         <pre><code>{"Automation::Steps::Filter.instance_method(:matching).owner        # which module defined it\nAutomation::Steps::Filter.instance_method(:matching).source_location # file and line\nAutomation::Steps::Filter.ancestors.first(5)                      # the lookup chain\nobject.singleton_methods                                          # methods on this object alone\n"}</code></pre>
@@ -95,7 +95,7 @@ export default function Page() {
         <p><code>Queue</code> is thread-safe and ships with Ruby; <code>pop(true)</code> is non-blocking and raises <code>ThreadError</code> when empty, which is how the workers know to stop. Writing to distinct indices of a preallocated array is safe here for the same reason it was in Go: separate slots, no resizing.</p>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, looking up with curiosity" width="120" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, looking up with curiosity" width="120" loading="lazy" />
             What about Ractors?
           </h5>
           <p>Ractors give real parallelism for Ruby code by giving each one its own GVL, at the cost of strict isolation: objects crossing a Ractor boundary must be immutable (frozen and deeply so) or copied, and most gems are not Ractor-safe. They remain officially experimental and print a warning on first use.</p>
@@ -128,7 +128,7 @@ export default function Page() {
         <h2><span className="num">Part B</span>The final challenge</h2>
         <h3>Compile the pipeline instead of interpreting it</h3>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
           Everything so far interprets: the runner walks the AST at run time, looks each step up in a registry, and calls it. Now write a <strong>compiler</strong> that turns a pipeline into standalone Ruby source which runs with no interpreter, no registry lookups, and no dependency on this gem.
         </p>
         <pre className="plain"><code>{"$ automation compile examples/research.rb --output research_compiled.rb\n$ ruby research_compiled.rb          # no `require \"automation\"` anywhere"}</code></pre>
@@ -162,7 +162,7 @@ export default function Page() {
           <li>The retry logic you already wrote as middleware becomes a <code>begin/rescue/retry</code> template. Write the target code by hand first, then work backwards to the generator.</li>
         </ul>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, happy and celebrating" width="120" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, happy and celebrating" width="120" loading="lazy" />
           This is the most valuable exercise in the Ruby course, because it is the bridge to Course 5. Racket does this at compile time, with the language's own macro system, and produces better error messages while doing it. Building the clumsy version by hand is what makes the elegant version legible.
         </p>
         <details>
@@ -350,7 +350,7 @@ export default function Page() {
         </ul>
         <h3>D5 · What to put in your portfolio</h3>
         <p>
-          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
           Present this as <strong>a study of what it takes to make a DSL trustworthy</strong>, not as "a pipeline runner". The interesting narrative is the sequence of realisations:
         </p>
         <ol>
@@ -426,7 +426,7 @@ export default function Page() {
         <p>Course 5 takes the same ambition and moves it to compile time. Racket's macros turn a language definition into a function from syntax to syntax, checked before the program runs, with source locations carried automatically. When you get there, the thing to compare it against is Milestone 4's <code>caller_locations</code> frame counting and Part B's string-concatenating compiler. Both work. One is doing by hand what the other has as a primitive.</p>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, viewed from behind, walking away" width="150" />
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, viewed from behind, walking away" width="150" loading="lazy" />
             Instalment 10 of the five-course curriculum, and the end of Course 2. Next: Course 3, Perl, and the Text Archaeologist. Parts 0–2 first (what we are building, installation and CPAN, the language crash course), then twelve milestones turning ugly heterogeneous data into a searchable knowledge graph.
           </p>
         </footer>

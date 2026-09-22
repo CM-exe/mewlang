@@ -56,7 +56,7 @@ export default function FloatingMenu() {
   return (
     <nav className={`floating-menu ${themeClass}`} aria-label="Site navigation">
       <Link href="/" className="floating-menu-brand" data-active={pathname === '/'}>
-        <img src={logo.src} alt="" width={22} height={22} className="floating-menu-logo" />
+        <img src={logo.src} alt="" width={22} height={22} loading="lazy" className="floating-menu-logo" />
         Mewlang
       </Link>
       <ul className="floating-menu-links">

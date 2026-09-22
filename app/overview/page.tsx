@@ -15,7 +15,7 @@ export default function Page() {
         <header className="masthead">
           <h1>What kinds of problems does this language make unusually natural to solve?</h1>
           <p className="lede">
-            <img className="mascot-left" src={img1.src} alt="The Mewlang cat, thinking about where to start" width="120" />
+            <img className="mascot-left" src={img1.src} alt="The Mewlang cat, thinking about where to start" width="120" loading="lazy" />
             Five languages, five projects, one question asked five times. This page covers the whole curriculum plan: how it's delivered, prerequisites, recommended order, difficulty, and the full milestone syllabus for every course. Each course's actual material — installation, language crash course, and all twelve milestones — lives in its own instalment, linked at the bottom of this page.
           </p>
           <table className="index">
@@ -576,7 +576,7 @@ export default function Page() {
           </tbody>
         </table>
         <p>
-          <img className="mascot-left" src={img2.src} alt="The Mewlang cat, walking off to start the first course" width="110" />
+          <img className="mascot-left" src={img2.src} alt="The Mewlang cat, walking off to start the first course" width="110" loading="lazy" />
           That's the whole curriculum. Go is first, so its instalment picks up next: what we're building (an ant colony that finds itself corrupting its own state the moment it goes concurrent, and the idiom that fixes it), installing the toolchain, and a full language crash course, before Milestone 1 begins.
         </p>
         <hr />

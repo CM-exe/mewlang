@@ -27,7 +27,7 @@ export default function Page() {
         <h2 className="milestone-head"><span className="num">Milestone 9</span>Correlation and sessionisation</h2>
         <h3>Goal</h3>
         <p>
-          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a neutral curious pose" width="120" />
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a neutral curious pose" width="120" loading="lazy" />
           Stop recomputing. Give records and their entities a home in SQLite, and turn the flat stream of entity <em>occurrences</em> into <em>events</em>: an event is one entity active over a span of time, built by grouping its occurrences whenever the gap between two of them is small enough to call them the same episode. That single idea — <strong>group by identity, split by silence</strong> — is what makes "everything that happened around this IP address" a query instead of a research project.
         </p>
         <h3>Concepts</h3>
@@ -74,7 +74,7 @@ export default function Page() {
         <h4>One transaction, not ten thousand</h4>
         <div className="warn">
           <h5>
-            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" loading="lazy" />
             The bug: inserting one row at a time, correctly, and much too slowly
           </h5>
           <p>The first version of the loader called <code>execute</code> once per record with <code>AutoCommit</code> left at its default of on. Every insert became its own transaction, and SQLite's default is to <code>fsync</code> the write-ahead log to disk before a transaction is considered committed — correct, and, on ordinary storage, ruinous:</p>
@@ -197,7 +197,7 @@ export default function Page() {
         <h4>The signal every Perl programmer meets by surprise</h4>
         <div className="warn">
           <h5>
-            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" />
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" loading="lazy" />
             <code>strata query ... | head</code> and a process that vanishes with no message
           </h5>
           <p><code>strata query</code> streams result rows to <code>STDOUT</code> with <code>say</code>. Piped into <code>head -5</code>, it worked — until the exit code was checked in a script:</p>
@@ -266,7 +266,7 @@ export default function Page() {
         <pre><code>{"sub scan_fields ($line) {          # BUG, left in deliberately: see below\n    my @fields;\n    my $pos = 0;\n    my $len = length $line;\n    while ($pos < $len) {\n        if (substr($line, $pos, 1) eq '\"') {\n            my $end = index($line, '\"', $pos + 1);\n            if ($end == -1) {\n                next;             # meant \"consume to end of string\"; forgot to move $pos\n            }\n            push @fields, substr($line, $pos + 1, $end - $pos - 1);\n            $pos = $end + 1;\n        } else {\n            my $comma = index($line, \",\", $pos);\n            $comma = $len if $comma == -1;\n            push @fields, substr($line, $pos, $comma - $pos);\n            $pos = $comma + 1;\n        }\n    }\n    return \\@fields;\n}\n"}</code></pre>
         <pre className="plain"><code>{"$ perl t/90-fuzz.t\ntrial 5 hung the scanner on: \"qaed,,pli\nfound a hang in 2000-trial budget (seed 20260912), 1.01s elapsed\nnot ok 1 - scan_fields never hangs\n"}</code></pre>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, delighted" width="110" />
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, delighted" width="110" loading="lazy" />
           Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an unterminated <code>"</code> and no closing quote anywhere in it — exactly the input that hits the <code>next</code> without advancing <code>$pos</code>, so the <code>while</code> condition never changes and the loop spins forever. Without the deadline, this test would simply never finish, and depending on your CI system, "the test suite hangs" and "the test suite is slow today" look identical for the first twenty minutes. <strong>The fuzzer's actual job is not finding the bug — a code reviewer could find this one by eye. Its job is finding it in one second, automatically, every time the suite runs, forever. </strong> The fix is the one-line version of the comment: <code>$pos = $len; next;</code> when no closing quote exists, which is exactly why this project uses <code>Text::CSV</code> for the real parser and keeps this one only as a cautionary exercise.
         </p>
         <h4>Profiling: finding the hot path instead of guessing at it</h4>
@@ -311,7 +311,7 @@ export default function Page() {
         <p>Recursive common table expressions (<code>WITH RECURSIVE</code>), <code>fork()</code> and pipes as Perl's idiomatic answer to "run this on several cores", reaping children correctly, and final packaging.</p>
         <div className="why">
           <h5>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, facing forward" width="110" />
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, facing forward" width="110" loading="lazy" />
             Why are we using this language here?
           </h5>
           <p>This is the sharpest language contrast in the whole course. Go's answer to "use more cores" is goroutines sharing one address space, disciplined by channels and the race detector. Perl's idiomatic answer is the opposite instinct: <code>fork()</code> gives every worker its own <em>copy</em> of the process's memory (copy-on-write, so it is cheap until a worker writes), which means <strong>a whole category of bug — the shared-mutable-state data race — is not merely disciplined, it is structurally impossible</strong>. There is no memory two Perl worker processes can race on, because after <code>fork</code> they do not share any. The price is exactly what you would expect from that trade: no in-memory sharing means every result has to be serialised and sent back over a pipe, which is slower than a goroutine writing into a channel and costs real code (<code>Storable</code>, explicit reaping). Neither answer is superior in the abstract; they optimise for different failure modes, and Course 4 (Erlang) turns out to agree with Perl's instinct here far more than with Go's.</p>
@@ -382,7 +382,7 @@ export default function Page() {
         </div>
         <footer className="end">
           <p>
-            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, raising a paw in celebration" width="120" loading="lazy" />
             Instalment 14 of the five-course curriculum. Next, and last for Perl: the advanced phase, a final challenge with acceptance criteria and a withheld solution, the full knowledge check, the README and GitHub description, portfolio notes and interview questions.
           </p>
         </footer>
