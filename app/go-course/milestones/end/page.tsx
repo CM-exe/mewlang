@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Go: Advanced Phase, Final Challenge, Knowledge Check",
@@ -812,7 +813,7 @@ export default function Page() {
                 building, installation and tooling, the language crash course), then twelve milestones building a
                 self-inspecting automation DSL.</p>
         </footer>
-        <a className="button" href="/ruby-course/instalment/">Next: Ruby instalment</a>
+        <Link className="button" href="/ruby-course/instalment/">Next: Ruby instalment</Link>
       </div>
     </div>
   );

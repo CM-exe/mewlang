@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Go Milestones 5–8 — Ownership, Trails, Shutdown, Chaos",
@@ -830,7 +831,7 @@ export default function Page() {
                 a profiler, the colony gets a live view you can watch in a browser, backpressure and sharding make it
                 fast, and the world moves into a separate process that you can kill.</p>
         </footer>
-        <a className="button" href="/go-course/milestones/9-12/">Continue</a>
+        <Link className="button" href="/go-course/milestones/9-12/">Continue</Link>
       </div>
     </div>
   );

@@ -85,8 +85,12 @@ const ATTR_NAME_MAP: Record<string, string> = {
   'aria-label': 'aria-label',
 };
 
+function isInternalHref(href: string): boolean {
+  return !(href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:'));
+}
+
 function resolveHref(srcRel: string, href: string): string {
-  if (href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:')) {
+  if (!isInternalHref(href)) {
     return href;
   }
   const srcDir = posixPath.dirname(srcRel);
@@ -100,6 +104,12 @@ function resolveHref(srcRel: string, href: string): string {
   }
   return route;
 }
+
+// Set while serializing a page whenever an internal <a> gets rendered as
+// <Link> (see serializeElement), so main() knows whether that page's
+// generated file needs `import Link from 'next/link'`. Reset per page in
+// main() — the script processes pages one at a time, synchronously.
+let usesLinkInCurrentPage = false;
 
 /** Convert `margin-bottom:0` etc into a JS object literal source string for a style={{}} prop. */
 function styleAttrToObjectLiteral(css: string): string {
@@ -243,6 +253,23 @@ function serializeElement(
   const classNameParts: string[] = [];
   const propParts: string[] = [];
 
+  // Internal links (anything that resolves to a page in PAGES, as opposed
+  // to an external https:// link) render as next/link's <Link> instead of
+  // a plain <a>. This is what makes them basePath-aware: the site deploys
+  // to a GitHub Pages *project* subpath (cm-exe.github.io/mewlang/, not the
+  // domain root), and Next only auto-prefixes its own asset pipeline and
+  // next/link navigation with that subpath — a hardcoded <a href="/foo">
+  // has no way to pick up the prefix and would 404 in production while
+  // looking perfectly fine in dev.
+  let outputTag = tag;
+  if (tag === 'a') {
+    const hrefAttr = el.attrs.find((a) => a.name === 'href');
+    if (hrefAttr && isInternalHref(hrefAttr.value)) {
+      outputTag = 'Link';
+      usesLinkInCurrentPage = true;
+    }
+  }
+
   for (const attr of el.attrs) {
     const name = attr.name;
     if (!(name in ATTR_NAME_MAP)) {
@@ -278,14 +305,16 @@ function serializeElement(
   const propsStr = propParts.length ? ' ' + propParts.join(' ') : '';
 
   if (VOID_ELEMENTS.has(tag)) {
-    return tight ? `<${tag}${propsStr} />` : `${indent(depth)}<${tag}${propsStr} />\n`;
+    return tight ? `<${outputTag}${propsStr} />` : `${indent(depth)}<${outputTag}${propsStr} />\n`;
   }
 
   const children = defaultTreeAdapter.getChildNodes(el);
   const nowInsidePreCode = insidePreCode || tag === 'pre';
 
   if (children.length === 0) {
-    return tight ? `<${tag}${propsStr}></${tag}>` : `${indent(depth)}<${tag}${propsStr}></${tag}>\n`;
+    return tight
+      ? `<${outputTag}${propsStr}></${outputTag}>`
+      : `${indent(depth)}<${outputTag}${propsStr}></${outputTag}>\n`;
   }
 
   // Whether *this element's own children* form a flow run is independent
@@ -300,10 +329,10 @@ function serializeElement(
 
   if (tight || childrenTight) {
     return tight
-      ? `<${tag}${propsStr}>${inner}</${tag}>`
-      : `${indent(depth)}<${tag}${propsStr}>${inner}</${tag}>\n`;
+      ? `<${outputTag}${propsStr}>${inner}</${outputTag}>`
+      : `${indent(depth)}<${outputTag}${propsStr}>${inner}</${outputTag}>\n`;
   }
-  return `${indent(depth)}<${tag}${propsStr}>\n${inner}${indent(depth)}</${tag}>\n`;
+  return `${indent(depth)}<${outputTag}${propsStr}>\n${inner}${indent(depth)}</${outputTag}>\n`;
 }
 
 function extractTag(raw: string, tag: 'title'): string {
@@ -329,6 +358,7 @@ function main() {
     if (!bodyMatch) throw new Error(`${page.src}: no <body>...</body> found`);
     const bodyHtml = bodyMatch[1].trim();
 
+    usesLinkInCurrentPage = false;
     const fragment = parseFragment(bodyHtml);
     const children = defaultTreeAdapter.getChildNodes(fragment) as AnyNode[];
     const bodyJsx = serializeChildren(page.src, children, 3, false, false);
@@ -336,11 +366,15 @@ function main() {
     const metadataLines: string[] = [];
     if (!page.inheritTitle) metadataLines.push(`  title: ${JSON.stringify(title)},`);
     if (description) metadataLines.push(`  description: ${JSON.stringify(description)},`);
+    const metadataImport = metadataLines.length ? `import type { Metadata } from 'next';\n` : '';
+    const linkImport = usesLinkInCurrentPage ? `import Link from 'next/link';\n` : '';
+    const importsBlock = metadataImport || linkImport ? metadataImport + linkImport + '\n' : '';
     const metadataBlock = metadataLines.length
-      ? `import type { Metadata } from 'next';\n\nexport const metadata: Metadata = {\n${metadataLines.join('\n')}\n};\n\n`
+      ? `export const metadata: Metadata = {\n${metadataLines.join('\n')}\n};\n\n`
       : '';
 
     const content =
+      importsBlock +
       metadataBlock +
       'export default function Page() {\n' +
       '  return (\n' +

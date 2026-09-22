@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Ruby Parts 0–2 — The Automation DSL, Setup, and the Language",
@@ -871,7 +872,7 @@ export default function Page() {
           <p>Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks
                 become a DSL, <code>instance_eval</code> earns and costs, and the whole thing turns into an AST.</p>
         </footer>
-        <a className="button" href="/ruby-course/milestones/1-4/">Continue</a>
+        <Link className="button" href="/ruby-course/milestones/1-4/">Continue</Link>
       </div>
     </div>
   );

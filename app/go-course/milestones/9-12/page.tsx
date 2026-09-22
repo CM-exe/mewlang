@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Go Milestones 9–12 — Metrics, Viewing, Speed, Distribution",
@@ -786,7 +787,7 @@ export default function Page() {
                 code-reading, 5 debugging, 5 implementation questions plus one substantial challenge), the README and
                 GitHub description, portfolio notes and interview questions. Then Course 2 begins.</p>
         </footer>
-        <a className="button" href="/go-course/milestones/end/">Continue</a>
+        <Link className="button" href="/go-course/milestones/end/">Continue</Link>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 1–4 — From Objects to an AST",
@@ -724,7 +725,7 @@ export default function Page() {
                 <code>define_method</code> and <code>method_missing</code>, and the steps start doing real work against
                 HTTP, the filesystem and SQLite.</p>
         </footer>
-        <a className="button" href="/ruby-course/milestones/5-8/">Continue</a>
+        <Link className="button" href="/ruby-course/milestones/5-8/">Continue</Link>
       </div>
     </div>
   );

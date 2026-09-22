@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Five Languages, Five Projects — The Mewlang Curriculum",
@@ -647,7 +648,7 @@ export default function Page() {
             ant colony that finds itself corrupting its own state the moment it goes concurrent, and the idiom
             that fixes it), installing the toolchain, and a full language crash course, before Milestone 1 begins.</p>
         <hr />
-        <a className="button" href="/go-course/instalment/">Next: Go instalment</a>
+        <Link className="button" href="/go-course/instalment/">Next: Go instalment</Link>
       </div>
     </div>
   );

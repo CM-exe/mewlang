@@ -3,6 +3,11 @@ import type { ReactNode } from 'react';
 import FloatingMenu from '../components/FloatingMenu';
 import './globals.css';
 
+// No `icons` field here on purpose: app/favicon.ico (Next's file-convention
+// icon) is picked up and served automatically with the correct basePath
+// prefix. A hardcoded `icons: { icon: '/favicon.ico' }` would need the
+// prefix built in by hand and was exactly the kind of hardcoded absolute
+// path that broke on the GitHub Pages subpath deployment.
 export const metadata: Metadata = {
   title: {
     default: 'Mewlang',
@@ -10,9 +15,6 @@ export const metadata: Metadata = {
   },
   description:
     'Learn programming languages by building things that make each language worth learning.',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

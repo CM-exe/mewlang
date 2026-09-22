@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 5–8 — The Engine, Failure, Plugins, Real Work",
@@ -660,7 +661,7 @@ export default function Page() {
                 pipelines learn to inspect and describe themselves, they start rewriting themselves at run time, and the
                 whole thing ships as a gem with a CLI.</p>
         </footer>
-        <a className="button" href="/ruby-course/milestones/9-12/">Continue</a>
+        <Link className="button" href="/ruby-course/milestones/9-12/">Continue</Link>
       </div>
     </div>
   );

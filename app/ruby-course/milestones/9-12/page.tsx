@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 9–12 — Testing, Inspection, Rewriting, Shipping",
@@ -508,7 +509,7 @@ export default function Page() {
                 and a withheld solution, the full knowledge check, and the README, portfolio and interview material.
                 Then Course 3 begins: Perl, and the text archaeologist.</p>
         </footer>
-        <a className="button" href="/ruby-course/milestones/end/">Continue</a>
+        <Link className="button" href="/ruby-course/milestones/end/">Continue</Link>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Go Parts 0–2 — The Digital Ant Colony, Setup, and the Language",
@@ -929,7 +930,7 @@ export default function Page() {
         <footer className="end">
           <p>Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.</p>
         </footer>
-        <a className="button" href="/go-course/milestones/1-4/">Continue</a>
+        <Link className="button" href="/go-course/milestones/1-4/">Continue</Link>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Ruby: Advanced Phase, Final Challenge, Knowledge Check",
@@ -715,7 +716,7 @@ export default function Page() {
                 Archaeologist. Parts 0–2 first (what we are building, installation and CPAN, the language crash course),
                 then twelve milestones turning ugly heterogeneous data into a searchable knowledge graph.</p>
         </footer>
-        <a className="button" href="/perl-course/instalment/">Next: Perl instalment</a>
+        <Link className="button" href="/perl-course/instalment/">Next: Perl instalment</Link>
       </div>
     </div>
   );

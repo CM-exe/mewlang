@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   description: "Learn programming languages by building things that make each language worth learning.",
@@ -11,7 +12,7 @@ export default function Page() {
         <img src="assets/logo-mewlang.png" alt="Mewlang logo" width="220" />
         <h1>Mewlang</h1>
         <p><strong>Learn programming languages by building things that make each language worth learning.</strong></p>
-        <nav className="menu" aria-label="Course navigation"> <a href="/overview/">Curriculum overview</a> <a href="/go-course/instalment/">Go</a> <a href="/ruby-course/instalment/">Ruby</a> <a href="/perl-course/instalment/">Perl</a> <span className="soon">Erlang <small>(coming soon)</small></span> <span className="soon">Racket <small>(coming soon)</small></span> </nav>
+        <nav className="menu" aria-label="Course navigation"> <Link href="/overview/">Curriculum overview</Link> <Link href="/go-course/instalment/">Go</Link> <Link href="/ruby-course/instalment/">Ruby</Link> <Link href="/perl-course/instalment/">Perl</Link> <span className="soon">Erlang <small>(coming soon)</small></span> <span className="soon">Racket <small>(coming soon)</small></span> </nav>
       </header>
       <main>
         <p>Mewlang is a hands-on programming-language learning project built around one idea:</p>
@@ -33,19 +34,19 @@ export default function Page() {
           <p>Build a large concurrent simulation where thousands of autonomous ants search for food, communicate, leave pheromone trails, and recover from failures.</p>
           <p><strong>Explore:</strong> Goroutines, channels, concurrency, synchronization, context cancellation, worker pools, race detection, fault injection, and distributed systems.</p>
           <blockquote>What happens when concurrency becomes the natural way to model the world?</blockquote>
-          <p className="start"><a href="/go-course/instalment/">Start the Go course →</a></p>
+          <p className="start"><Link href="/go-course/instalment/">Start the Go course →</Link></p>
           <h3>🐱 Ruby — Programmable Automation DSL</h3>
           <p>Build a Ruby-based automation framework where pipelines can be written almost like a programming language:</p>
           <pre><code>{"pipeline \"research\" do\n\tfetch \"papers\"\n\tfilter topic: \"AI\"\n\tsummarize\n\tsave_to \"knowledge_base\"\nend"}</code></pre>
           <p><strong>Explore:</strong> Blocks, Procs, lambdas, objects, reflection, <code>method_missing</code>, dynamic methods, metaprogramming, DSL design, and runtime introspection.</p>
           <blockquote>What if your application could become its own language?</blockquote>
-          <p className="start"><a href="/ruby-course/instalment/">Start the Ruby course →</a></p>
+          <p className="start"><Link href="/ruby-course/instalment/">Start the Ruby course →</Link></p>
           <h3>🕵️ Perl — Text Archaeologist</h3>
           <p>Build a data-forensics tool capable of digging through messy real-world text and extracting useful structure.</p>
           <p><strong>Process:</strong> Logs, CSV, JSON, XML, source code, configuration files, malformed data, and arbitrary text.</p>
           <p><strong>Explore:</strong> Regular expressions, text transformation, file processing, streams, references, Unix pipelines, CLI applications, CPAN, parsing, and data processing.</p>
           <blockquote>What happens when text manipulation is the core of the language?</blockquote>
-          <p className="start"><a href="/perl-course/instalment/">Start the Perl course →</a></p>
+          <p className="start"><Link href="/perl-course/instalment/">Start the Perl course →</Link></p>
           <h3>🐉 Erlang — The Internet That Never Dies</h3>
           <p>Build a simulated distributed network containing thousands of nodes that communicate, crash, restart, disconnect, and recover automatically.</p>
           <p><strong>Explore:</strong> Processes, message passing, pattern matching, <code>receive</code>, links, monitors, OTP, <code>gen_server</code>, supervision trees, distributed systems, and fault tolerance.</p>
@@ -76,7 +77,7 @@ export default function Page() {
         <p>Choose a language and start with its project. You don't need to know the language beforehand.</p>
         <pre><code>{"Language basics\n\t\t\t↓\nTiny exercises\n\t\t\t↓\nSmall prototype\n\t\t\t↓\nProject milestone\n\t\t\t↓\nMore language features\n\t\t\t↓\nAdvanced architecture\n\t\t\t↓\nFinal challenge"}</code></pre>
         <p>The objective isn't to memorize syntax, but to reach the point where you can think: <strong>“This language would be interesting for this.”</strong></p>
-        <p><a className="button" href="/overview/">Read the full curriculum →</a></p>
+        <p><Link className="button" href="/overview/">Read the full curriculum →</Link></p>
         <h2>🧩 Why “Mewlang”?</h2>
         <p>Because programming languages are weird creatures. Some are good at concurrency, some manipulate text beautifully, some reshape the language itself, some survive failure, and some make types do incredible things.</p>
         <p>Different languages. Different powers. Different ways of thinking.</p>

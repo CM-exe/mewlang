@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Perl Milestones 5–8 — Distribution, Formats, Hard Files, Entities",
@@ -540,7 +541,7 @@ export default function Page() {
                 and profiled, and the whole thing becomes a queryable knowledge graph.</p>
         </footer>
         <p className="note">Milestones 9–12 are not written yet — this is as far as the Perl course goes for now.</p>
-        <a className="button" href="/">Back to Mewlang</a>
+        <Link className="button" href="/">Back to Mewlang</Link>
       </div>
     </div>
   );

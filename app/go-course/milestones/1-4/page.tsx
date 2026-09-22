@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Go Milestones 1–4 — One Ant to a Thousand Goroutines",
@@ -835,7 +836,7 @@ export default function Page() {
                 goroutine, pheromones arrive with a shared clock, <code>context</code> gives us clean shutdown, and we
                 start deliberately crashing things.</p>
         </footer>
-        <a className="button" href="/go-course/milestones/5-8/">Continue</a>
+        <Link className="button" href="/go-course/milestones/5-8/">Continue</Link>
       </div>
     </div>
   );

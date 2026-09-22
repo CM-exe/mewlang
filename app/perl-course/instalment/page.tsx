@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Perl Parts 0–2 — The Text Archaeologist, Setup, and the Language",
@@ -822,7 +823,7 @@ export default function Page() {
           <p>Instalment 11 of the five-course curriculum. Next: Perl Milestones 1–4, where the filter becomes a tool,
                 hashes become reports, regexes become a parser, and records become a data model.</p>
         </footer>
-        <a className="button" href="/perl-course/milestones/1-4/">Continue</a>
+        <Link className="button" href="/perl-course/milestones/1-4/">Continue</Link>
       </div>
     </div>
   );

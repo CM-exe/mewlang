@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Perl Milestones 1–4 — Filter, Report, Parser, Model",
@@ -590,7 +591,7 @@ export default function Page() {
                 the reader learns to survive gzip, mixed encodings and truncation, and entity extraction turns records
                 into things you can correlate.</p>
         </footer>
-        <a className="button" href="/perl-course/milestones/5-8/">Continue</a>
+        <Link className="button" href="/perl-course/milestones/5-8/">Continue</Link>
       </div>
     </div>
   );
