@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import logo from '../courses/assets/logo-mewlang.png';
 
 interface CourseLink {
@@ -31,6 +31,20 @@ function isSoon(link: CourseLink | SoonLink): link is SoonLink {
 export default function FloatingMenu() {
   const pathname = usePathname();
   const [themeClass, setThemeClass] = useState('');
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    // The six links don't fit a narrow viewport, so .floating-menu scrolls
+    // horizontally (see its overflow-x-auto) — without this, the active
+    // course's highlighted pill can sit entirely past the visible right
+    // edge with nothing to show it's there at all (confirmed: on a 375px
+    // viewport, /racket-course/'s active tab renders fully off-screen at
+    // scrollLeft 0). 'nearest' only moves the nav's own scrollLeft, the
+    // minimum needed to bring it fully into view — it won't fight a user
+    // who's already scrolled it themselves to look at a different item.
+    const active = navRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    active?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  }, [pathname]);
 
   useEffect(() => {
     const updateThemeClass = () => {
@@ -54,7 +68,7 @@ export default function FloatingMenu() {
   }, []);
 
   return (
-    <nav className={`floating-menu ${themeClass}`} aria-label="Site navigation">
+    <nav ref={navRef} className={`floating-menu ${themeClass}`} aria-label="Site navigation">
       <Link href="/" className="floating-menu-brand" data-active={pathname === '/'}>
         <img src={logo.src} alt="" width={22} height={22} loading="lazy" className="floating-menu-logo" />
         Mewlang
