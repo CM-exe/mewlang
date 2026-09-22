@@ -759,12 +759,25 @@
 
 .floating-menu a {
   color: color-mix(in srgb, var(--color-ink) 68%, transparent);
+  -webkit-tap-highlight-color: transparent;
+  /* Turn the highlight on fast, fade it off slowly. Plain :hover/:active
+     alone reads as "too short" on a touch screen: there's no real hover,
+     and :active only lasts as long as the finger is actually down — often
+     under 100ms for a quick tap, especially once next/link's client-side
+     navigation swaps the page under it. A slow *exit* transition, set here
+     on the base (unstated) rule, keeps the highlight visibly fading out for
+     nearly half a second after release regardless of how brief the tap
+     itself was; the state rule below overrides it back down to a near-
+     instant entrance so the tap still feels immediate. */
+  transition: background-color .45s ease, color .45s ease;
 }
 
 .floating-menu a:hover,
+.floating-menu a:active,
 .floating-menu a:focus-visible,
 .floating-menu a[data-active="true"] {
   @apply bg-accent/[.12] text-accent;
+  transition-duration: 80ms;
 }
 
 .floating-menu span.soon {
@@ -785,9 +798,11 @@
   }
 
   :root:not([data-theme="light"]) .floating-menu a:hover,
+  :root:not([data-theme="light"]) .floating-menu a:active,
   :root:not([data-theme="light"]) .floating-menu a:focus-visible,
   :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
     @apply bg-accent/[.16] text-accent;
+    transition-duration: 80ms;
   }
 
   :root:not([data-theme="light"]) .floating-menu span.soon {
@@ -808,9 +823,11 @@
 }
 
 :root[data-theme="dark"] .floating-menu a:hover,
+:root[data-theme="dark"] .floating-menu a:active,
 :root[data-theme="dark"] .floating-menu a:focus-visible,
 :root[data-theme="dark"] .floating-menu a[data-active="true"] {
   @apply bg-accent/[.16] text-accent;
+  transition-duration: 80ms;
 }
 
 :root[data-theme="dark"] .floating-menu span.soon {
@@ -822,11 +839,26 @@
    (see the component), so — same reasoning as every other themed component —
    they read the plain paper/ink/accent/rule tokens directly and need no
    light/dark overrides of their own: the active theme scope already
-   resolves those tokens correctly in both modes. Hidden below `md` so a
-   fixed edge button never sits on top of narrow-viewport prose. */
+   resolves those tokens correctly in both modes.
+
+   Responsive positioning, not a responsive hide: below `md`, .wrap's own
+   content fills nearly the full viewport width (see the landing-page rule
+   above — it's `min(100% - 2.5rem, 50rem)`), so there is no dead side
+   margin left for an edge-anchored, vertically-centered button to live in
+   without sitting on top of the prose it's next to — that's a real
+   collision, not just a tight fit. Anchoring to the bottom corners instead
+   sidesteps it: a small fixed pill in a screen corner is a well-worn,
+   tolerated overlay pattern (a floating action button, a chat launcher),
+   where sitting in the middle of whatever paragraph the reader is
+   currently on is not. From `md` up, .wrap stops growing at its 50rem cap
+   and real side margin opens up, so the buttons move back to the
+   vertically-centered edge position they've always had, in the space that
+   now actually exists for them. */
 .course-nav-btn {
-  @apply hidden md:flex flex-col items-center gap-1 fixed top-1/2 -translate-y-1/2 z-40;
-  @apply no-underline opacity-60 hover:opacity-100 focus-visible:opacity-100 transition-opacity;
+  @apply flex flex-col items-center gap-1 fixed z-40 no-underline;
+  @apply bottom-3 opacity-80 active:opacity-100 focus-visible:opacity-100;
+  @apply transition-opacity duration-300;
+  @apply md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:opacity-60 md:hover:opacity-100;
 }
 
 .course-nav-prev {
@@ -838,13 +870,19 @@
 }
 
 .course-nav-mascot {
-  @apply w-11 h-auto drop-shadow-[0_2px_4px_rgb(0_0_0_/_0.25)];
+  @apply w-8 h-auto drop-shadow-[0_2px_4px_rgb(0_0_0_/_0.25)] md:w-11;
 }
 
+/* flex (not block) so the arrow and label are laid out as row items rather
+   than stacked text, and flex-nowrap + whitespace-nowrap so a run of two
+   short words never wraps onto a second line and squashes the pill's
+   height — truncate is a second line of defense (ellipsis) for the rare
+   label that's still too long for the smaller mobile max-width. */
 .course-nav-caption {
-  @apply flex items-center gap-1 max-w-28 truncate;
-  @apply font-mono text-[.7rem] text-ink bg-paper/90 backdrop-blur;
-  @apply px-2 py-1 rounded-full border border-rule;
+  @apply flex flex-nowrap items-center gap-1 whitespace-nowrap max-w-32 truncate;
+  @apply font-mono text-[.65rem] text-ink bg-paper/90 backdrop-blur;
+  @apply px-[.55rem] py-[.35rem] rounded-full border border-rule;
+  @apply md:max-w-28 md:text-[.7rem] md:px-2 md:py-1;
 }
 
 .course-nav-arrow {
