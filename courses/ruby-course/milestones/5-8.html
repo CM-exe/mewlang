@@ -34,7 +34,7 @@
         <h2 class="milestone-head"><span class="num">Milestone 5</span>The execution engine</h2>
 
         <h3>Goal</h3>
-        <p>Replace the one-line <code>reduce</code> with a real interpreter: a context that flows through the pipeline,
+        <p><img src="../../assets/expressions/left_to_right/quarter_face.png" alt="The Mewlang cat, in a curious quarter-profile pose" width="120" class="mascot-left">Replace the one-line <code>reduce</code> with a real interpreter: a context that flows through the pipeline,
             a result object recording what happened to every step, and a middleware chain so cross-cutting concerns
             (logging, timing, dry runs, retries) are not hard-coded into the runner.</p>
 
@@ -479,7 +479,7 @@ end</code></pre>
         <h3>Two bugs I hit writing this</h3>
 
         <div class="warn">
-            <h5>Bug 1: a local variable silently shadowed a DSL verb</h5>
+            <h5><img src="../../assets/expressions/surprised.png" alt="The Mewlang cat, wide-eyed with surprise" width="120" class="mascot-right">Bug 1: a local variable silently shadowed a DSL verb</h5>
             <pre class="bad"><code>flaky = Automation.define("flaky") do
   retry_on IOError, times: 4
   flaky                       # &lt;- intended: the step named :flaky
@@ -904,7 +904,7 @@ Summarize.singleton_class.prepend(CountCalls)
         <div class="exercise">
             <h5>Exercise 7</h5>
             <ol>
-                <li><strong>Types.</strong> Add <code>option :max_words, type: Integer</code> and have the validator
+<li><img src="../../assets/expressions/left_to_right/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="120" class="mascot-left"><strong>Types.</strong> Add <code>option :max_words, type: Integer</code> and have the validator
                     report a type mismatch at build time, with the same file and line treatment.</li>
                 <li><strong>Loading.</strong> Implement <code>Automation.load_plugins(dir)</code> that requires every
                     <code>.rb</code> in a directory and registers any <code>Automation::Plugin</code> subclass it finds.
@@ -1262,7 +1262,7 @@ stored: 1 record(s) in the knowledge base
   end
 </code></pre>
 
-        <p>That is the Part 0 sketch, working, eight milestones in.</p>
+        <p><img src="../../assets/expressions/right_to_left/paw.png" alt="The Mewlang cat, raising a paw in celebration" width="120" class="mascot-right">That is the Part 0 sketch, working, eight milestones in.</p>
 
         <div class="exercise">
             <h5>Exercise 8</h5>
@@ -1350,7 +1350,7 @@ end
         <h4>Common mistakes in Milestone 8</h4>
         <div class="warn">
             <ul>
-                <li><strong>Reading <code>ENV</code> inside a step.</strong> Untestable, unconfigurable, invisible.</li>
+                <li><img src="../../assets/expressions/right_to_left/looking_bad_top.png" alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" class="mascot-right"><strong>Reading <code>ENV</code> inside a step.</strong> Untestable, unconfigurable, invisible.</li>
                 <li><strong><code>to_i</code> on configuration.</strong> <code>"abc".to_i</code> is <code>0</code>; use
                     <code>Integer()</code> and <code>Float()</code>.</li>
                 <li><strong>Letting library exceptions escape your adapter.</strong> Your users should not have to know
@@ -1425,7 +1425,7 @@ $ git commit -am "milestone 8: real adapters, config, and tests against a real s
 </code></pre>
 
         <footer class="end">
-            <p>Instalment 8 of the five-course curriculum. Next: Ruby Milestones 9–12, where testing gets its own DSL,
+            <p><img src="../../assets/expressions/left_to_right/walking.png" alt="The Mewlang cat, strolling forward" width="150" class="mascot-center">Instalment 8 of the five-course curriculum. Next: Ruby Milestones 9–12, where testing gets its own DSL,
                 pipelines learn to inspect and describe themselves, they start rewriting themselves at run time, and the
                 whole thing ships as a gem with a CLI.</p>
         </footer>

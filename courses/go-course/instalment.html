@@ -43,7 +43,7 @@ tick 1200 | alive 49863 | carrying 8214 | food delivered 31902
 
         <h3>Why this project is interesting</h3>
 
-        <p>Ant colonies are the canonical example of emergent behaviour: no ant knows where the food is, no ant is in
+        <p><img src="../assets/expressions/left_to_right/looking_up.png" alt="The Mewlang cat, looking up curiously" width="120" class="mascot-left">Ant colonies are the canonical example of emergent behaviour: no ant knows where the food is, no ant is in
             charge, and yet the colony reliably finds short paths to food. The algorithm behind it is real (ant colony
             optimisation is a genuine technique for routing and scheduling problems), and it happens to be an almost
             perfect Go exercise, because the natural implementation is thousands of independent activities exchanging
@@ -76,7 +76,7 @@ tick 1200 | alive 49863 | carrying 8214 | food delivered 31902
 
         <div class="why">
             <h5>Why are we using this language here?</h5>
-            <p>Honestly: Erlang would be better at the fault-tolerance half of this project, and you will see why in
+            <p><img src="../assets/expressions/right_to_left/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-right">Honestly: Erlang would be better at the fault-tolerance half of this project, and you will see why in
                 Course 4. Erlang gives you supervision, isolated heaps, and true preemption; in Go, a panicking
                 goroutine kills the whole process unless you catch it, and a goroutine stuck in a tight loop cannot be
                 cancelled by force. In Milestone 8 you will hand-build a supervisor that Erlang would have given you.
@@ -239,7 +239,7 @@ tick 1200 | alive 49863 | carrying 8214 | food delivered 31902
 
         <h3>Installing</h3>
 
-        <p>You want Go 1.22 or newer for this course, because we use a few features introduced there (ranging over
+        <p><img src="../assets/expressions/left_to_right/laptop.png" alt="The Mewlang cat, typing on a laptop" width="120" class="mascot-left">You want Go 1.22 or newer for this course, because we use a few features introduced there (ranging over
             integers, and the corrected loop-variable semantics). At the time of writing the current release is in the
             1.25/1.26 range; my knowledge of releases stops in mid-2026, so check <a
                 href="https://go.dev/dl/">go.dev/dl</a> for what is current and prefer the newest stable version.</p>
@@ -514,7 +514,7 @@ cpus:       10
         <div class="warn">
             <h5>Common first-day errors</h5>
             <ul>
-                <li><code>go: cannot find main module</code> — you are not inside a directory containing
+                <li><img src="../assets/expressions/right_to_left/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-right"><code>go: cannot find main module</code> — you are not inside a directory containing
                     <code>go.mod</code>, or below one. Run <code>go mod init</code>.
                 </li>
                 <li><code>imported and not used: "runtime"</code> — remove the import, or use it. Not a warning.</li>
@@ -1575,7 +1575,7 @@ go test -bench=. ./...     # run benchmarks
 
         <div class="exercise">
             <h5>Exercise 2.C — the capstone of Part 2</h5>
-            <p>Write a small program that models a very simple version of what we are about to build. Requirements:</p>
+            <p><img src="../assets/expressions/left_to_right/paw.png" alt="The Mewlang cat, raising a paw for a high-five" width="120" class="mascot-left">Write a small program that models a very simple version of what we are about to build. Requirements:</p>
             <ul>
                 <li>A <code>Report</code> struct with an <code>AntID int</code> and a <code>Found bool</code>.</li>
                 <li>A function <code>ant(ctx context.Context, id int, out chan&lt;- Report)</code> that sends a report
@@ -1745,7 +1745,7 @@ collect:
         </ol>
 
         <footer class="end">
-            <p>Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.</p>
+            <p><img src="../assets/expressions/back.png" alt="The Mewlang cat, seen from behind, walking off" width="150" class="mascot-center">Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.</p>
         </footer>
 
         <a href="./milestones/1-4.html" class="button">Continue</a>

@@ -15,8 +15,8 @@
  * exact, compiler-verified code snippets — a real parser + AST walk makes
  * the escaping mechanical and exhaustive instead of best-effort.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import * as posixPath from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
 import { parseFragment, defaultTreeAdapter } from 'parse5';
@@ -112,6 +112,60 @@ function resolveHref(srcRel: string, href: string): string {
 // generated file needs `import Link from 'next/link'`. Reset per page in
 // main() — the script processes pages one at a time, synchronously.
 let usesLinkInCurrentPage = false;
+
+// Every <img src="..."> in course content is resolved into a real, bundler-
+// processed import rather than a literal src string. A literal path (even a
+// "genuinely relative" one, which is otherwise the right call for a static
+// reference — see next.config.ts's comment) only resolves correctly from
+// the *one* route depth it was hand-counted for; this site's course pages
+// sit at several different depths (/, /go-course/instalment/,
+// /go-course/milestones/9-12/, ...), and course content is meant to be
+// copy-pasted between milestone files freely. An imported asset sidesteps
+// depth entirely: Next's bundler emits a correctly basePath-prefixed,
+// content-hashed URL regardless of which page imports it. Populated while
+// serializing a page (see resolveImgImport) and reset per page in main().
+let imageImportsInCurrentPage = new Map<string, string>(); // resolved abs path -> local var name
+
+/**
+ * Resolve an <img src="..."> from course content to a JS identifier that
+ * main() will import at the top of the generated file (e.g. "img1", bound
+ * to `courses/assets/expressions/left_to_right/thinking.png`). The source
+ * value is resolved relative to the *source .html file's own directory* —
+ * exactly how a browser would resolve it when previewing courses/*.html
+ * directly (see CLAUDE.md's "Content editing workflow") — so authoring an
+ * image reference in courses/ needs no awareness of the eventual route
+ * depth at all. main() computes the actual import *path* afterward, from
+ * this function's tracked absolute file path and the page's known output
+ * directory (see importPathFor) — this function only has to hand out a
+ * stable, deduplicated identifier for it.
+ */
+function resolveImgImport(srcRel: string, srcValue: string): string {
+  const srcDir = posixPath.dirname(srcRel);
+  const resolvedRel = posixPath.normalize(posixPath.join(srcDir, srcValue));
+  const absPath = join(COURSES, resolvedRel);
+  if (!existsSync(absPath)) {
+    throw new Error(
+      `${srcRel}: <img src="${srcValue}"> resolves to "${resolvedRel}", which doesn't exist under courses/.`
+    );
+  }
+
+  const existing = imageImportsInCurrentPage.get(absPath);
+  if (existing) return existing;
+
+  const varName = `img${imageImportsInCurrentPage.size + 1}`;
+  imageImportsInCurrentPage.set(absPath, varName);
+  return varName;
+}
+
+/** Relative import path from a generated page.tsx's directory to a resolved asset file. */
+function importPathFor(outDir: string, absAssetPath: string): string {
+  // node:path's relative() returns platform-native separators; normalize to
+  // POSIX for the generated source regardless of host OS, and make sure a
+  // same-directory result (unlikely here, but cheap to handle) still reads
+  // as a relative specifier rather than a bare module name.
+  const posixRel = relative(outDir, absAssetPath).replace(/\\/g, '/');
+  return posixRel.startsWith('.') ? posixRel : `./${posixRel}`;
+}
 
 /** Convert `margin-bottom:0` etc into a JS object literal source string for a style={{}} prop. */
 function styleAttrToObjectLiteral(css: string): string {
@@ -351,6 +405,11 @@ function serializeElement(
       propParts.push(`href="${resolveHref(srcRel, attr.value)}"`);
       continue;
     }
+    if (name === 'src' && tag === 'img') {
+      const varName = resolveImgImport(srcRel, attr.value);
+      propParts.push(`src={${varName}.src}`);
+      continue;
+    }
     const jsxName = ATTR_NAME_MAP[name];
     propParts.push(`${jsxName}=${JSON.stringify(attr.value)}`);
   }
@@ -403,6 +462,61 @@ function extractDescription(raw: string): string {
   return m ? m[1].replace(/\s+/g, ' ').trim() : '';
 }
 
+/** A short, stable label for a course-relative prev/next nav button. */
+function shortLabel(route: string): string {
+  if (route.endsWith('/instalment')) return 'Instalment';
+  if (route.endsWith('/milestones/end')) return 'Wrap-up';
+  const m = /\/milestones\/(\d+-\d+)$/.exec(route);
+  if (m) return `Milestones ${m[1].replace('-', '–')}`;
+  throw new Error(`shortLabel: route "${route}" doesn't match a known course-page shape`);
+}
+
+/**
+ * Emit lib/course-nav.generated.ts: for every course-page route, its
+ * previous/next sibling *within the same course only* (never crossing into
+ * the course before or after it, and never including "/" or "/overview/",
+ * which aren't part of any course) — mdBook-style chapter navigation.
+ * Derived from PAGES' own array order, so a course's page order here always
+ * matches the order the course itself is written in.
+ */
+function writeCourseNavData() {
+  const courseKeyOf = (route: string) => /^([a-z]+)-course\//.exec(route)?.[1];
+
+  const byCourse = new Map<string, PageDef[]>();
+  for (const page of PAGES) {
+    const key = courseKeyOf(page.route);
+    if (!key) continue; // "/" and "/overview/" aren't part of any course
+    if (!byCourse.has(key)) byCourse.set(key, []);
+    byCourse.get(key)!.push(page);
+  }
+
+  const entries: string[] = [];
+  for (const pages of byCourse.values()) {
+    for (let i = 0; i < pages.length; i++) {
+      const href = `/${pages[i].route}/`;
+      const prev = i > 0 ? pages[i - 1] : undefined;
+      const next = i < pages.length - 1 ? pages[i + 1] : undefined;
+      const prevLit = prev ? `{ href: '/${prev.route}/', label: ${JSON.stringify(shortLabel(prev.route))} }` : 'null';
+      const nextLit = next ? `{ href: '/${next.route}/', label: ${JSON.stringify(shortLabel(next.route))} }` : 'null';
+      entries.push(`  ${JSON.stringify(href)}: { prev: ${prevLit}, next: ${nextLit} },`);
+    }
+  }
+
+  const content =
+    `// Generated by scripts/migrate-pages.ts from PAGES — do not hand-edit.\n` +
+    `// Prev/next chapter within the *same course only*, mdBook-style. A route\n` +
+    `// with no entry here (the landing page, /overview/, an unwritten course)\n` +
+    `// simply has no prev/next nav — see components/CourseNav.tsx.\n\n` +
+    `export interface CourseNavLink {\n  href: string;\n  label: string;\n}\n\n` +
+    `export interface CourseNavEntry {\n  prev: CourseNavLink | null;\n  next: CourseNavLink | null;\n}\n\n` +
+    `export const COURSE_NAV: Record<string, CourseNavEntry> = {\n${entries.join('\n')}\n};\n`;
+
+  const outPath = join(ROOT, 'lib', 'course-nav.generated.ts');
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, content, 'utf-8');
+  console.log(`wrote ${outPath.replace(ROOT + '/', '')}`);
+}
+
 function main() {
   for (const page of PAGES) {
     const srcPath = join(COURSES, page.src);
@@ -415,7 +529,10 @@ function main() {
     if (!bodyMatch) throw new Error(`${page.src}: no <body>...</body> found`);
     const bodyHtml = bodyMatch[1].trim();
 
+    const outDir = page.route ? join(APP, page.route) : APP;
+
     usesLinkInCurrentPage = false;
+    imageImportsInCurrentPage = new Map();
     const fragment = parseFragment(bodyHtml);
     const children = defaultTreeAdapter.getChildNodes(fragment) as AnyNode[];
     const bodyJsx = serializeChildren(page.src, children, 3, false, false);
@@ -425,7 +542,20 @@ function main() {
     if (description) metadataLines.push(`  description: ${JSON.stringify(description)},`);
     const metadataImport = metadataLines.length ? `import type { Metadata } from 'next';\n` : '';
     const linkImport = usesLinkInCurrentPage ? `import Link from 'next/link';\n` : '';
-    const importsBlock = metadataImport || linkImport ? metadataImport + linkImport + '\n' : '';
+    // Deterministic order: imgN was assigned in first-encountered order
+    // while serializing, so sorting by that same numeric suffix reproduces
+    // it rather than depending on Map iteration order (which does happen to
+    // match insertion order in JS, but sorting makes that non-obvious
+    // dependency unnecessary to know about to trust the output).
+    const imageImportLines = [...imageImportsInCurrentPage.entries()]
+      .sort((a, b) => Number(a[1].slice(3)) - Number(b[1].slice(3)))
+      .map(([absPath, varName]) => `import ${varName} from '${importPathFor(outDir, absPath)}';`)
+      .join('\n');
+    const imageImports = imageImportLines ? imageImportLines + '\n' : '';
+    const importsBlock =
+      metadataImport || linkImport || imageImports
+        ? metadataImport + linkImport + imageImports + '\n'
+        : '';
     const metadataBlock = metadataLines.length
       ? `export const metadata: Metadata = {\n${metadataLines.join('\n')}\n};\n\n`
       : '';
@@ -441,12 +571,13 @@ function main() {
       '  );\n' +
       '}\n';
 
-    const outDir = page.route ? join(APP, page.route) : APP;
     mkdirSync(outDir, { recursive: true });
     const outPath = join(outDir, 'page.tsx');
     writeFileSync(outPath, content, 'utf-8');
     console.log(`wrote ${outPath.replace(ROOT + '/', '')}`);
   }
+
+  writeCourseNavData();
 }
 
 main();

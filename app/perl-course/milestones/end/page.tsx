@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/glasses.png';
+import img2 from '../../../../courses/assets/expressions/right_to_left/looking_up.png';
+import img3 from '../../../../courses/assets/expressions/left_to_right/blink.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/quarter_face.png';
+import img5 from '../../../../courses/assets/expressions/left_to_right/paw.png';
+import img6 from '../../../../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   title: "Perl: Advanced Phase, Final Challenge, Knowledge Check",
@@ -15,7 +21,10 @@ export default function Page() {
           <p className="lede">Five advanced topics with working code, one substantial final challenge about tailing logs that rotate under you, a knowledge check of forty-one questions, and everything you need to put Strata on GitHub and defend it in an interview.</p>
         </header>
         <h2><span className="num">Part A</span>The advanced phase</h2>
-        <p>The tool works: it ingests five formats, survives hostile files, extracts and normalises entities, correlates them into events in SQLite, behaves under a pipe and under <code>Ctrl-C</code>, fuzzes and profiles itself, and walks its own correlations as a graph. These five topics are what you would reach for next if Strata were something you had to operate rather than something you had to finish.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" />
+          The tool works: it ingests five formats, survives hostile files, extracts and normalises entities, correlates them into events in SQLite, behaves under a pipe and under <code>Ctrl-C</code>, fuzzes and profiles itself, and walks its own correlations as a graph. These five topics are what you would reach for next if Strata were something you had to operate rather than something you had to finish.
+        </p>
         <h3>A1 · A plugin architecture for parsers</h3>
         <p><code>Strata::Parser::Registry</code> has known every parser by name since Milestone 6. A real deployment wants to drop a new format handler into a directory without editing a core file at all. Perl's answer needs no dependency beyond the standard library:</p>
         <pre><code>{"package Strata::Parser::Loader;\nuse v5.36;\nuse File::Find;\n\n# Auto-discover every Strata::Parser::* module under lib/, without a static\n# list anywhere. A third party ships a new .pm file; nothing else changes.\nsub discover ($class, $lib_dir = \"lib\") {\n    my @found;\n    find({\n        wanted => sub {\n            return unless /\\.pm$/ && m{Strata/Parser/};\n            (my $mod = $File::Find::name) =~ s{^\\Q$lib_dir\\E/}{};\n            $mod =~ s{/}{::}g;\n            $mod =~ s{\\.pm$}{};\n            push @found, $mod;\n        },\n        no_chdir => 1,\n    }, \"$lib_dir/Strata/Parser\");\n\n    for my $mod (@found) {\n        (my $path = \"$mod.pm\") =~ s{::}{/}g;\n        require $path;\n    }\n    return sort @found;\n}\n"}</code></pre>
@@ -47,7 +56,10 @@ export default function Page() {
         <p>A <code>systemd</code> timer rather than a naive cron entry gets you two things cron does not for free: <code>Persistent=true</code> catches up a missed run after the machine was off, and <code>journalctl -u strata-ingest</code> gives you the structured logs from A4 alongside systemd's own record of exit status and duration, in one place.</p>
         <hr />
         <h2><span className="num">Part B</span>The final challenge</h2>
-        <p>Everything up to here had a solution a few paragraphs later. This one does not, and it is deliberately at the edge of what you can now do. Spend real time on it before opening the last section.</p>
+        <p>
+          <img className="mascot-right" src={img2.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          Everything up to here had a solution a few paragraphs later. This one does not, and it is deliberately at the edge of what you can now do. Spend real time on it before opening the last section.
+        </p>
         <h3>Tailing logs that rotate, truncate, and disappear out from under you</h3>
         <p>Every milestone so far ingests files that already exist and stop changing while Strata reads them. Real logs do not hold still: they grow, get rotated (renamed aside, a fresh empty file created at the old path) or copy-truncated (truncated to zero length in place, same file, same inode, same path) by the logging system while your tool is running, sometimes every hour. <strong>Build <code>strata watch DIR...</code>: a live-ingesting mode that follows files as they change, survives both kinds of rotation with no duplicate and no lost record, and can be stopped and restarted without reprocessing anything it already saw.</strong></p>
         <h4>Requirements</h4>
@@ -82,7 +94,10 @@ export default function Page() {
           <li>A rename-rotation loses you the last few bytes written to the old file in the instant between your last read and the rename, if you are not also watching for that specific transition. Decide, and say in your write-up, whether you are willing to accept that small window or whether you close it (and how) — <code>tail --follow=name</code> versus <code>tail --follow=descriptor</code> made different, documented choices about exactly this.</li>
           <li>For the CPU constraint: a modest fixed poll interval (hundreds of milliseconds, not microseconds) already satisfies the requirement at the stated scale of fifty files. Say in your write-up at roughly what file count this approach stops being fine, and what you would reach for instead.</li>
         </ul>
-        <p>Attempt it before reading on. Even a partial implementation with an honest account of what you didn't solve is worth more than the section below.</p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" />
+          Attempt it before reading on. Even a partial implementation with an honest account of what you didn't solve is worth more than the section below.
+        </p>
         <details>
           <summary>Solution — only look after trying</summary>
           <h4>The detection rule</h4>
@@ -302,7 +317,10 @@ export default function Page() {
           <li><strong><code>strata watch</code> follows any file it is pointed at</strong>, including one that changes ownership or gets replaced by a symlink to something outside the intended log directory. Validate watched paths resolve inside an expected root before trusting what they report.</li>
         </ul>
         <h3>D5 · What to put in your portfolio</h3>
-        <p>Do not present this as "a log parser". Present it as what it is: <strong>a forensics pipeline built to survive hostile input at every stage, with every claim about performance and robustness backed by a number you actually measured.</strong> The narrative that makes it interesting is the sequence of real bugs found by testing for them on purpose, not the feature list.</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in a thoughtful three-quarter pose" width="110" />
+          Do not present this as "a log parser". Present it as what it is: <strong>a forensics pipeline built to survive hostile input at every stage, with every claim about performance and robustness backed by a number you actually measured.</strong> The narrative that makes it interesting is the sequence of real bugs found by testing for them on purpose, not the feature list.
+        </p>
         <ol>
           <li>A parser that trusted well-formed input, broken by six deliberately hostile fixtures — gzip, BOM, bad encoding, truncation, binary bytes, a giant line — each with the specific fix.</li>
           <li>Two false positives in entity extraction (a version number mistaken for an IP, a protocol version mistaken for a path) that only a match-validate-normalise pipeline with context rules catches.</li>
@@ -371,11 +389,17 @@ export default function Page() {
         </ul>
         <hr />
         <h2><span className="num">Course 3 complete</span>What you built</h2>
-        <p>A dependency-light Perl distribution across roughly a dozen modules, five parsers behind one contract, a SQLite-backed correlation and graph engine with measured order-of-magnitude performance differences, a command-line tool that behaves correctly under a signal and inside a pipeline, a fuzzer that found a real bug in under a second, and a live log tailer that survives both ways a log file can change out from under you. More importantly: a habit of writing the hostile fixture before trusting the code that has to survive it, and of measuring a claimed speedup before writing it down.</p>
+        <p>
+          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          A dependency-light Perl distribution across roughly a dozen modules, five parsers behind one contract, a SQLite-backed correlation and graph engine with measured order-of-magnitude performance differences, a command-line tool that behaves correctly under a signal and inside a pipeline, a fuzzer that found a real bug in under a second, and a live log tailer that survives both ways a log file can change out from under you. More importantly: a habit of writing the hostile fixture before trusting the code that has to survive it, and of measuring a claimed speedup before writing it down.
+        </p>
         <p>The central question of this curriculum was <em>what kinds of problems does this language make unusually natural to solve?</em> Perl's answer, stated as precisely as this project allows: <strong>problems where the input is real-world messy, the shape of "correct" is "did not corrupt or lose the awkward 10% of records", and the win comes from CPAN's decades of exactly-this-format modules plus a handful of small, sharp built-in idioms — context, autovivification, <code>foreach</code> aliasing, <code>alarm()</code>, <code>fork</code> — that read as strange in isolation and as exactly right once you have needed them once.</strong> Not the fastest, not the most structured, not the friendliest first error message. The one where a text file nobody designed on purpose stops being a mystery in an afternoon.</p>
         <p>Courses 4 and 5 continue the same comparison — Erlang's processes and supervision trees against Go's goroutines and Perl's <code>fork</code>, and Racket's macros against the recursive-descent parser built in this instalment's advanced phase — but are not written yet. The <Link href="/overview/">syllabus overview</Link> describes what they will cover.</p>
         <footer className="end">
-          <p>Instalment 15 of the five-course curriculum, and the end of Course 3. Courses 4 (Erlang) and 5 (Racket) are next in the curriculum but not yet written.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="160" />
+            Instalment 15 of the five-course curriculum, and the end of Course 3. Courses 4 (Erlang) and 5 (Racket) are next in the curriculum but not yet written.
+          </p>
         </footer>
          <Link className="button" href="/">Back to Mewlang</Link> 
       </div>

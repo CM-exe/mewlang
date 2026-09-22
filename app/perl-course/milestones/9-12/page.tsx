@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/side.png';
+import img2 from '../../../../courses/assets/expressions/right_to_left/looking_bad_top.png';
+import img3 from '../../../../courses/assets/expressions/surprised.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/happy.png';
+import img5 from '../../../../courses/assets/expressions/front.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/paw.png';
 
 export const metadata: Metadata = {
   title: "Perl Milestones 9–12 — Correlation, a Real CLI, Fuzzing, and the Graph",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2 className="milestone-head"><span className="num">Milestone 9</span>Correlation and sessionisation</h2>
         <h3>Goal</h3>
-        <p>Stop recomputing. Give records and their entities a home in SQLite, and turn the flat stream of entity <em>occurrences</em> into <em>events</em>: an event is one entity active over a span of time, built by grouping its occurrences whenever the gap between two of them is small enough to call them the same episode. That single idea — <strong>group by identity, split by silence</strong> — is what makes "everything that happened around this IP address" a query instead of a research project.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a neutral curious pose" width="120" />
+          Stop recomputing. Give records and their entities a home in SQLite, and turn the flat stream of entity <em>occurrences</em> into <em>events</em>: an event is one entity active over a span of time, built by grouping its occurrences whenever the gap between two of them is small enough to call them the same episode. That single idea — <strong>group by identity, split by silence</strong> — is what makes "everything that happened around this IP address" a query instead of a research project.
+        </p>
         <h3>Concepts</h3>
         <p><code>DBI</code>'s connect/prepare/execute/placeholder cycle, the enormous difference between one transaction and autocommit, indexes and how to read <code>EXPLAIN QUERY PLAN</code>, and the session-window sweep algorithm that every web analytics tool uses under a different name.</p>
         <h3>Design</h3>
@@ -64,7 +73,10 @@ export default function Page() {
         <p><strong><code>RaiseError</code></strong> turns every failed statement into an exception, which means the rest of the codebase never has to remember to check a return value; a forgotten check is how corrupted data quietly becomes "successfully" correlated. <strong><code>journal_mode = WAL</code></strong> (write-ahead logging) lets <code>strata query</code> read the database while <code>strata ingest</code> is still writing to it, which the default rollback journal does not allow — useful the moment this becomes a long-running ingest you want to inspect mid-flight.</p>
         <h4>One transaction, not ten thousand</h4>
         <div className="warn">
-          <h5>The bug: inserting one row at a time, correctly, and much too slowly</h5>
+          <h5>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            The bug: inserting one row at a time, correctly, and much too slowly
+          </h5>
           <p>The first version of the loader called <code>execute</code> once per record with <code>AutoCommit</code> left at its default of on. Every insert became its own transaction, and SQLite's default is to <code>fsync</code> the write-ahead log to disk before a transaction is considered committed — correct, and, on ordinary storage, ruinous:</p>
           <pre className="bad"><code>{"2,000 records, autocommit per row:  12.95s   (≈ 154 rows/sec)"}</code></pre>
           <p>Wrapping the same loop in one explicit transaction:</p>
@@ -184,7 +196,10 @@ export default function Page() {
         <p>Eight thousand rows sent, <code>Ctrl-C</code> pressed, eight thousand rows found in the database afterwards — not seven thousand, not a half-written eight-thousand-and-first row. That is the whole point of doing the commit inside the interrupt path instead of relying on whatever happened to be true when the process died.</p>
         <h4>The signal every Perl programmer meets by surprise</h4>
         <div className="warn">
-          <h5><code>strata query ... | head</code> and a process that vanishes with no message</h5>
+          <h5>
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" />
+            <code>strata query ... | head</code> and a process that vanishes with no message
+          </h5>
           <p><code>strata query</code> streams result rows to <code>STDOUT</code> with <code>say</code>. Piped into <code>head -5</code>, it worked — until the exit code was checked in a script:</p>
           <pre className="bad"><code>{"$ ./bin/strata query strata.db --type ipv4 | head -3\nline 1\nline 2\nline 3\n$ echo \"${PIPESTATUS[0]}\"\n141"}</code></pre>
           <p>No error message anywhere. <code>141</code> is <code>128 + 13</code>, and signal 13 is <strong><code>SIGPIPE</code></strong>: once <code>head</code> has read its three lines it closes its end of the pipe, and the next time <code>strata</code> tries to write, the kernel sends it <code>SIGPIPE</code>. Perl does not install a handler for that signal by default, so the operating system's default action runs, which is to terminate the process immediately — before Perl's own warning or die machinery ever gets a chance to say anything. This is not a bug in the query command; it is what every well-behaved Unix filter does, and it is exactly why <code>yes | head -1</code> does not hang forever or print a wall of errors.</p>
@@ -250,7 +265,10 @@ export default function Page() {
         <p>Run against a hand-rolled quoted-field scanner (written to show what you would be signing up for by not using <code>Text::CSV</code>, which does not have this bug):</p>
         <pre><code>{"sub scan_fields ($line) {          # BUG, left in deliberately: see below\n    my @fields;\n    my $pos = 0;\n    my $len = length $line;\n    while ($pos < $len) {\n        if (substr($line, $pos, 1) eq '\"') {\n            my $end = index($line, '\"', $pos + 1);\n            if ($end == -1) {\n                next;             # meant \"consume to end of string\"; forgot to move $pos\n            }\n            push @fields, substr($line, $pos + 1, $end - $pos - 1);\n            $pos = $end + 1;\n        } else {\n            my $comma = index($line, \",\", $pos);\n            $comma = $len if $comma == -1;\n            push @fields, substr($line, $pos, $comma - $pos);\n            $pos = $comma + 1;\n        }\n    }\n    return \\@fields;\n}\n"}</code></pre>
         <pre className="plain"><code>{"$ perl t/90-fuzz.t\ntrial 5 hung the scanner on: \"qaed,,pli\nfound a hang in 2000-trial budget (seed 20260912), 1.01s elapsed\nnot ok 1 - scan_fields never hangs\n"}</code></pre>
-        <p>Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an unterminated <code>"</code> and no closing quote anywhere in it — exactly the input that hits the <code>next</code> without advancing <code>$pos</code>, so the <code>while</code> condition never changes and the loop spins forever. Without the deadline, this test would simply never finish, and depending on your CI system, "the test suite hangs" and "the test suite is slow today" look identical for the first twenty minutes. <strong>The fuzzer's actual job is not finding the bug — a code reviewer could find this one by eye. Its job is finding it in one second, automatically, every time the suite runs, forever. </strong> The fix is the one-line version of the comment: <code>$pos = $len; next;</code> when no closing quote exists, which is exactly why this project uses <code>Text::CSV</code> for the real parser and keeps this one only as a cautionary exercise.</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, delighted" width="110" />
+          Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an unterminated <code>"</code> and no closing quote anywhere in it — exactly the input that hits the <code>next</code> without advancing <code>$pos</code>, so the <code>while</code> condition never changes and the loop spins forever. Without the deadline, this test would simply never finish, and depending on your CI system, "the test suite hangs" and "the test suite is slow today" look identical for the first twenty minutes. <strong>The fuzzer's actual job is not finding the bug — a code reviewer could find this one by eye. Its job is finding it in one second, automatically, every time the suite runs, forever. </strong> The fix is the one-line version of the comment: <code>$pos = $len; next;</code> when no closing quote exists, which is exactly why this project uses <code>Text::CSV</code> for the real parser and keeps this one only as a cautionary exercise.
+        </p>
         <h4>Profiling: finding the hot path instead of guessing at it</h4>
         <p><code>strata entities</code> on a busy log spends real time deduplicating candidate entity values before ranking them. The first version used <code>grep</code> against an accumulator array:</p>
         <pre><code>{"sub dedupe_seen (@values) {\n    my @seen;\n    my @unique;\n    for my $v (@values) {\n        push(@unique, $v), push(@seen, $v) unless grep { $_ eq $v } @seen;\n    }\n    return @unique;\n}\n"}</code></pre>
@@ -292,7 +310,10 @@ export default function Page() {
         <h3>Concepts</h3>
         <p>Recursive common table expressions (<code>WITH RECURSIVE</code>), <code>fork()</code> and pipes as Perl's idiomatic answer to "run this on several cores", reaping children correctly, and final packaging.</p>
         <div className="why">
-          <h5>Why are we using this language here?</h5>
+          <h5>
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, facing forward" width="110" />
+            Why are we using this language here?
+          </h5>
           <p>This is the sharpest language contrast in the whole course. Go's answer to "use more cores" is goroutines sharing one address space, disciplined by channels and the race detector. Perl's idiomatic answer is the opposite instinct: <code>fork()</code> gives every worker its own <em>copy</em> of the process's memory (copy-on-write, so it is cheap until a worker writes), which means <strong>a whole category of bug — the shared-mutable-state data race — is not merely disciplined, it is structurally impossible</strong>. There is no memory two Perl worker processes can race on, because after <code>fork</code> they do not share any. The price is exactly what you would expect from that trade: no in-memory sharing means every result has to be serialised and sent back over a pipe, which is slower than a goroutine writing into a channel and costs real code (<code>Storable</code>, explicit reaping). Neither answer is superior in the abstract; they optimise for different failure modes, and Course 4 (Erlang) turns out to agree with Perl's instinct here far more than with Go's.</p>
         </div>
         <h3>Implementation</h3>
@@ -360,7 +381,10 @@ export default function Page() {
           </ul>
         </div>
         <footer className="end">
-          <p>Instalment 14 of the five-course curriculum. Next, and last for Perl: the advanced phase, a final challenge with acceptance criteria and a withheld solution, the full knowledge check, the README and GitHub description, portfolio notes and interview questions.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+            Instalment 14 of the five-course curriculum. Next, and last for Perl: the advanced phase, a final challenge with acceptance criteria and a withheld solution, the full knowledge check, the README and GitHub description, portfolio notes and interview questions.
+          </p>
         </footer>
          <Link className="button" href="/perl-course/milestones/end/">Continue</Link> 
       </div>

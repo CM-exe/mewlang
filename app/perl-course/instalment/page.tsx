@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../courses/assets/expressions/left_to_right/looking_up.png';
+import img2 from '../../../courses/assets/expressions/right_to_left/glasses.png';
+import img3 from '../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img4 from '../../../courses/assets/expressions/left_to_right/looking_bad_top.png';
+import img5 from '../../../courses/assets/expressions/right_to_left/thinking.png';
+import img6 from '../../../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   title: "Perl Parts 0–2 — The Text Archaeologist, Setup, and the Language",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2><span className="num">Course 3 · Part 0</span>What are we building?</h2>
         <h3>The final result</h3>
-        <p>A command-line tool called <code>strata</code> that you point at a directory of unexplained files and interrogate.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          A command-line tool called <code>strata</code> that you point at a directory of unexplained files and interrogate.
+        </p>
         <pre className="plain"><code>{"$ strata ingest ./incident-2026-09-12/ --recursive\n  apache/access.log        412,884 lines   apache_combined     3.2s\n  apache/error.log          18,221 lines   apache_error        0.4s\n  app/service.log          904,110 lines   json_lines          8.1s\n  exports/users.csv          9,412 rows    csv                 0.3s\n  config/nginx.conf            420 lines   nginx_config        0.0s\n  unknown/dump.txt          33,900 lines   unstructured        1.1s\n  corrupt/partial.log        2,004 lines   apache_combined     0.1s  (91 malformed, kept)\n\n  1,381,051 records, 214,882 entities, 46,203 events in 13.2s (104k lines/sec)\n\n$ strata entities --type ip --top 5\n  10.14.22.9        88,214 occurrences   6 files   first 13:02:11  last 14:47:52\n  10.14.22.31       41,002 occurrences   4 files   ...\n\n$ strata timeline --entity ip:10.14.22.9 --around '13:44:10' --window 90s\n  13:43:58  apache/access.log:88214   GET /api/export  200  1.2MB\n  13:44:02  app/service.log:551203    export.start  user=4412 rows=900000\n  13:44:09  apache/error.log:9902     upstream timed out\n  13:44:10  app/service.log:551288    ERROR OOM killed worker pid=8823\n  13:44:11  apache/access.log:88240   GET /api/export  502\n\n$ strata graph --entity user:4412 --depth 2 --format dot | dot -Tsvg > incident.svg\n"}</code></pre>
         <p>Underneath: a streaming ingestion pipeline with pluggable format detectors, an entity extractor, a normaliser that turns eleven timestamp formats into one, a correlation engine that groups records into events, and a SQLite-backed store you can query, all of it able to survive files that are truncated, mis-encoded, or simply lying about their format.</p>
         <h3>Why this project is interesting</h3>
@@ -37,7 +46,10 @@ export default function Page() {
         </ul>
         <div className="why">
           <h5>Why are we using this language here?</h5>
-          <p>For the middle of this project (streaming, regex-heavy, line-oriented transformation with Unix plumbing), Perl is still the best tool in existence, and the reason is not nostalgia: no other language has put regular expressions, context, and the input loop into the syntax itself.</p>
+          <p>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses and looking confident" width="120" />
+            For the middle of this project (streaming, regex-heavy, line-oriented transformation with Unix plumbing), Perl is still the best tool in existence, and the reason is not nostalgia: no other language has put regular expressions, context, and the input loop into the syntax itself.
+          </p>
           <p>Where it is not the answer, and we will say so at the time:</p>
           <ul>
             <li><strong>Structured analysis.</strong> Once the data is clean and rectangular, Python with pandas or Polars is better. Grouping, joining and statistics are libraries there and hand-written loops here. </li>
@@ -262,7 +274,10 @@ export default function Page() {
           <p>One subtlety: <code>while ({'<'}{'>'})</code> without assigning to a variable puts the line in <code>$_</code>, which is idiomatic and slightly risky, because anything you call inside the loop might also use <code>$_</code>. Assigning to a named variable, as here, is the safer habit in anything longer than a one-liner.</p>
         </details>
         <div className="warn">
-          <h5>Common first-day errors</h5>
+          <h5>
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="110" />
+            Common first-day errors
+          </h5>
           <ul>
             <li><code>Can't locate Strata/Record.pm in @INC</code> — <code>lib/</code> is not on the search path. Use <code>perl -Ilib</code>, <code>use lib 'lib';</code>, or <code>prove -l</code>.</li>
             <li><code>Strata/Record.pm did not return a true value</code> — you forgot the <code>1;</code> at the end of the module.</li>
@@ -402,7 +417,10 @@ export default function Page() {
         <p><code>.+</code> is greedy: it takes as much as it can and gives back only as needed, so it ran to the last <code>{'>'}</code> in the string. <code>.+?</code> is lazy and stops at the first. The third and best option is usually neither: <strong><code>[^{'>'}]+</code> says what you mean</strong> (characters that are not the terminator), is faster because it cannot backtrack, and does not depend on remembering which flavour of <code>.</code> you wanted.</p>
         <p><code>scalar(() = $html =~ /.../g)</code> is the countof idiom: assign the match list to an empty list in scalar context, which yields the number of elements. Ugly, universal, worth recognising.</p>
         <div className="warn">
-          <h5>Regex mistakes that cost the most time</h5>
+          <h5>
+            <img className="mascot-left" src={img4.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            Regex mistakes that cost the most time
+          </h5>
           <ul>
             <li><strong>Forgetting <code>\b</code>.</strong> <code>/ERROR/</code> matches <code>NOERROR</code> and <code>ERRORS=0</code>.</li>
             <li><strong>Unanchored patterns on structured data.</strong> <code>/(\d{'{'}3{'}'})/</code> against a log line finds the first three digits anywhere, which may be part of the date. Anchor with <code>^</code>, <code>$</code>, or surrounding context.</li>
@@ -466,7 +484,10 @@ export default function Page() {
         <p>Read it bottom-up: decorate each record with its key, sort by the key, undecorate. It is the standard idiom precisely because a naive <code>sort {'{'} expensive($a) {'<'}={'>'} expensive($b) {'}'}</code> calls the expensive function O(n log n) times instead of n.</p>
         <div className="exercise">
           <h5>Exercise 2.B — the capstone of Part 2</h5>
-          <p>Write a single program, <code>bin/toptalkers</code>, that reads Apache logs from files or standard input and prints a report. Requirements:</p>
+          <p>
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+            Write a single program, <code>bin/toptalkers</code>, that reads Apache logs from files or standard input and prints a report. Requirements:
+          </p>
           <ul>
             <li>Top 5 client IPs by request count, with their byte totals and error rates.</li>
             <li>A count by status class (2xx, 3xx, 4xx, 5xx).</li>
@@ -527,7 +548,10 @@ export default function Page() {
         <p>Milestone 1 turns the one-liner instinct into a program: a filter with proper option handling, exit codes and tests. Milestone 2 adds the aggregation you just wrote by hand. Milestone 3 is where the parser becomes serious, with a pattern library, failure accounting, and the first fixtures of deliberately broken input. </p>
         <p>Before then: run the one-liners from Part 1 against a log file on your own machine, and read <code>perldoc perlretut</code>. It is the best forty minutes available to you at this point.</p>
         <footer className="end">
-          <p>Instalment 11 of the five-course curriculum. Next: Perl Milestones 1–4, where the filter becomes a tool, hashes become reports, regexes become a parser, and records become a data model.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, walking away in a rear view" width="150" />
+            Instalment 11 of the five-course curriculum. Next: Perl Milestones 1–4, where the filter becomes a tool, hashes become reports, regexes become a parser, and records become a data model.
+          </p>
         </footer>
          <Link className="button" href="/perl-course/milestones/1-4/">Continue</Link> 
       </div>

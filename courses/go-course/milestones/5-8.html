@@ -45,7 +45,7 @@
 
         <h3>Design</h3>
 
-        <p>The failure of Milestone 4 was structural: many goroutines reaching into one mutable object. There are only
+        <p><img src="../../assets/expressions/right_to_left/quarter_face.png" alt="The Mewlang cat, glancing over curiously" width="120" class="mascot-right">The failure of Milestone 4 was structural: many goroutines reaching into one mutable object. There are only
             three ways out of that, and it is worth seeing all three before picking one.</p>
 
         <table class="grid">
@@ -588,7 +588,7 @@ if sensed.hasTeleport {
         <div class="warn">
             <h5>Common mistakes in Milestone 5</h5>
             <ul>
-                <li><strong>An unbuffered reply channel.</strong> The owner blocks forever on
+                <li><img src="../../assets/expressions/left_to_right/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-left"><strong>An unbuffered reply channel.</strong> The owner blocks forever on
                     <code>r.reply &lt;- resp</code> if the ant has stopped listening. The whole simulation freezes and
                     the stack dump shows every goroutine blocked on the same channel. Buffer of one, always.
                 </li>
@@ -820,7 +820,7 @@ func (t TrailFollower) weightedStep(s Sense, rng *rand.Rand) world.Position {
 trail  : delivered 404, pheromone left 397
 </code></pre>
 
-        <p>A 25% improvement in delivered food, measured rather than asserted. Two details in those numbers are more
+        <p><img src="../../assets/expressions/right_to_left/happy.png" alt="The Mewlang cat, beaming with delight" width="120" class="mascot-right">A 25% improvement in delivered food, measured rather than asserted. Two details in those numbers are more
             interesting than the headline.</p>
 
         <p>The <code>forager</code> run has <em>more</em> pheromone left at the end (1693 against 397) even though it
@@ -952,7 +952,7 @@ trail  : delivered 404, pheromone left 397
 
         <h3>Design</h3>
 
-        <p>"Just cancel everything" is wrong, and the reason is worth spelling out. The last thing <code>Run</code> does
+        <p><img src="../../assets/expressions/right_to_left/side.png" alt="The Mewlang cat, in profile, thinking it over" width="120" class="mascot-right">"Just cancel everything" is wrong, and the reason is worth spelling out. The last thing <code>Run</code> does
             is collect final statistics, which requires sending a request to the owner and getting a reply. If the owner
             was cancelled along with everyone else, that request hangs until it times out and you get empty results. So
             shutdown has an order, and the order is the reverse of the dependency graph:</p>
@@ -1256,7 +1256,7 @@ func waitChan(wg *sync.WaitGroup) &lt;-chan struct{} {
         <h2 class="milestone-head"><span class="num">Milestone 8</span>Chaos: crashes, dropped messages, slow ants</h2>
 
         <h3>Goal</h3>
-        <p>Break the colony on purpose and keep it running. Ants panic at random and a supervisor restarts them. The
+        <p><img src="../../assets/expressions/left_to_right/blink.png" alt="The Mewlang cat, giving a mischievous wink" width="120" class="mascot-left">Break the colony on purpose and keep it running. Ants panic at random and a supervisor restarts them. The
             owner drops messages at random and clients time out and retry. Ants stall at random and the queue absorbs
             it. Every failure becomes a number you can watch.</p>
 
@@ -1731,7 +1731,7 @@ $ git commit -am "milestone 8: chaos injection and a hand-rolled supervisor"
         </div>
 
         <footer class="end">
-            <p>Instalment 3 of the five-course curriculum. Next: Milestones 9–12, where metrics get an HTTP endpoint and
+            <p><img src="../../assets/expressions/left_to_right/walking.png" alt="The Mewlang cat, strolling forward" width="120" class="mascot-left">Instalment 3 of the five-course curriculum. Next: Milestones 9–12, where metrics get an HTTP endpoint and
                 a profiler, the colony gets a live view you can watch in a browser, backpressure and sharding make it
                 fast, and the world moves into a separate process that you can kill.</p>
         </footer>

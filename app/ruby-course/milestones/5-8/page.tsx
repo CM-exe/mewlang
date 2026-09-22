@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/quarter_face.png';
+import img2 from '../../../../courses/assets/expressions/surprised.png';
+import img3 from '../../../../courses/assets/expressions/left_to_right/thinking.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/paw.png';
+import img5 from '../../../../courses/assets/expressions/right_to_left/looking_bad_top.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/walking.png';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 5–8 — The Engine, Failure, Plugins, Real Work",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2 className="milestone-head"><span className="num">Milestone 5</span>The execution engine</h2>
         <h3>Goal</h3>
-        <p>Replace the one-line <code>reduce</code> with a real interpreter: a context that flows through the pipeline, a result object recording what happened to every step, and a middleware chain so cross-cutting concerns (logging, timing, dry runs, retries) are not hard-coded into the runner.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, in a curious quarter-profile pose" width="120" />
+          Replace the one-line <code>reduce</code> with a real interpreter: a context that flows through the pipeline, a result object recording what happened to every step, and a middleware chain so cross-cutting concerns (logging, timing, dry runs, retries) are not hard-coded into the runner.
+        </p>
         <h3>Concepts</h3>
         <p>Immutable context objects, the middleware pattern built by folding lambdas, returning results instead of raising, and keeping a library free of logging dependencies.</p>
         <h3>Design</h3>
@@ -125,7 +134,10 @@ export default function Page() {
         </div>
         <h3>Two bugs I hit writing this</h3>
         <div className="warn">
-          <h5>Bug 1: a local variable silently shadowed a DSL verb</h5>
+          <h5>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wide-eyed with surprise" width="120" />
+            Bug 1: a local variable silently shadowed a DSL verb
+          </h5>
           <pre className="bad"><code>{"flaky = Automation.define(\"flaky\") do\n  retry_on IOError, times: 4\n  flaky                       # <- intended: the step named :flaky\nend"}</code></pre>
           <p>The pipeline came out with <strong>zero steps</strong>. The reason is a Ruby parsing rule with no equivalent in most languages: <em>once the parser has seen an assignment to a name, that name is a local variable for the rest of the scope</em>, even before the assignment executes. Inside the block, <code>flaky</code> resolved to the (still <code>nil</code>) local variable rather than to a method call, so no message was ever sent to the builder.</p>
           <p>Three ways to avoid it, in order of preference: name the variable differently (<code>flaky_pipeline</code>); write the verb with explicit parentheses (<code>flaky()</code>), which forces a method call; or write it with an explicit receiver. This is a permanent hazard of bare-word DSLs, and it is worth a line in your gem's documentation, because the failure is completely silent.</p>
@@ -256,7 +268,10 @@ export default function Page() {
         <div className="exercise">
           <h5>Exercise 7</h5>
           <ol>
-            <li><strong>Types.</strong> Add <code>option :max_words, type: Integer</code> and have the validator report a type mismatch at build time, with the same file and line treatment.</li>
+            <li>
+              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+              <strong>Types.</strong> Add <code>option :max_words, type: Integer</code> and have the validator report a type mismatch at build time, with the same file and line treatment.
+            </li>
             <li><strong>Loading.</strong> Implement <code>Automation.load_plugins(dir)</code> that requires every <code>.rb</code> in a directory and registers any <code>Automation::Plugin</code> subclass it finds. Handle a plugin file that raises on load without taking down the process, and report which file failed.</li>
             <li><strong>Deprecation.</strong> Add <code>deprecated_option :old_name, use: :new_name</code> that accepts the old key, warns once per process with the caller's location, and forwards the value.</li>
           </ol>
@@ -351,7 +366,10 @@ export default function Page() {
         <pre className="plain"><code>{"--- real run ---\nresearch: ok (4 steps)\n  ✓ fetch(from: \"http://127.0.0.1:36755/papers.json\") 2.4ms\n  ✓ filter(field: :topic, matching: \"AI\") 0.0ms\n  ✓ summarize(field: :abstract, max_words: 8) 0.0ms\n  ✓ save_to(collection: \"papers\") 0.2ms\n[{:title=>\"Scaling laws for neural language models\",\n  :topic=>\"AI\",\n  :abstract=>\"We study empirical scaling laws for language model performance on the cross-entropy loss.\",\n  :summary=>\"We study empirical scaling laws for language model…\"}]\n\nstored: 1 record(s) in the knowledge base\n"}</code></pre>
         <p>Real HTTP over a real socket, a real filter, a pluggable summariser, and a record on disk, driven by this: </p>
         <pre><code>{"  research = Automation.define(\"research\") do\n    retry_on Automation::HttpError, times: 3, backoff: :exponential, base_delay: 0.05\n    fetch from: url\n    filter field: :topic, matching: \"AI\"\n    summarize field: :abstract, max_words: 8\n    save_to collection: \"papers\"\n    when_failed { |error, step| warn \"  ! #{step.name}: #{error.message}\" }\n  end\n"}</code></pre>
-        <p>That is the Part 0 sketch, working, eight milestones in.</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          That is the Part 0 sketch, working, eight milestones in.
+        </p>
         <div className="exercise">
           <h5>Exercise 8</h5>
           <ol>
@@ -372,7 +390,10 @@ export default function Page() {
         <h4>Common mistakes in Milestone 8</h4>
         <div className="warn">
           <ul>
-            <li><strong>Reading <code>ENV</code> inside a step.</strong> Untestable, unconfigurable, invisible.</li>
+            <li>
+              <img className="mascot-right" src={img5.src} alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" />
+              <strong>Reading <code>ENV</code> inside a step.</strong> Untestable, unconfigurable, invisible.
+            </li>
             <li><strong><code>to_i</code> on configuration.</strong> <code>"abc".to_i</code> is <code>0</code>; use <code>Integer()</code> and <code>Float()</code>.</li>
             <li><strong>Letting library exceptions escape your adapter.</strong> Your users should not have to know that you use Net::HTTP.</li>
             <li><strong>Wrapping a request in <code>Timeout.timeout</code></strong> instead of using the library's own timeouts.</li>
@@ -401,7 +422,10 @@ export default function Page() {
         <pre className="plain"><code>{"automation/\n├── lib/automation/\n│   ├── errors.rb        Error, UnknownStep (with suggestions), StepFailed, InvalidPipeline\n│   ├── registry.rb      Entry metadata, generation counter\n│   ├── plugin.rb        class macros: step_name, option, doc, register!\n│   ├── steps.rb         Fetch, Filter, Summarize, SaveTo\n│   ├── ast.rb           StepNode, HandlerNode, PipelineNode\n│   ├── define.rb        ASTBuilder, generated verbs, strict mode, from_h\n│   ├── validator.rb     declared specs, reflection fallback, file:line\n│   ├── context.rb       Context, StepResult, Log\n│   ├── middleware.rb    Logging, DryRun, Timing, retrying, build\n│   ├── retry_policy.rb  RetryPolicy, AttemptCounter\n│   ├── runner.rb        RunResult, Runner, run!\n│   ├── config.rb        Config.from_env\n│   ├── http.rb          HTTP.get/get_json, HttpError\n│   ├── store.rb         PStore-backed knowledge base\n│   └── summarizers.rb   Truncate, FirstSentence\n└── test/\n    ├── test_step.rb, test_registry.rb, test_define.rb,\n    ├── test_validator.rb    build-time strictness and validation rules\n    └── test_steps.rb        FakeServer, end to end, retries, dry run, store\n"}</code></pre>
         <pre className="plain"><code>{"$ ruby -Ilib -Itest test/all.rb\n28 runs, 74 assertions, 0 failures, 0 errors, 0 skips\n$ git commit -am \"milestone 8: real adapters, config, and tests against a real socket\"\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 8 of the five-course curriculum. Next: Ruby Milestones 9–12, where testing gets its own DSL, pipelines learn to inspect and describe themselves, they start rewriting themselves at run time, and the whole thing ships as a gem with a CLI.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, strolling forward" width="150" />
+            Instalment 8 of the five-course curriculum. Next: Ruby Milestones 9–12, where testing gets its own DSL, pipelines learn to inspect and describe themselves, they start rewriting themselves at run time, and the whole thing ships as a gem with a CLI.
+          </p>
         </footer>
          <Link className="button" href="/ruby-course/milestones/9-12/">Continue</Link> 
       </div>

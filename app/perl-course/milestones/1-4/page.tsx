@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/laptop.png';
+import img2 from '../../../../courses/assets/expressions/surprised.png';
+import img3 from '../../../../courses/assets/expressions/right_to_left/blink.png';
+import img4 from '../../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img5 from '../../../../courses/assets/expressions/right_to_left/thinking.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/walking.png';
 
 export const metadata: Metadata = {
   title: "Perl Milestones 1–4 — Filter, Report, Parser, Model",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2 className="milestone-head"><span className="num">Milestone 1</span>A filter that counts what it reads</h2>
         <h3>Goal</h3>
-        <p>The smallest useful program: read files or standard input, count what you find, report it, and exit with a status that means something. No modules, no objects, no parsing.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, typing on a laptop" width="120" />
+          The smallest useful program: read files or standard input, count what you find, report it, and exit with a status that means something. No modules, no objects, no parsing.
+        </p>
         <h3>Concepts</h3>
         <p><code>while ({'<'}{'>'})</code>, <code>$ARGV</code> and <code>$.</code>, exit codes as an interface, <code>warn</code> versus <code>print</code>, heredocs, and why a Unix filter is the right default shape.</p>
         <h3>Design</h3>
@@ -104,7 +113,10 @@ export default function Page() {
         <pre className="plain"><code>{"$ ./bin/strata-report share/fixtures/access.log\n\ntop talkers\n  10.14.22.9         1020 hits     23,671,329 bytes   38.9% errors\n  10.14.22.31         344 hits      7,822,046 bytes   41.0% errors\n  192.168.4.7         324 hits      7,559,417 bytes   37.7% errors\n  172.16.0.99         312 hits      7,061,075 bytes   36.9% errors\n\nstatus classes\n  2xx       1028   51.4%\n  3xx        197    9.8%\n  4xx        377   18.9%\n  5xx        398   19.9%\n\nbusiest minutes\n  12/Sep/2026:13:56             35\n  12/Sep/2026:13:36             34\n  12/Sep/2026:13:41             34\n\nmost requested paths\n  /                            361\n  /api/export                  342\n  /api/search                  336\n\n2,004 lines, 2,000 parsed, 4 unparsed (0.20%)\n  first failures: share/fixtures/access.log:2001, ...:2002, ...:2003\n"}</code></pre>
         <p>Four questions answered in one pass over the file, with the unparsed lines counted and located rather than silently skipped. That last line is the most important one in the output, and Milestone 3 is about taking it seriously.</p>
         <div className="warn">
-          <h5>The report quietly lies, and the failure count is how you find out</h5>
+          <h5>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, visibly startled" width="110" />
+            The report quietly lies, and the failure count is how you find out
+          </h5>
           <p>Line 2001 of the fixture is this:</p>
           <pre className="bad"><code>{"10.14.22.9 - - [12/Sep/2026:13:44:10 +0000] \"GET /api/export HTTP/1.1\" 200"}</code></pre>
           <p>A perfectly ordinary request that happens to have no byte count, which some configurations and some proxies produce. Our pattern requires <code>(?{'<'}bytes{'>'}\d+|-)</code>, so the line does not match, and it is counted as garbage alongside <code>this is not a log line at all</code>.</p>
@@ -205,7 +217,10 @@ export default function Page() {
         <p>Points of technique worth copying. <strong><code>subtest</code> groups related assertions</strong> and names them, so a failure says which behaviour broke rather than which line number. <strong>A loop over a list of <code>[input, expected]</code> pairs</strong> is Perl's table-driven test, and adding a newly discovered broken line is one line. <strong><code>is_deeply</code> compares nested structures</strong>, which is how you assert on an arrayref without writing four assertions.</p>
         <p>Most importantly: <strong>the interesting tests are the failure cases.</strong> Six of the assertions concern lines that do not parse, because the whole point of the parser is what it does when the data is wrong.</p>
         <div className="exercise">
-          <h5>Exercise 3</h5>
+          <h5>
+            <img className="mascot-right" src={img3.src} alt="The Mewlang cat, giving a playful wink" width="110" />
+            Exercise 3
+          </h5>
           <ol>
             <li><strong>An nginx error-log parser.</strong> It looks like <code>2026/09/12 13:44:09 [error] 8823#0: *4412 upstream timed out, client: 10.14.22.9, server: api, request: "GET /api/export HTTP/1.1"</code>. Write <code>Strata::Parser::NginxError</code> with the same contract: always returns a record, records problems, counts by kind, and has a <code>detect</code>. Note that the trailing key-value pairs are a variable set, so parse them generically rather than naming each one.</li>
             <li><strong>Fuzz your parser.</strong> Take 200 good lines, and for each produce a mutant: truncate at a random point, delete a random character, insert a stray quote, or double a field. Assert that <code>parse</code> never dies, never hangs, and always returns a hashref with a <code>raw</code> field. Fix whatever this finds.</li>
@@ -287,12 +302,18 @@ export default function Page() {
         <pre className="plain"><code>{"./bin/strata-scan                 0.37s   544,525 lines/sec    (count and match only)\n./bin/strata-report               1.72s   116,322 lines/sec    (regex + six hashes)\n./bin/strata ingest               5.47s    36,668 lines/sec    (Record objects + stages)\n"}</code></pre>
         <p>And memory, peak resident set on a 21 MB file:</p>
         <pre className="plain"><code>{"strata ingest (streaming)                     9,036 KB\nbare read loop                                4,992 KB\nslurping the file into an array              43,292 KB\n"}</code></pre>
-        <p>Two findings, and the second one is uncomfortable.</p>
+        <p>
+          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, unimpressed" width="110" />
+          Two findings, and the second one is uncomfortable.
+        </p>
         <p><strong>Streaming works.</strong> The pipeline uses 9 MB regardless of file size, while slurping a 21 MB file into an array costs 43 MB, about twice the file, because every line becomes a Perl scalar with its own overhead. On a 21 GB file that is 43 GB and the difference between a tool and an outage.</p>
         <p><strong>The object pipeline is three times slower than the flat script, and fifteen times slower than counting.</strong> That is the price of one blessed hash and two closure calls per line, and it is real: 36,000 lines a second means a 200 GB log takes hours.</p>
         <p>Is it worth it? For now, yes, and I want to be precise about why rather than waving at "clean code". The pipeline buys pluggable formats (Milestone 6), reusable stages, provenance that survives, and a testable seam. A flat script buys none of those and would have to be rewritten to gain any of them. <strong>But the number is now on the table, it is the reason Milestone 11 exists, and the honest answer at that point may be that the hot loop gets specialised while the architecture stays.</strong> This is exactly the trade the Go course made in reverse: there, the profile said channel overhead dominated and we removed it; here, the profile will say object creation dominates, and we will decide what to do with that evidence rather than guessing now.</p>
         <div className="exercise">
-          <h5>Exercise 4</h5>
+          <h5>
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" />
+            Exercise 4
+          </h5>
           <ol>
             <li><strong>Find the cost.</strong> Profile <code>bin/strata</code> with <code>Devel::NYTProf</code> (<code>perl -d:NYTProf bin/strata ingest big.log</code> then <code>nytprofhtml</code>) and report what actually dominates. Predict first, then check: is it <code>bless</code>, the regex, the closures, or something you did not consider?</li>
             <li><strong>Make a lightweight record.</strong> Implement a variant where a record is a plain hashref with a documented shape and the methods become functions. Measure the difference. Then decide, with the number in hand, which you would ship and write down why.</li>
@@ -340,7 +361,10 @@ export default function Page() {
         <pre className="plain"><code>{"strata/\n├── bin/\n│   ├── strata            ingest subcommand, wires a pipeline together\n│   ├── strata-scan       milestone 1: the filter\n│   └── strata-report     milestone 2: one-pass reporting\n├── lib/Strata/\n│   ├── Pattern.pm        named, composable qr// building blocks\n│   ├── Record.pm         fields + provenance + problems + entities\n│   ├── Pipeline.pm       source -> parser -> stages, with stats\n│   └── Parser/\n│       └── Apache.pm     common and combined, lenient and strict\n├── t/\n│   ├── 20-parser-apache.t   good, imperfect, broken, statistics, detection\n│   └── 30-pipeline.t        stages, dropping, provenance\n└── share/fixtures/\n    └── access.log        2,004 lines, four of them deliberately wrong\n"}</code></pre>
         <pre className="plain"><code>{"$ prove -l t/\nAll tests successful.  Files=2, Tests=9\n$ git commit -am \"milestone 4: a record model and a streaming pipeline\"\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 12 of the five-course curriculum. Next: Perl Milestones 5–8, where the code becomes a distributable module with a cpanfile, CSV, JSON and XML parsers arrive behind a sniffing dispatch table, the reader learns to survive gzip, mixed encodings and truncation, and entity extraction turns records into things you can correlate.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, walking forward" width="120" />
+            Instalment 12 of the five-course curriculum. Next: Perl Milestones 5–8, where the code becomes a distributable module with a cpanfile, CSV, JSON and XML parsers arrive behind a sniffing dispatch table, the reader learns to survive gzip, mixed encodings and truncation, and entity extraction turns records into things you can correlate.
+          </p>
         </footer>
          <Link className="button" href="/perl-course/milestones/5-8/">Continue</Link> 
       </div>

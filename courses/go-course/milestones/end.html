@@ -27,7 +27,7 @@
 
         <h2><span class="num">Part A</span>The advanced phase</h2>
 
-        <p>The colony works. These six topics are what you would reach for if this were a system you had to operate
+        <p><img src="../../assets/expressions/right_to_left/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-right">The colony works. These six topics are what you would reach for if this were a system you had to operate
             rather than a system you had to finish. Each is short, each has code you can drop in, and each names what to
             measure afterwards.</p>
 
@@ -346,7 +346,7 @@ ENTRYPOINT ["/antfarm"]
 
         <div class="warn">
             <h5>The container CPU trap</h5>
-            <p>Go sets <code>GOMAXPROCS</code> from the number of CPUs it can see, and in a container that is the number
+            <p><img src="../../assets/expressions/left_to_right/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-left">Go sets <code>GOMAXPROCS</code> from the number of CPUs it can see, and in a container that is the number
                 of host cores, not your CPU limit. A binary limited to 0.5 cores on a 64-core host will happily create
                 64 scheduler threads and spend its life being throttled. Set <code>GOMAXPROCS</code> explicitly from
                 your limit, or use <code>go.uber.org/automaxprocs</code>, which reads the cgroup quota at startup. This
@@ -361,7 +361,7 @@ ENTRYPOINT ["/antfarm"]
 
         <h2><span class="num">Part B</span>The final challenge</h2>
 
-        <p>Everything up to here had a solution a few paragraphs later. This one does not, and you should spend real
+        <p><img src="../../assets/expressions/right_to_left/thinking.png" alt="The Mewlang cat, thinking, paw to chin" width="120" class="mascot-right">Everything up to here had a solution a few paragraphs later. This one does not, and you should spend real
             time on it before opening the last section. It is deliberately at the edge of what you can now do, and it is
             the kind of thing that makes a portfolio project memorable.</p>
 
@@ -994,7 +994,7 @@ func (s *Scout) Decide(a *Ant, sn Sense, rng *rand.Rand) Action {
 
         <h3>C6 · You should now be able to explain</h3>
         <ul>
-            <li>The Go memory model in terms of happens-before, and how channel operations and mutexes create it.</li>
+            <li><img src="../../assets/expressions/left_to_right/paw.png" alt="The Mewlang cat, raising a paw for a high-five" width="120" class="mascot-left">The Go memory model in terms of happens-before, and how channel operations and mutexes create it.</li>
             <li>Why goroutines are cheap and what the runtime does when one blocks.</li>
             <li>Channel semantics in full: buffered, unbuffered, nil, closed, directional.</li>
             <li><code>select</code>, including random choice, <code>default</code>, and disabling a case with nil.</li>
@@ -1296,7 +1296,7 @@ MIT
 
         <h2><span class="num">Course 1 complete</span>What you built</h2>
 
-        <p>2,961 lines of dependency-free Go across six packages, four engine designs with measurements comparing them,
+        <p><img src="../../assets/expressions/right_to_left/happy.png" alt="The Mewlang cat, beaming with delight" width="120" class="mascot-right">2,961 lines of dependency-free Go across six packages, four engine designs with measurements comparing them,
             a supervisor, a chaos subsystem, a metrics and profiling endpoint, two viewers, and a network protocol that
             survives its server being killed. More importantly: a habit of measuring before optimising, and of testing
             invariants rather than outputs.</p>
@@ -1314,7 +1314,7 @@ MIT
             configuration file should be a program.</p>
 
         <footer class="end">
-            <p>Instalment 5 of the five-course curriculum, and the end of Course 1. Next: Ruby Parts 0–2 (what we are
+            <p><img src="../../assets/expressions/back.png" alt="The Mewlang cat, seen from behind, walking off" width="150" class="mascot-center">Instalment 5 of the five-course curriculum, and the end of Course 1. Next: Ruby Parts 0–2 (what we are
                 building, installation and tooling, the language crash course), then twelve milestones building a
                 self-inspecting automation DSL.</p>
         </footer>

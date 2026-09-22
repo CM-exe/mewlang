@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/yawn.png';
+import img2 from '../../../../courses/assets/expressions/right_to_left/looking_bad_top.png';
+import img3 from '../../../../courses/assets/expressions/surprised.png';
+import img4 from '../../../../courses/assets/expressions/left_to_right/paw.png';
+import img5 from '../../../../courses/assets/expressions/right_to_left/thinking.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/stretching.png';
 
 export const metadata: Metadata = {
   title: "Perl Milestones 5–8 — Distribution, Formats, Hard Files, Entities",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2 className="milestone-head"><span className="num">Milestone 5</span>Making it a distribution</h2>
         <h3>Goal</h3>
-        <p>Turn a folder of scripts into something installable: a version, documentation, declared dependencies, a build file, and the two tests every Perl distribution should have before it has any others.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" />
+          Turn a folder of scripts into something installable: a version, documentation, declared dependencies, a build file, and the two tests every Perl distribution should have before it has any others.
+        </p>
         <h3>Concepts</h3>
         <p>POD, <code>Exporter</code> and selective exports, <code>cpanfile</code> versus <code>Makefile.PL</code>, <code>$VERSION</code>, compile tests, and <code>BAIL_OUT</code>.</p>
         <h3>Implementation</h3>
@@ -123,7 +132,10 @@ export default function Page() {
         <p>Correct on all five. Then I ran the finished tool over the awkward fixtures, and two entries were wrong:</p>
         <pre className="bad"><code>{"share/fixtures/hard/access.log.gz  csv                 0 records     19.7KB  [gzip]\nshare/fixtures/hard/latin1.log     apache              2 records        60B"}</code></pre>
         <div className="warn">
-          <h5>Bug: sniffing looked at the compressed bytes</h5>
+          <h5>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, glancing sideways with annoyance" width="110" />
+            Bug: sniffing looked at the compressed bytes
+          </h5>
           <p>The gzipped Apache log was detected as CSV with zero records. The registry opened the file itself and scored the <em>raw bytes</em>, which for a gzip file are compressed noise that happens to contain a consistent number of commas. Meanwhile the <code>Source</code> was decompressing correctly, so the parser was reading real log lines and finding no CSV in them.</p>
           <p>The fix is a rule worth generalising: <strong>sniff the stream the parser will actually read, not the file on disk.</strong></p>
           <pre><code>{"# peek_lines opens the file, reads a few decoded lines, and closes it\n# again. Sniffing has to see the data the parser will see: peeking at the\n# raw bytes of a gzip file tells you nothing except that it is a gzip file.\nsub peek_lines ($class, $path, $n = 20) {\n    my $src = eval { $class->open($path) } or return ();\n    my @lines;\n    while (@lines < $n && defined(my $line = $src->next_line)) { push @lines, $line }\n    $src->close;\n    return @lines;\n}"}</code></pre>
@@ -211,7 +223,10 @@ export default function Page() {
         <pre><code>{"        # Skip the byte-order mark so it does not appear in the first field\n        # of the first record, which is a bug you can stare at for an hour.\n        seek $fh, $self->{bom_bytes}, 0 if $self->{bom_bytes};\n"}</code></pre>
         <p>The BOM bug is worth dwelling on because it is so common and so invisible: your CSV's first header becomes <code>\x{'{'}feff{'}'}id</code> instead of <code>id</code>, every lookup of <code>id</code> returns undef, and the file looks perfect in every editor you open it in. Excel writes these by default.</p>
         <div className="warn">
-          <h5>The finding I did not expect: Perl's default replacement is not U+FFFD</h5>
+          <h5>
+            <img className="mascot-left" src={img3.src} alt="The Mewlang cat, visibly startled" width="110" />
+            The finding I did not expect: Perl's default replacement is not U+FFFD
+          </h5>
           <p>My test asserted that an invalid byte becomes the replacement character. It failed, and the actual decoded characters were:</p>
           <pre className="bad"><code>{"U+005C U+0078 U+0045 U+0039     which is the four-character text  \\xE9"}</code></pre>
           <p>PerlIO's <code>:encoding</code> layer, by default, substitutes a <em>literal escape sequence</em> for bytes it cannot decode. Your data now contains a backslash, an x, and two hex digits, which will flow into your regexes, your database and your reports, and which no one will recognise as a decoding failure.</p>
@@ -290,12 +305,18 @@ export default function Page() {
         <p>The fix was to remove the object entirely and compute the epoch arithmetically, using the standard branch-free calendar algorithm:</p>
         <pre><code>{"# days_from_civil: the standard branch-free calendar algorithm (Howard\n# Hinnant's). Converting a date to a day number with arithmetic avoids\n# constructing an object per line, which is what actually costs.\nsub _days_from_civil ($y, $m, $d) {\n    $y -= $m <= 2;\n    my $era = int(($y >= 0 ? $y : $y - 399) / 400);\n    my $yoe = $y - $era * 400;                                  # [0, 399]\n    my $doy = int((153 * ($m + ($m > 2 ? -3 : 9)) + 2) / 5) + $d - 1;\n    my $doe = $yoe * 365 + int($yoe / 4) - int($yoe / 100) + $doy;\n    return $era * 146_097 + $doe - 719_468;\n}\n"}</code></pre>
         <pre className="plain"><code>{"arithmetic fast path: 0.47s (425,794/sec)\nTime::Piece strptime: 1.90s (105,445/sec)\nspeedup: 4.0x"}</code></pre>
-        <p>Four times faster, and every correctness test still passes, which is the only reason the rewrite was safe to attempt. Three lessons, in order of importance: <strong>a comment claiming a speedup is a claim, and claims get measured</strong>; the cost was object construction rather than parsing, which the benchmark told me and intuition did not; and a table of correctness tests written before the optimisation is what turns a risky rewrite into a routine one.</p>
+        <p>
+          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="110" />
+          Four times faster, and every correctness test still passes, which is the only reason the rewrite was safe to attempt. Three lessons, in order of importance: <strong>a comment claiming a speedup is a claim, and claims get measured</strong>; the cost was object construction rather than parsing, which the benchmark told me and intuition did not; and a table of correctness tests written before the optimisation is what turns a risky rewrite into a routine one.
+        </p>
         <h3>Running it</h3>
         <pre className="plain"><code>{"$ ./bin/strata entities share/fixtures/access.log share/fixtures/mixed.txt\n\nipv4 (4 distinct)\n  10.14.22.9                                    1,022\n  10.14.22.31                                     344\n  192.168.4.7                                     324\n  172.16.0.99                                     312\n\npath (6 distinct)\n  /api/export                                     343\n  /api/search                                     336\n  /static/app.js                                  323\n  /papers                                         320\n  /login                                          318\n\nactivity by hour\n  2026-09-12T13:00:00Z      1,418\n  2026-09-12T14:00:00Z        585\n"}</code></pre>
         <p>Entities ranked across two files of different formats, and a histogram over a time axis that did not exist until this milestone. That last block is the foundation of Milestone 9: once every record has a comparable instant, "what else happened within ninety seconds of this" becomes a query rather than a research project. </p>
         <div className="exercise">
-          <h5>Exercise 8</h5>
+          <h5>
+            <img className="mascot-right" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="110" />
+            Exercise 8
+          </h5>
           <ol>
             <li><strong>More entity types</strong>: URLs (with scheme, host and path as separate entities), IPv6 (with proper canonicalisation, which is harder than it looks), credit-card-shaped numbers with a Luhn check, and semantic versions. For each, write down the false positive you are most worried about and a test for it.</li>
             <li><strong>Redaction.</strong> Add a stage that replaces extracted emails and card numbers in <code>raw</code> with stable pseudonyms (the same input always giving the same token) so that records can be shared. Use a keyed hash, and explain why an unkeyed hash of an email address is not anonymisation.</li>
@@ -334,7 +355,10 @@ export default function Page() {
         <pre className="plain"><code>{"strata/\n├── Makefile.PL, cpanfile        declared dependencies, installable\n├── bin/strata                   ingest | entities\n├── lib/Strata.pm                POD, $VERSION\n├── lib/Strata/\n│   ├── Util.pm                  commify, top, human_bytes, truncate_str\n│   ├── Pattern.pm               named composable qr// building blocks\n│   ├── Record.pm                fields, provenance, problems, entities\n│   ├── Pipeline.pm              line and stream modes, stages, stats\n│   ├── Source.pm                gzip, BOMs, encodings, NULs, giant lines\n│   ├── Extract.pm               match -> validate -> normalise, with context\n│   ├── Normalize.pm             every timestamp dialect -> one integer\n│   └── Parser/\n│       ├── Registry.pm          dispatch table and confidence scoring\n│       ├── Apache.pm  JsonLines.pm  Csv.pm  Xml.pm  Unstructured.pm\n└── t/                           7 files, 46 tests\n    └── share/fixtures/hard/     six files designed to break the reader\n"}</code></pre>
         <pre className="plain"><code>{"$ prove -l t/\nAll tests successful.  Files=7, Tests=46\n$ git commit -am \"milestones 5-8: distribution, formats, hardened reading, entities\"\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 13 of the five-course curriculum. Next: Perl Milestones 9–12, where records go into SQLite and become correlated events, the CLI grows real option handling and Unix manners, the parser gets fuzzed and profiled, and the whole thing becomes a queryable knowledge graph.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, stretching contentedly" width="120" />
+            Instalment 13 of the five-course curriculum. Next: Perl Milestones 9–12, where records go into SQLite and become correlated events, the CLI grows real option handling and Unix manners, the parser gets fuzzed and profiled, and the whole thing becomes a queryable knowledge graph.
+          </p>
         </footer>
          <Link className="button" href="/perl-course/milestones/9-12/">Continue</Link> 
       </div>

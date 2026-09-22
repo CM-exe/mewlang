@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import FloatingMenu from '../components/FloatingMenu';
+import CourseNav from '../components/CourseNav';
 import './globals.css';
 
 // No `icons` field here on purpose: app/favicon.ico (Next's file-convention
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <FloatingMenu />
+        <CourseNav />
         {children}
       </body>
     </html>

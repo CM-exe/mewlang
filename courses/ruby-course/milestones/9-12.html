@@ -35,7 +35,7 @@
             pipelines</h2>
 
         <h3>Goal</h3>
-        <p>Ship an <code>Automation::Testing</code> module so that anyone using the gem can test their pipelines and
+        <p><img src="../../assets/expressions/left_to_right/yawn.png" alt="The Mewlang cat, yawning" width="120" class="mascot-left">Ship an <code>Automation::Testing</code> module so that anyone using the gem can test their pipelines and
             plugins without inventing their own scaffolding. Then use it to test our own.</p>
 
         <h3>Concepts</h3>
@@ -196,7 +196,7 @@ end
             data.</p>
 
         <div class="warn">
-            <h5>The shadowing bug, a second time, in my own test</h5>
+            <h5><img src="../../assets/expressions/right_to_left/blink.png" alt="The Mewlang cat, winking playfully" width="120" class="mascot-right">The shadowing bug, a second time, in my own test</h5>
             <p>My first version of the first test read:</p>
             <pre class="bad"><code>upcase = stub_step(:upcase) { |records| ... }
 
@@ -419,7 +419,7 @@ research (research.rb:5)
   * when_failed: a block                       research.rb:12
 </code></pre>
 
-        <p>Every piece of that output was declared somewhere else for another reason: the step names and options by the
+        <p><img src="../../assets/expressions/left_to_right/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-left">Every piece of that output was declared somewhere else for another reason: the step names and options by the
             DSL, the locations by <code>caller_locations</code> in Milestone 4, the documentation by the
             <code>doc</code> class macro in Milestone 7, the retry description by <code>RetryPolicy#to_s</code> in
             Milestone 6. <strong>Nothing here is a feature; it is a report over decisions already made.</strong> That is
@@ -737,7 +737,7 @@ end
 {:for=&gt;:slow_step}
 </code></pre>
 
-        <p>The run produced measurements; the measurements produced a transformation; the transformation produced a new
+        <p><img src="../../assets/expressions/right_to_left/paw.png" alt="The Mewlang cat, raising a paw in celebration" width="120" class="mascot-right">The run produced measurements; the measurements produced a transformation; the transformation produced a new
             pipeline. Nothing was mutated, the original <code>measured</code> is still valid and still describes the run
             that happened, and the successor can be inspected, diffed, reviewed, persisted or thrown away.</p>
 
@@ -907,7 +907,7 @@ end
         </ul>
 
         <div class="warn">
-            <h5>A bug worth showing: two methods called <code>run</code></h5>
+            <h5><img src="../../assets/expressions/left_to_right/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-left">A bug worth showing: two methods called <code>run</code></h5>
             <p>My first version named the entry point <code>run(argv)</code> and the subcommand handler
                 <code>run(name, options)</code>. The second definition silently replaced the first, and the delegation I
                 had written to paper over it produced:</p>
@@ -1112,7 +1112,7 @@ end
 </code></pre>
 
         <footer class="end">
-            <p>Instalment 9 of the five-course curriculum. Next, and last for Ruby: the advanced phase (refinements,
+            <p><img src="../../assets/expressions/left_to_right/happy.png" alt="The Mewlang cat, happy and celebrating" width="150" class="mascot-center">Instalment 9 of the five-course curriculum. Next, and last for Ruby: the advanced phase (refinements,
                 lazy enumerators, Ractors, contract testing, performance), the final challenge with acceptance criteria
                 and a withheld solution, the full knowledge check, and the README, portfolio and interview material.
                 Then Course 3 begins: Perl, and the text archaeologist.</p>

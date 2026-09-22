@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../courses/assets/expressions/left_to_right/looking_up.png';
+import img2 from '../../../courses/assets/expressions/right_to_left/glasses.png';
+import img3 from '../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img4 from '../../../courses/assets/expressions/right_to_left/blink.png';
+import img5 from '../../../courses/assets/expressions/left_to_right/thinking.png';
+import img6 from '../../../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   title: "Ruby Parts 0–2 — The Automation DSL, Setup, and the Language",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2><span className="num">Course 2 · Part 0</span>What are we building?</h2>
         <h3>The final result</h3>
-        <p>A gem called <code>automation</code>. By the end of the course, someone who has never seen your source can write this file:</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up with curiosity" width="120" />
+          A gem called <code>automation</code>. By the end of the course, someone who has never seen your source can write this file:
+        </p>
         <pre><code>{"Automation.define do\n  pipeline \"research\" do\n    fetch      \"papers\", from: \"arxiv:cs.AI\", since: \"7d\"\n    filter     topic: \"AI\", min_citations: 5\n    summarize  with: :local_model, max_words: 200\n    save_to    \"knowledge_base\"\n\n    retry_on Timeout::Error, times: 3, backoff: :exponential\n\n    when_failed do |error, step|\n      notify \"me\", subject: \"#{step.name} failed: #{error.message}\"\n    end\n  end\nend\n"}</code></pre>
         <p>and then drive it from Ruby or the command line:</p>
         <pre className="plain"><code>{"$ automation run research --dry-run\nresearch (4 steps, 1 failure handler)\n  ✓ fetch      papers from=arxiv:cs.AI since=7d      [dry run: would fetch ~40 items]\n  ✓ filter     topic=AI min_citations=5              [dry run: would keep ~12 items]\n  ✓ summarize  with=local_model max_words=200        [dry run: 12 summaries]\n  ✓ save_to    knowledge_base                        [dry run: would write 12 records]\n\n$ automation run research\nresearch: 4 steps, 12 items, 3.2s, saved to knowledge_base\n"}</code></pre>
@@ -41,7 +50,10 @@ export default function Page() {
         </ul>
         <div className="why">
           <h5>Why are we using this language here?</h5>
-          <p>Honestly, for the front end of this project Ruby is close to unmatched, and it is the reason Rails, RSpec, Rake, Chef, Puppet, Homebrew, Vagrant and Fastlane all exist in Ruby rather than elsewhere. A generation of tools with a DSL at the front chose Ruby for exactly the features above.</p>
+          <p>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            Honestly, for the front end of this project Ruby is close to unmatched, and it is the reason Rails, RSpec, Rake, Chef, Puppet, Homebrew, Vagrant and Fastlane all exist in Ruby rather than elsewhere. A generation of tools with a DSL at the front chose Ruby for exactly the features above.
+          </p>
           <p>Where Ruby is <em>not</em> the answer, and we will say so at the time:</p>
           <ul>
             <li><strong>If the pipelines come from untrusted users</strong>, an executable DSL is remote code execution with extra steps, and a restricted data format (YAML, JSON, a real parser) is the correct choice. We will build a data-only mode for this reason.</li>
@@ -253,7 +265,10 @@ export default function Page() {
         <div className="warn">
           <h5>Common first-day errors</h5>
           <ul>
-            <li><code>cannot load such file -- automation (LoadError)</code> — <code>lib/</code> is not on the load path. Run with <code>ruby -Ilib ...</code>, or use <code>require_relative</code>, or run through <code>rake</code>/<code>bundle exec</code>, which set it up for you.</li>
+            <li>
+              <img className="mascot-left" src={img3.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <code>cannot load such file -- automation (LoadError)</code> — <code>lib/</code> is not on the load path. Run with <code>ruby -Ilib ...</code>, or use <code>require_relative</code>, or run through <code>rake</code>/<code>bundle exec</code>, which set it up for you.
+            </li>
             <li><code>undefined method 'greet' for Automation:Module</code> — you wrote <code>def greet</code> instead of <code>def self.greet</code>, so it is an instance method on a module that has no instances.</li>
             <li><code>uninitialized constant Automation::Runner</code> — the file defining it was never required. Ruby does not autoload by convention (Rails adds that); you must <code>require</code> it.</li>
             <li><code>can't modify frozen String</code> — the magic comment is doing its job. Use <code>+"literal"</code> or <code>String.new</code> or, better, stop mutating strings.</li>
@@ -292,7 +307,10 @@ export default function Page() {
         <p>A <strong>symbol</strong> is an interned, immutable name. <code>:fetch</code> written twice is the same object; <code>"fetch"</code> written twice is two objects. Use symbols for identifiers (method names, hash keys, step names, states) and strings for text (messages, content, user data). Our DSL will normalise every step name to a symbol, which is why <code>Step.new("fetch").name</code> returned <code>:fetch</code> earlier.</p>
         <div className="warn">
           <h5>The frozen-literal surprise</h5>
-          <p>Run the same snippet in a file that starts with <code># frozen_string_literal: true</code> and the first line prints <strong>true</strong>: identical frozen literals are deduplicated into one object. So <code>equal?</code> (object identity) gives different answers depending on a comment at the top of the file. This is worth knowing before it confuses you at 2am. The lesson is not to avoid the magic comment; it is to use <code>==</code> for comparisons and <code>equal?</code> essentially never.</p>
+          <p>
+            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking playfully" width="120" />
+            Run the same snippet in a file that starts with <code># frozen_string_literal: true</code> and the first line prints <strong>true</strong>: identical frozen literals are deduplicated into one object. So <code>equal?</code> (object identity) gives different answers depending on a comment at the top of the file. This is worth knowing before it confuses you at 2am. The lesson is not to avoid the magic comment; it is to use <code>==</code> for comparisons and <code>equal?</code> essentially never.
+          </p>
         </div>
         <h3>2.3 Truthiness</h3>
         <pre><code>{"p [0, \"\", [], nil, false].map { |v| v ? \"truthy\" : \"falsy\" }\n"}</code></pre>
@@ -407,7 +425,10 @@ export default function Page() {
         <p>Look at the output again: <code>returns_from_proc</code> returned <code>:from_proc</code>, meaning the <code>return</code> inside the proc terminated the whole method and the last line never ran. The lambda version returned <code>:from_method</code>, because its <code>return</code> only left the lambda. <strong>A block captured with <code>&block</code> is a Proc</strong>, so a user's <code>when_failed do ... return ... end</code> could return from surprising places. Prefer lambdas when you store user code and call it later, and we will.</p>
         <div className="exercise">
           <h5>Exercise 2.A</h5>
-          <p>Write a method <code>retrying(times:, on: StandardError)</code> that takes a block, calls it, and retries up to <code>times</code> attempts if the block raises an exception of the given class, re-raising if it never succeeds. It should return the block's value on success, and it should be usable as:</p>
+          <p>
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" />
+            Write a method <code>retrying(times:, on: StandardError)</code> that takes a block, calls it, and retries up to <code>times</code> attempts if the block raises an exception of the given class, re-raising if it never succeeds. It should return the block's value on success, and it should be usable as:
+          </p>
           <pre className="plain"><code>{"result = retrying(times: 3) { flaky_call }"}</code></pre>
           <p>Then extend it to yield the attempt number to the block, so the block can behave differently on a retry. Test it with a counter that fails the first two times.</p>
         </div>
@@ -569,7 +590,10 @@ export default function Page() {
           <li>Run <code>bundle gem automation</code> and commit the skeleton, and spend ten minutes in <code>irb</code> calling <code>.methods</code> on things. Ruby rewards poking at it in a way that compiled languages do not.</li>
         </ol>
         <footer className="end">
-          <p>Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks become a DSL, <code>instance_eval</code> earns and costs, and the whole thing turns into an AST.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, viewed from behind, walking away" width="150" />
+            Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks become a DSL, <code>instance_eval</code> earns and costs, and the whole thing turns into an AST.
+          </p>
         </footer>
          <Link className="button" href="/ruby-course/milestones/1-4/">Continue</Link> 
       </div>

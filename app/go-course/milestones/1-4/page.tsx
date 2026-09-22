@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/right_to_left/thinking.png';
+import img2 from '../../../../courses/assets/expressions/left_to_right/looking_bad_top.png';
+import img3 from '../../../../courses/assets/expressions/left_to_right/paw.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/glasses.png';
+import img5 from '../../../../courses/assets/expressions/surprised.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/stretching.png';
 
 export const metadata: Metadata = {
   title: "Go Milestones 1–4 — One Ant to a Thousand Goroutines",
@@ -25,7 +31,10 @@ export default function Page() {
         <h3>Concepts</h3>
         <p>Package layout across three directories, struct design, pointer receivers, constructors by convention, the flat-array trick for 2D grids, seeded randomness for reproducibility, command-line flags, and the first tests.</p>
         <h3>Design, before any code</h3>
-        <p>Three decisions matter here, and they are the ones that make the next eleven milestones either easy or painful.</p>
+        <p>
+          <img className="mascot-right" src={img1.src} alt="The Mewlang cat, thinking, paw to chin" width="120" />
+          Three decisions matter here, and they are the ones that make the next eleven milestones either easy or painful.
+        </p>
         <p><strong>1. Separate the world from the simulation.</strong> <code>internal/world</code> knows about geometry, terrain and food. It knows nothing about ants, ticks or strategies. <code>internal/sim</code> knows about ants and time, and drives the world. The dependency points one way only:</p>
         <pre className="plain"><code>{"cmd/antfarm  ──►  internal/sim  ──►  internal/world\n\n  flags,            ants, ticks,        grid, positions,\n  wiring,           behaviour,          food, nest\n  printing          statistics          (knows nothing of ants)\n"}</code></pre>
         <p>Why bother this early? Because in Milestone 5 exactly one goroutine will be allowed to touch <code>world</code>, and a package boundary is the cheapest way to make that rule visible. If ants could reach into the grid from anywhere, the rule would be a comment instead of a structure.</p>
@@ -98,7 +107,10 @@ export default function Page() {
         <div className="warn">
           <h5>Common mistakes in Milestone 1</h5>
           <ul>
-            <li><code>package sim; import "internal/world"</code> — import paths are always absolute from the module root, never relative. It must be <code>github.com/yourname/antfarm/internal/world</code>.</li>
+            <li>
+              <img className="mascot-left" src={img2.src} alt="The Mewlang cat, giving a disapproving look" width="120" />
+              <code>package sim; import "internal/world"</code> — import paths are always absolute from the module root, never relative. It must be <code>github.com/yourname/antfarm/internal/world</code>.
+            </li>
             <li><code>cannot use s.ant (variable of type *Ant) as Ant value</code> — you mixed pointer and value. Pick pointers for <code>Ant</code> and stay consistent; ants are mutable identities, not values. </li>
             <li>Calling <code>s.rng.IntN(0)</code> when a slice is empty: it panics with "invalid argument to IntN". Guard the length.</li>
             <li>Forgetting <code>flag.Parse()</code>. Every flag silently keeps its default and you lose twenty minutes.</li>
@@ -259,7 +271,10 @@ export default function Page() {
         <p><strong><code>TestColonyDeliversFood</code> is the most valuable test in the project</strong>, and it is worth understanding why. It asserts a <em>conservation law</em>: every unit of food is either still on the ground, being carried, or delivered. Not a specific number, not a specific path, just an invariant that must hold no matter how the simulation evolves. Invariant tests survive refactoring, catch bugs you did not think of, and are the only practical way to test a system whose exact output is uninteresting. When we make the simulation concurrent, this test is what detects that we have broken it.</p>
         <p>Note <code>ant := tc.ant</code> in the table test: it copies the case's ant so <code>Decide</code> cannot mutate the table. <code>var b Behaviour = Forager{'{'}{'}'}</code> deliberately stores the concrete type in an interface variable, so the test exercises the dynamic dispatch path rather than a direct call.</p>
         <pre className="plain"><code>{"$ go test ./...\nok  \tgithub.com/yourname/antfarm/internal/sim\t0.007s\nok  \tgithub.com/yourname/antfarm/internal/world\t0.002s\n\n$ go run ./cmd/antfarm -ants 500 -grid 48x48 -food 30 -ticks 600 -every 200\ncolony: 500 ants, 48x48 grid, 30 food sources, seed 1\ntick 200    ants 500    carrying 21     delivered 459    food left 1020\ntick 400    ants 500    carrying 18     delivered 727    food left 755\ntick 600    ants 500    carrying 21     delivered 920    food left 559\nfinal: tick 600    ants 500    carrying 21     delivered 920    food left 559\n"}</code></pre>
-        <p>That is real output from the code above. The colony works: 920 units delivered, food dropping steadily, about 20 ants in transit at any moment.</p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, raising a paw for a high-five" width="120" />
+          That is real output from the code above. The colony works: 920 units delivered, food dropping steadily, about 20 ants in transit at any moment.
+        </p>
         <div className="exercise">
           <h5>Exercise 3</h5>
           <p>Write a second behaviour, <code>Scout</code>, that satisfies the same interface but moves in a straight line for several ticks before turning, which explores faster than a pure random walk. Requirements:</p>
@@ -308,7 +323,10 @@ export default function Page() {
         </ol>
         <div className="why">
           <h5>Why are we using this language here?</h5>
-          <p>Nothing in Milestones 1–3 needed Go. This is ordinary sequential code, and Python would have been shorter to write, with the interface replaced by duck typing and the errors by exceptions. Java or C# would be about the same length as Go with a more expressive type system behind them.</p>
+          <p>
+            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            Nothing in Milestones 1–3 needed Go. This is ordinary sequential code, and Python would have been shorter to write, with the interface replaced by duck typing and the errors by exceptions. Java or C# would be about the same length as Go with a more expressive type system behind them.
+          </p>
           <p>Two things Go gave us that will matter shortly. First, <code>Action</code> and <code>Stats</code> are pointer-free value types, which is a property the type system lets you see at a glance and which becomes the basis of safe message passing. In Python every object is a reference and "is this safe to hand to another thread" is never answerable locally. Second, the benchmark showing zero allocations per tick is not achievable at all in a language where every small object is heap-allocated, and at 50,000 ants it is the difference between a smooth simulation and one that stutters under garbage collection.</p>
           <p>The honest verdict on this milestone: Go was fine, not special. The next one is where it earns its place. </p>
         </div>
@@ -348,7 +366,10 @@ export default function Page() {
         <p>Precisely: two goroutines access the same memory location, at least one access is a write, and there is no synchronisation event ordering them. The Go memory model defines a <em>happens-before</em> relation, and operations not ordered by it may be observed in any order, or not at all.</p>
         <p>Concretely, <code>s.delivered++</code> is three machine operations: load, add, store. Two goroutines can interleave as:</p>
         <pre className="plain"><code>{"goroutine A          goroutine B          delivered\n─────────────────────────────────────────────────────\nload  → 100                                   100\n                     load  → 100              100\nadd   → 101                                   100\n                     add   → 101              100\nstore 101                                     101\n                     store 101                101   ← one delivery lost\n"}</code></pre>
-        <p>Two ants delivered food; the counter says one. Nothing crashed and no test failed, unless you wrote the conservation test. <em>That</em> is why the invariant test exists.</p>
+        <p>
+          <img className="mascot-center" src={img5.src} alt="The Mewlang cat, wide-eyed with surprise" width="150" />
+          Two ants delivered food; the counter says one. Nothing crashed and no test failed, unless you wrote the conservation test. <em>That</em> is why the invariant test exists.
+        </p>
         <p>It gets worse than lost updates. Without synchronisation, the compiler and the CPU are both permitted to reorder and cache your reads and writes, so a value written by one goroutine may never become visible to another, or may become visible in a different order than it was written. A data race is not a timing inconvenience, it is undefined behaviour, and "it works on my machine" is not evidence of anything.</p>
         <div className="warn">
           <h5>Three things to know about the race detector</h5>
@@ -473,7 +494,10 @@ export default function Page() {
         <pre className="plain"><code>{"antfarm/\n├── go.mod\n├── cmd/\n│   └── antfarm/\n│       └── main.go              flags, wiring, output\n└── internal/\n    ├── sim/\n    │   ├── ant.go               Ant, Action, ActionKind\n    │   ├── behaviour.go         Behaviour, Forager, direction helpers\n    │   ├── sim.go               Config, Sim, Step, apply, handle, Stats\n    │   ├── concurrent.go        RunConcurrentUnsafe, RunConcurrentLocked\n    │   ├── sim_test.go          decide tables, determinism, conservation, benchmarks\n    │   └── concurrent_test.go   race reproduction, locked conservation, benchmarks\n    └── world/\n        ├── grid.go              Position, Grid\n        ├── world.go             World, food, errors\n        └── grid_test.go         bounds, food errors\n"}</code></pre>
         <pre className="plain"><code>{"$ gofmt -l .        # prints nothing: everything is formatted\n$ go vet ./...      # prints nothing: no suspicious constructs\n$ go test ./...     # all green\n$ go test -race ./... -run 'Locked|Stats'   # all green\n$ git commit -am \"milestone 4: concurrency, races, and a lock we regret\"\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 2 of the five-course curriculum. Next: Milestones 5–8, where the world becomes a single owning goroutine, pheromones arrive with a shared clock, <code>context</code> gives us clean shutdown, and we start deliberately crashing things.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, stretching contentedly" width="120" />
+            Instalment 2 of the five-course curriculum. Next: Milestones 5–8, where the world becomes a single owning goroutine, pheromones arrive with a shared clock, <code>context</code> gives us clean shutdown, and we start deliberately crashing things.
+          </p>
         </footer>
          <Link className="button" href="/go-course/milestones/5-8/">Continue</Link> 
       </div>

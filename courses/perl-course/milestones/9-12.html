@@ -37,7 +37,7 @@
         <h2 class="milestone-head"><span class="num">Milestone 9</span>Correlation and sessionisation</h2>
 
         <h3>Goal</h3>
-        <p>Stop recomputing. Give records and their entities a home in SQLite, and turn the flat stream of entity
+        <p><img src="../../assets/expressions/left_to_right/side.png" alt="The Mewlang cat, in a neutral curious pose" width="120" class="mascot-left">Stop recomputing. Give records and their entities a home in SQLite, and turn the flat stream of entity
             <em>occurrences</em> into <em>events</em>: an event is one entity active over a span of time, built by
             grouping its occurrences whenever the gap between two of them is small enough to call them the same
             episode. That single idea — <strong>group by identity, split by silence</strong> — is what makes
@@ -123,7 +123,7 @@ sub open ($class, $path, %opt) {
         <h4>One transaction, not ten thousand</h4>
 
         <div class="warn">
-            <h5>The bug: inserting one row at a time, correctly, and much too slowly</h5>
+            <h5><img src="../../assets/expressions/right_to_left/looking_bad_top.png" alt="The Mewlang cat, glancing sideways with annoyance" width="110" class="mascot-right">The bug: inserting one row at a time, correctly, and much too slowly</h5>
             <p>The first version of the loader called <code>execute</code> once per record with <code>AutoCommit</code>
                 left at its default of on. Every insert became its own transaction, and SQLite's default is to
                 <code>fsync</code> the write-ahead log to disk before a transaction is considered committed —
@@ -516,7 +516,7 @@ $ sqlite3 strata.db "SELECT COUNT(*) FROM records"
         <h4>The signal every Perl programmer meets by surprise</h4>
 
         <div class="warn">
-            <h5><code>strata query ... | head</code> and a process that vanishes with no message</h5>
+            <h5><img src="../../assets/expressions/surprised.png" alt="The Mewlang cat, visibly startled" width="110" class="mascot-left"><code>strata query ... | head</code> and a process that vanishes with no message</h5>
             <p><code>strata query</code> streams result rows to <code>STDOUT</code> with <code>say</code>. Piped into
                 <code>head -5</code>, it worked — until the exit code was checked in a script:</p>
             <pre class="bad"><code>$ ./bin/strata query strata.db --type ipv4 | head -3
@@ -783,7 +783,7 @@ found a hang in 2000-trial budget (seed 20260912), 1.01s elapsed
 not ok 1 - scan_fields never hangs
 </code></pre>
 
-        <p>Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an
+        <p><img src="../../assets/expressions/right_to_left/happy.png" alt="The Mewlang cat, delighted" width="110" class="mascot-right">Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an
             unterminated <code>"</code> and no closing quote anywhere in it — exactly the input that hits the
             <code>next</code> without advancing <code>$pos</code>, so the <code>while</code> condition never changes
             and the loop spins forever. Without the deadline, this test would simply never finish, and depending on
@@ -920,7 +920,7 @@ speedup: 50x
             idiomatic answer to "run this on several cores", reaping children correctly, and final packaging.</p>
 
         <div class="why">
-            <h5>Why are we using this language here?</h5>
+            <h5><img src="../../assets/expressions/front.png" alt="The Mewlang cat, facing forward" width="110" class="mascot-left">Why are we using this language here?</h5>
             <p>This is the sharpest language contrast in the whole course. Go's answer to "use more cores" is
                 goroutines sharing one address space, disciplined by channels and the race detector. Perl's idiomatic
                 answer is the opposite instinct: <code>fork()</code> gives every worker its own <em>copy</em> of the
@@ -1198,7 +1198,7 @@ say "}";</code></pre>
         </div>
 
         <footer class="end">
-            <p>Instalment 14 of the five-course curriculum. Next, and last for Perl: the advanced phase, a final
+            <p><img src="../../assets/expressions/left_to_right/paw.png" alt="The Mewlang cat, raising a paw in celebration" width="120" class="mascot-left">Instalment 14 of the five-course curriculum. Next, and last for Perl: the advanced phase, a final
                 challenge with acceptance criteria and a withheld solution, the full knowledge check, the README and
                 GitHub description, portfolio notes and interview questions.</p>
         </footer>

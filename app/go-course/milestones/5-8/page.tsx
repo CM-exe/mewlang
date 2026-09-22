@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/right_to_left/quarter_face.png';
+import img2 from '../../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img3 from '../../../../courses/assets/expressions/right_to_left/happy.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/side.png';
+import img5 from '../../../../courses/assets/expressions/left_to_right/blink.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/walking.png';
 
 export const metadata: Metadata = {
   title: "Go Milestones 5–8 — Ownership, Trails, Shutdown, Chaos",
@@ -24,7 +30,10 @@ export default function Page() {
         <h3>Concepts</h3>
         <p>Ownership as a design principle, request/response over channels, per-client reply channels, buffered channels as leak prevention, the "ask the owner" pattern for reading state, and value types as messages.</p>
         <h3>Design</h3>
-        <p>The failure of Milestone 4 was structural: many goroutines reaching into one mutable object. There are only three ways out of that, and it is worth seeing all three before picking one.</p>
+        <p>
+          <img className="mascot-right" src={img1.src} alt="The Mewlang cat, glancing over curiously" width="120" />
+          The failure of Milestone 4 was structural: many goroutines reaching into one mutable object. There are only three ways out of that, and it is worth seeing all three before picking one.
+        </p>
         <table className="grid">
           <tbody>
             <tr>
@@ -132,7 +141,10 @@ export default function Page() {
         <div className="warn">
           <h5>Common mistakes in Milestone 5</h5>
           <ul>
-            <li><strong>An unbuffered reply channel.</strong> The owner blocks forever on <code>r.reply {'<'}- resp</code> if the ant has stopped listening. The whole simulation freezes and the stack dump shows every goroutine blocked on the same channel. Buffer of one, always. </li>
+            <li>
+              <img className="mascot-left" src={img2.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <strong>An unbuffered reply channel.</strong> The owner blocks forever on <code>r.reply {'<'}- resp</code> if the ant has stopped listening. The whole simulation freezes and the stack dump shows every goroutine blocked on the same channel. Buffer of one, always. 
+            </li>
             <li><strong>Forgetting the stale-reply drain.</strong> Symptom: after the first timeout, an ant starts behaving as if it is one step behind reality. Very hard to spot without the counter.</li>
             <li><strong>Putting a pointer in a message.</strong> Compiles, passes tests, races under load. If you catch yourself writing <code>ant *Ant</code> in the request struct, stop.</li>
             <li><strong>Closing <code>reqs</code> to signal shutdown.</strong> Senders panic with "send on closed channel", and there are thousands of them. Only close a channel when there is exactly one sender, and here there are many. Cancel a context instead.</li>
@@ -184,7 +196,10 @@ export default function Page() {
         <h3>Does it actually help?</h3>
         <p>Same seed, same world, same wall-clock budget, 300 ants on a 64×64 grid with six food sources of 200 units each:</p>
         <pre className="plain"><code>{"forager: delivered 323, pheromone left 1693\ntrail  : delivered 404, pheromone left 397\n"}</code></pre>
-        <p>A 25% improvement in delivered food, measured rather than asserted. Two details in those numbers are more interesting than the headline.</p>
+        <p>
+          <img className="mascot-right" src={img3.src} alt="The Mewlang cat, beaming with delight" width="120" />
+          A 25% improvement in delivered food, measured rather than asserted. Two details in those numbers are more interesting than the headline.
+        </p>
         <p>The <code>forager</code> run has <em>more</em> pheromone left at the end (1693 against 397) even though it ignores pheromone entirely. Deposition happens at the owner for any carrying ant, so both runs lay trails; only one reads them. The forager's trails accumulate because its ants take longer random-walk journeys and are more spread out, while the trail follower's ants concentrate on short paths that evaporation keeps trimmed. A metric moving in the direction you did not predict is usually the most informative thing on the screen.</p>
         <p>Second: this is a measurement of one seed on one machine over half a second, which is not a result, it is an anecdote. Before claiming pheromones help, you would run several seeds and compare distributions. That is Exercise 6.</p>
         <div className="exercise">
@@ -231,7 +246,10 @@ export default function Page() {
         <h3>Concepts</h3>
         <p>Context trees and derived cancellation, <code>signal.NotifyContext</code>, shutdown ordering, the <code>WaitGroup</code> misuse that bites concurrent supervisors, and goroutine leak detection. </p>
         <h3>Design</h3>
-        <p>"Just cancel everything" is wrong, and the reason is worth spelling out. The last thing <code>Run</code> does is collect final statistics, which requires sending a request to the owner and getting a reply. If the owner was cancelled along with everyone else, that request hangs until it times out and you get empty results. So shutdown has an order, and the order is the reverse of the dependency graph:</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, in profile, thinking it over" width="120" />
+          "Just cancel everything" is wrong, and the reason is worth spelling out. The last thing <code>Run</code> does is collect final statistics, which requires sending a request to the owner and getting a reply. If the owner was cancelled along with everyone else, that request hangs until it times out and you get empty results. So shutdown has an order, and the order is the reverse of the dependency graph:
+        </p>
         <pre className="plain"><code>{"  ctx cancelled (Ctrl-C, timeout, or the caller's choice)\n        │\n        ▼\n  1. supervisor stops          no new ants will be started\n        │\n        ▼\n  2. ants drain and exit       each finishes its current round trip\n        │\n        ▼\n  3. final Stats collected     the owner is still alive to answer\n        │\n        ▼\n  4. evaporator stops          nothing left that needs a clock\n        │\n        ▼\n  5. owner stops               last to go, because everyone needed it\n"}</code></pre>
         <p>This is why <code>Run</code> builds <em>three</em> contexts rather than passing one everywhere. The ants get the caller's context, so cancelling it stops them. The evaporator and the owner get their own contexts derived from <code>context.Background()</code>, so they outlive the ants and stop only when <code>Run</code> says so. A context is a cancellation scope, and "everything cancels at once" is a design decision, not a default you have to accept.</p>
         <h3>Implementation</h3>
@@ -291,7 +309,10 @@ export default function Page() {
         </ol>
         <h2 className="milestone-head"><span className="num">Milestone 8</span>Chaos: crashes, dropped messages, slow ants</h2>
         <h3>Goal</h3>
-        <p>Break the colony on purpose and keep it running. Ants panic at random and a supervisor restarts them. The owner drops messages at random and clients time out and retry. Ants stall at random and the queue absorbs it. Every failure becomes a number you can watch.</p>
+        <p>
+          <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving a mischievous wink" width="120" />
+          Break the colony on purpose and keep it running. Ants panic at random and a supervisor restarts them. The owner drops messages at random and clients time out and retry. Ants stall at random and the queue absorbs it. Every failure becomes a number you can watch.
+        </p>
         <h3>Concepts</h3>
         <p><code>panic</code> and <code>recover</code> across goroutine boundaries, supervision built by hand, restart state and generations, accounting for work lost in a crash, at-least-once versus at-most-once delivery, and the way timeouts interact with throughput.</p>
         <h3>Design</h3>
@@ -431,7 +452,10 @@ export default function Page() {
           <p>Worth pausing on: <code>engine.go</code> is now the heart of the project and contains no mutex at all. The only synchronisation primitives in it are channels, a context, three atomic counters for cross-goroutine metrics, and one <code>WaitGroup</code> per lifecycle group. Every piece of mutable state has exactly one owner, and the comments say who. That is what the Milestone 4 detour bought.</p>
         </div>
         <footer className="end">
-          <p>Instalment 3 of the five-course curriculum. Next: Milestones 9–12, where metrics get an HTTP endpoint and a profiler, the colony gets a live view you can watch in a browser, backpressure and sharding make it fast, and the world moves into a separate process that you can kill.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" />
+            Instalment 3 of the five-course curriculum. Next: Milestones 9–12, where metrics get an HTTP endpoint and a profiler, the colony gets a live view you can watch in a browser, backpressure and sharding make it fast, and the world moves into a separate process that you can kill.
+          </p>
         </footer>
          <Link className="button" href="/go-course/milestones/9-12/">Continue</Link> 
       </div>

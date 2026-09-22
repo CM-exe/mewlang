@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../courses/assets/logo-mewlang.png';
+import img2 from '../courses/assets/expressions/right_to_left/looking_up.png';
+import img3 from '../courses/assets/expressions/left_to_right/paw.png';
+import img4 from '../courses/assets/expressions/right_to_left/blink.png';
+import img5 from '../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   description: "Learn programming languages by building things that make each language worth learning.",
@@ -9,7 +14,7 @@ export default function Page() {
   return (
     <div className="theme-index">
       <header className="text-center">
-        <img src="assets/logo-mewlang.png" alt="Mewlang logo" width="220" />
+        <img src={img1.src} alt="Mewlang logo" width="220" />
         <h1>Mewlang</h1>
         <p><strong>Learn programming languages by building things that make each language worth learning.</strong></p>
         <nav className="menu" aria-label="Course navigation"> <Link href="/overview/">Curriculum overview</Link> <Link href="/go-course/instalment/">Go</Link> <Link href="/ruby-course/instalment/">Ruby</Link> <Link href="/perl-course/instalment/">Perl</Link> <span className="soon">Erlang <small>(coming soon)</small></span> <span className="soon">Racket <small>(coming soon)</small></span> </nav>
@@ -17,7 +22,10 @@ export default function Page() {
       <main>
         <p>Mewlang is a hands-on programming-language learning project built around one idea:</p>
         <blockquote><strong>Don't just learn a language. Discover what it makes possible.</strong></blockquote>
-        <p>Instead of following syntax tutorials or building the same CRUD application in every language, Mewlang explores programming languages through projects designed around their unique strengths, philosophies, and programming models.</p>
+        <p>
+          <img className="mascot-right" src={img2.src} alt="The Mewlang cat looking up, curious" width="150" />
+          Instead of following syntax tutorials or building the same CRUD application in every language, Mewlang explores programming languages through projects designed around their unique strengths, philosophies, and programming models.
+        </p>
         <h2>🧠 The idea</h2>
         <p>Every programming language has something interesting about it.</p>
         <ul>
@@ -35,7 +43,10 @@ export default function Page() {
           <p><strong>Explore:</strong> Goroutines, channels, concurrency, synchronization, context cancellation, worker pools, race detection, fault injection, and distributed systems.</p>
           <blockquote>What happens when concurrency becomes the natural way to model the world?</blockquote>
           <p className="start"><Link href="/go-course/instalment/">Start the Go course →</Link></p>
-          <h3>🐱 Ruby — Programmable Automation DSL</h3>
+          <h3>
+            <img className="brand-icon" src={img1.src} alt="" width="26" />
+            Ruby — Programmable Automation DSL
+          </h3>
           <p>Build a Ruby-based automation framework where pipelines can be written almost like a programming language:</p>
           <pre><code>{"pipeline \"research\" do\n\tfetch \"papers\"\n\tfilter topic: \"AI\"\n\tsummarize\n\tsave_to \"knowledge_base\"\nend"}</code></pre>
           <p><strong>Explore:</strong> Blocks, Procs, lambdas, objects, reflection, <code>method_missing</code>, dynamic methods, metaprogramming, DSL design, and runtime introspection.</p>
@@ -76,10 +87,16 @@ export default function Page() {
         <h2>🚀 Getting started</h2>
         <p>Choose a language and start with its project. You don't need to know the language beforehand.</p>
         <pre><code>{"Language basics\n\t\t\t↓\nTiny exercises\n\t\t\t↓\nSmall prototype\n\t\t\t↓\nProject milestone\n\t\t\t↓\nMore language features\n\t\t\t↓\nAdvanced architecture\n\t\t\t↓\nFinal challenge"}</code></pre>
-        <p>The objective isn't to memorize syntax, but to reach the point where you can think: <strong>“This language would be interesting for this.”</strong></p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat's paw, raised for a high five" width="110" />
+          The objective isn't to memorize syntax, but to reach the point where you can think: <strong>“This language would be interesting for this.”</strong>
+        </p>
         <p><Link className="button" href="/overview/">Read the full curriculum →</Link></p>
         <h2>🧩 Why “Mewlang”?</h2>
-        <p>Because programming languages are weird creatures. Some are good at concurrency, some manipulate text beautifully, some reshape the language itself, some survive failure, and some make types do incredible things.</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, winking" width="110" />
+          Because programming languages are weird creatures. Some are good at concurrency, some manipulate text beautifully, some reshape the language itself, some survive failure, and some make types do incredible things.
+        </p>
         <p>Different languages. Different powers. Different ways of thinking.</p>
         <h2>📌 Project Status</h2>
         <p>Mewlang is an educational project and an ongoing exploration of programming languages. New languages and projects can be added over time.</p>
@@ -89,7 +106,11 @@ export default function Page() {
         <p><strong>Learn the language.</strong><br /><strong>Build something weird.</strong><br /><strong>Break it.</strong><br /><strong>Understand why it works.</strong><br /><strong>Then learn another language and see the problem differently.</strong></p>
       </main>
       <footer className="text-center">
-        <h2>🐱 Welcome to Mewlang.</h2>
+        <h2>
+          <img className="brand-icon" src={img1.src} alt="" width="30" />
+          Welcome to Mewlang.
+        </h2>
+        <img className="mascot-center" src={img5.src} alt="The Mewlang cat, walking off with its tail up" width="130" />
       </footer>
     </div>
   );

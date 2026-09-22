@@ -248,7 +248,7 @@ func (s *Set) Handler() http.Handler {
 
         <div class="warn">
             <h5>The pprof import is a trap worth knowing</h5>
-            <p>Almost every Go tutorial tells you to write <code>import _ "net/http/pprof"</code>. The underscore means
+            <p><img src="../../assets/expressions/right_to_left/looking_bad_top.png" alt="The Mewlang cat, giving a disapproving look" width="120" class="mascot-right">Almost every Go tutorial tells you to write <code>import _ "net/http/pprof"</code>. The underscore means
                 "import for side effects only", and the side effect is that the package's <code>init()</code> registers
                 its handlers on <code>http.DefaultServeMux</code>. If anything in your program then serves
                 <code>DefaultServeMux</code> on a public port, you have published heap profiles, goroutine stacks,
@@ -263,7 +263,7 @@ func (s *Set) Handler() http.Handler {
 
         <h4>Wiring it in</h4>
 
-        <p>The engine gets an embedded <code>metrics.Set</code>, and the interesting instrumentation is two lines in the
+        <p><img src="../../assets/expressions/left_to_right/yawn.png" alt="The Mewlang cat, yawning" width="120" class="mascot-left">The engine gets an embedded <code>metrics.Set</code>, and the interesting instrumentation is two lines in the
             request path:</p>
 
         <pre><code>func (e *Engine) handle(r request) {
@@ -504,7 +504,7 @@ func (h *SampledHistogram) Maybe(start time.Time) {
         </h2>
 
         <h3>Goal</h3>
-        <p>See the colony. An ANSI-redrawn terminal view for a quick look, and a browser page fed by server-sent events
+        <p><img src="../../assets/expressions/left_to_right/looking_up.png" alt="The Mewlang cat, looking up curiously" width="120" class="mascot-left">See the colony. An ANSI-redrawn terminal view for a quick look, and a browser page fed by server-sent events
             for a good one. Neither may ever slow the simulation down.</p>
 
         <h3>Concepts</h3>
@@ -880,7 +880,7 @@ drop   → message → owner → reply      drop   → one-way message → shard
 
         <div class="warn">
             <h5>This trades safety for speed, deliberately</h5>
-            <p>The single-owner design had a property we are giving up: every world access was validated by one
+            <p><img src="../../assets/expressions/right_to_left/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-right">The single-owner design had a property we are giving up: every world access was validated by one
                 authority that saw everything in order. Now an ant computes its own position, so a buggy behaviour can
                 put itself somewhere impossible; a drop is fire-and-forget, so nobody tells the ant it was rejected. We
                 keep validation exactly where correctness demands it (a pickup still needs an authoritative answer about
@@ -1035,7 +1035,7 @@ func (e *FastEngine) send(ctx context.Context, op writeOp) {
         (ants 500 carrying 182 delivered 81 food left 96)
 </code></pre>
 
-        <p>141 units of food had ceased to exist. No race, no panic, no error in any log. Instrumenting the ledger
+        <p><img src="../../assets/expressions/surprised.png" alt="The Mewlang cat, wide-eyed with surprise" width="150" class="mascot-center">141 units of food had ceased to exist. No race, no panic, no error in any log. Instrumenting the ledger
             showed 336 successful pickups, 216 drops, 90 ants carrying: 30 units taken from the ground that no ant held
             and nobody delivered.</p>
 
@@ -1671,7 +1671,7 @@ $ git commit -am "milestone 12: the world moves to another process"
 </code></pre>
 
         <footer class="end">
-            <p>Instalment 4 of the five-course curriculum. Next, and last for Go: the advanced phase, the final
+            <p><img src="../../assets/expressions/left_to_right/walking.png" alt="The Mewlang cat, strolling forward" width="120" class="mascot-left">Instalment 4 of the five-course curriculum. Next, and last for Go: the advanced phase, the final
                 challenge with acceptance criteria and a withheld solution, the full knowledge check (20 conceptual, 10
                 code-reading, 5 debugging, 5 implementation questions plus one substantial challenge), the README and
                 GitHub description, portfolio notes and interview questions. Then Course 2 begins.</p>

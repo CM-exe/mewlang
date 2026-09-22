@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo-mewlang.png" alt="Mewlang logo" width="220">
+<img src="courses/assets/logo-mewlang.png" alt="Mewlang logo" width="220">
 
 # 🐱 Mewlang
 

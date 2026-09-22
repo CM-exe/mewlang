@@ -34,7 +34,7 @@
         <h2 class="milestone-head"><span class="num">Milestone 1</span>A filter that counts what it reads</h2>
 
         <h3>Goal</h3>
-        <p>The smallest useful program: read files or standard input, count what you find, report it, and exit with a
+        <p><img src="../../assets/expressions/left_to_right/laptop.png" alt="The Mewlang cat, typing on a laptop" width="120" class="mascot-left">The smallest useful program: read files or standard input, count what you find, report it, and exit with a
             status that means something. No modules, no objects, no parsing.</p>
 
         <h3>Concepts</h3>
@@ -381,7 +381,7 @@ most requested paths
             seriously.</p>
 
         <div class="warn">
-            <h5>The report quietly lies, and the failure count is how you find out</h5>
+            <h5><img src="../../assets/expressions/surprised.png" alt="The Mewlang cat, visibly startled" width="110" class="mascot-right">The report quietly lies, and the failure count is how you find out</h5>
             <p>Line 2001 of the fixture is this:</p>
             <pre
                 class="bad"><code>10.14.22.9 - - [12/Sep/2026:13:44:10 +0000] "GET /api/export HTTP/1.1" 200</code></pre>
@@ -731,7 +731,7 @@ All tests successful.
             lines that do not parse, because the whole point of the parser is what it does when the data is wrong.</p>
 
         <div class="exercise">
-            <h5>Exercise 3</h5>
+            <h5><img src="../../assets/expressions/right_to_left/blink.png" alt="The Mewlang cat, giving a playful wink" width="110" class="mascot-right">Exercise 3</h5>
             <ol>
                 <li><strong>An nginx error-log parser.</strong> It looks like
                     <code>2026/09/12 13:44:09 [error] 8823#0: *4412 upstream timed out, client: 10.14.22.9, server: api, request: "GET /api/export HTTP/1.1"</code>.
@@ -1062,7 +1062,7 @@ bare read loop                                4,992 KB
 slurping the file into an array              43,292 KB
 </code></pre>
 
-        <p>Two findings, and the second one is uncomfortable.</p>
+        <p><img src="../../assets/expressions/left_to_right/looking_bad.png" alt="The Mewlang cat, unimpressed" width="110" class="mascot-left">Two findings, and the second one is uncomfortable.</p>
 
         <p><strong>Streaming works.</strong> The pipeline uses 9&nbsp;MB regardless of file size, while slurping a
             21&nbsp;MB file into an array costs 43&nbsp;MB, about twice the file, because every line becomes a Perl
@@ -1083,7 +1083,7 @@ slurping the file into an array              43,292 KB
             rather than guessing now.</p>
 
         <div class="exercise">
-            <h5>Exercise 4</h5>
+            <h5><img src="../../assets/expressions/right_to_left/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="110" class="mascot-right">Exercise 4</h5>
             <ol>
                 <li><strong>Find the cost.</strong> Profile <code>bin/strata</code> with <code>Devel::NYTProf</code>
                     (<code>perl -d:NYTProf bin/strata ingest big.log</code> then <code>nytprofhtml</code>) and report
@@ -1233,7 +1233,7 @@ $ git commit -am "milestone 4: a record model and a streaming pipeline"
 </code></pre>
 
         <footer class="end">
-            <p>Instalment 12 of the five-course curriculum. Next: Perl Milestones 5–8, where the code becomes a
+            <p><img src="../../assets/expressions/left_to_right/walking.png" alt="The Mewlang cat, walking forward" width="120" class="mascot-left">Instalment 12 of the five-course curriculum. Next: Perl Milestones 5–8, where the code becomes a
                 distributable module with a cpanfile, CSV, JSON and XML parsers arrive behind a sniffing dispatch table,
                 the reader learns to survive gzip, mixed encodings and truncation, and entity extraction turns records
                 into things you can correlate.</p>

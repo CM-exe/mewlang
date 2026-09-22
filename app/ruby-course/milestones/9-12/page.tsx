@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/left_to_right/yawn.png';
+import img2 from '../../../../courses/assets/expressions/right_to_left/blink.png';
+import img3 from '../../../../courses/assets/expressions/left_to_right/glasses.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/paw.png';
+import img5 from '../../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/happy.png';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 9–12 — Testing, Inspection, Rewriting, Shipping",
@@ -20,7 +26,10 @@ export default function Page() {
         </div>
         <h2 className="milestone-head"><span className="num">Milestone 9</span>Testing, including testing other people's pipelines</h2>
         <h3>Goal</h3>
-        <p>Ship an <code>Automation::Testing</code> module so that anyone using the gem can test their pipelines and plugins without inventing their own scaffolding. Then use it to test our own.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, yawning" width="120" />
+          Ship an <code>Automation::Testing</code> module so that anyone using the gem can test their pipelines and plugins without inventing their own scaffolding. Then use it to test our own.
+        </p>
         <h3>Concepts</h3>
         <p>Spies rather than mocks, isolated registries, assertions that speak the domain's language, testing shape without execution, and making slow behaviour (retries, backoff) fast in tests.</p>
         <h3>Design</h3>
@@ -57,7 +66,10 @@ export default function Page() {
         <p><code>backoff: :none</code> is why <code>RetryPolicy</code> has a <code>backoff</code> field instead of a hard-coded schedule. A retry test that sleeps is a test people delete. Making slow behaviour configurable is a testability decision you make when you design the feature, not afterwards.</p>
         <p><code>test_assertions_about_shape_need_no_execution</code> is the one to copy into your own projects: it checks the pipeline is well-formed without running a thing, which is only possible because building produces data.</p>
         <div className="warn">
-          <h5>The shadowing bug, a second time, in my own test</h5>
+          <h5>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, winking playfully" width="120" />
+            The shadowing bug, a second time, in my own test
+          </h5>
           <p>My first version of the first test read:</p>
           <pre className="bad"><code>{"upcase = stub_step(:upcase) { |records| ... }\n\npipeline = build_pipeline(\"t\") do\n  fetch from: \"somewhere\"\n  upcase                        # the local variable, not the verb\nend"}</code></pre>
           <p>The test failed with <code>Expected: [{'{'}:title={'>'}"ONE"{'}'}], Actual: [{'{'}:title={'>'}"one"{'}'}]</code>. The pipeline had one step instead of two, because <code>upcase</code> resolved to the local variable holding the Recorder, and evaluating a variable adds no step.</p>
@@ -109,7 +121,10 @@ export default function Page() {
         <h3>Implementation</h3>
         <pre><code>{"    def explain(pipeline, registry: Automation.registry)\n      lines = [\"#{pipeline.name} (#{pipeline.location})\"]\n\n      pipeline.steps.each_with_index do |step, i|\n        known = registry.registered?(step.name)\n        marker = known ? \" \" : \"?\"\n        lines << format(\"  %s%-2d %-40s %s\", marker, i + 1, step.to_s, step.location)\n\n        doc = known ? registry.entry(step.name).doc : \"UNKNOWN STEP\"\n        lines << \"        #{doc}\" if doc\n      end\n\n      pipeline.handlers.each do |handler|\n        detail = handler.kind == :retry_on ? handler.callable.to_s : \"a block\"\n        lines << format(\"  * %-42s %s\", \"#{handler.kind}: #{detail}\", handler.location)\n      end\n\n      lines.join(\"\\n\")\n    end\n"}</code></pre>
         <pre className="plain"><code>{"$ automation explain examples/research.rb\nresearch (research.rb:5)\n   1  fetch(from: \"https://example.invalid/papers.json\", limit: 20) research.rb:7\n        Fetch a JSON array of records from an HTTP endpoint.\n   2  filter(field: :topic, matching: \"AI\")    research.rb:8\n        Keep records whose field matches a value or pattern.\n   3  summarize(field: :abstract, max_words: 40) research.rb:9\n        Summarise a field of each record into :summary.\n   4  save_to(collection: \"knowledge_base\")    research.rb:10\n        Append records to a collection in the knowledge base.\n  * retry_on: retry Automation::HttpError up to 3x (exponential) research.rb:6\n  * when_failed: a block                       research.rb:12\n"}</code></pre>
-        <p>Every piece of that output was declared somewhere else for another reason: the step names and options by the DSL, the locations by <code>caller_locations</code> in Milestone 4, the documentation by the <code>doc</code> class macro in Milestone 7, the retry description by <code>RetryPolicy#to_s</code> in Milestone 6. <strong>Nothing here is a feature; it is a report over decisions already made.</strong> That is what people mean when they say a good data model pays for itself.</p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+          Every piece of that output was declared somewhere else for another reason: the step names and options by the DSL, the locations by <code>caller_locations</code> in Milestone 4, the documentation by the <code>doc</code> class macro in Milestone 7, the retry description by <code>RetryPolicy#to_s</code> in Milestone 6. <strong>Nothing here is a feature; it is a report over decisions already made.</strong> That is what people mean when they say a good data model pays for itself.
+        </p>
         <h4>Drawing itself</h4>
         <pre><code>{"    # Mermaid is renderable by GitHub, GitLab and most documentation tools,\n    # so a pipeline can draw itself into a README.\n    def to_mermaid(pipeline)\n      lines = [\"flowchart TD\", \"  start([#{pipeline.name}])\"]\n      previous = \"start\"\n\n      pipeline.steps.each_with_index do |step, i|\n        id = \"s#{i}\"\n        label = [step.name, *step.options.map { |k, v| \"#{k}=#{v}\" }].join(\"<br/>\")\n        lines << \"  #{id}[\\\"#{label}\\\"]\"\n        lines << \"  #{previous} --> #{id}\"\n        previous = id\n      end\n\n      lines << \"  #{previous} --> done([done])\"\n      ...\n    end\n"}</code></pre>
         <pre className="plain"><code>{"flowchart TD\n  start([research])\n  s0[\"fetch<br/>from=arxiv<br/>since=7d\"]\n  start --> s0\n  s1[\"filter<br/>topic=AI\"]\n  s0 --> s1\n"}</code></pre>
@@ -200,7 +215,10 @@ export default function Page() {
         <h4>A pipeline that improves its successor</h4>
         <pre><code>{"result = Automation.run(measured)\n\nslow = result.results.select { |r| r.seconds > 0.01 }.map { |r| r.step.name }\nsuccessor = slow.reduce(measured) do |acc, name|\n  acc.rewrite { insert_before name, step(:cache, for: name) }\nend\n"}</code></pre>
         <pre className="plain"><code>{"slow steps: [:slow_step]\n[:log_start, :fetch, :cache, :slow_step]\n{:for=>:slow_step}\n"}</code></pre>
-        <p>The run produced measurements; the measurements produced a transformation; the transformation produced a new pipeline. Nothing was mutated, the original <code>measured</code> is still valid and still describes the run that happened, and the successor can be inspected, diffed, reviewed, persisted or thrown away.</p>
+        <p>
+          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, raising a paw in celebration" width="120" />
+          The run produced measurements; the measurements produced a transformation; the transformation produced a new pipeline. Nothing was mutated, the original <code>measured</code> is still valid and still describes the run that happened, and the successor can be inspected, diffed, reviewed, persisted or thrown away.
+        </p>
         <p>That loop (<em>observe, decide, generate a new version</em>) is the honest form of "a program that modifies itself", and it is the form used by query planners, JIT compilers and autoscalers. The fantasy version, where code edits itself in place while running, is not what any of those systems actually do.</p>
         <div className="exercise">
           <h5>Exercise 11</h5>
@@ -253,7 +271,10 @@ export default function Page() {
           <li><strong><code>OptionParser</code> ships with Ruby</strong> and is enough. Thor and dry-cli are nicer for large tools and are dependencies.</li>
         </ul>
         <div className="warn">
-          <h5>A bug worth showing: two methods called <code>run</code></h5>
+          <h5>
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+            A bug worth showing: two methods called <code>run</code>
+          </h5>
           <p>My first version named the entry point <code>run(argv)</code> and the subcommand handler <code>run(name, options)</code>. The second definition silently replaced the first, and the delegation I had written to paper over it produced:</p>
           <pre className="bad"><code>{"exe/automation:42:in `run': super: no superclass method `run' for #<Automation::CLI>"}</code></pre>
           <p>Ruby lets you redefine a method with no warning at all, and the resulting error appears somewhere unrelated. The fix was a dispatch table and <code>cmd_</code> prefixes, which is what the code above shows. The general habit: <strong>when two things in one class want the same name, that is information about the design</strong>, not an inconvenience to route around.</p>
@@ -304,7 +325,10 @@ export default function Page() {
         <pre className="plain"><code>{"automation/\n├── automation.gemspec        no runtime dependencies\n├── Rakefile                  rake test, rake build, rake release\n├── CHANGELOG.md              keep-a-changelog, written before release\n├── exe/automation            run | explain | graph | list\n├── examples/\n│   ├── research.rb           a Ruby pipeline (executes code)\n│   └── research.json         the same shape as data (executes none)\n├── lib/automation/\n│   ├── errors, registry, plugin, steps            the vocabulary\n│   ├── ast, define, validator, transform          the language\n│   ├── context, middleware, retry_policy, runner  the engine\n│   ├── inspector                                  explain, mermaid, diff\n│   ├── config, http, store, summarizers           the adapters\n│   └── testing                                    helpers for your users\n└── test/                     34 tests, 94 assertions\n"}</code></pre>
         <pre className="plain"><code>{"$ rake test\n34 runs, 94 assertions, 0 failures, 0 errors, 0 skips\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 9 of the five-course curriculum. Next, and last for Ruby: the advanced phase (refinements, lazy enumerators, Ractors, contract testing, performance), the final challenge with acceptance criteria and a withheld solution, the full knowledge check, and the README, portfolio and interview material. Then Course 3 begins: Perl, and the text archaeologist.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, happy and celebrating" width="150" />
+            Instalment 9 of the five-course curriculum. Next, and last for Ruby: the advanced phase (refinements, lazy enumerators, Ractors, contract testing, performance), the final challenge with acceptance criteria and a withheld solution, the full knowledge check, and the README, portfolio and interview material. Then Course 3 begins: Perl, and the text archaeologist.
+          </p>
         </footer>
          <Link className="button" href="/ruby-course/milestones/end/">Continue</Link> 
       </div>

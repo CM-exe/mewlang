@@ -35,7 +35,7 @@
         <h2 class="milestone-head"><span class="num">Milestone 1</span>The gem, a Step, and a Registry</h2>
 
         <h3>Goal</h3>
-        <p>A working gem skeleton with three ideas in it: a <code>Step</code> that describes work, a
+        <p><img src="../../assets/expressions/left_to_right/laptop.png" alt="The Mewlang cat, typing on a laptop" width="120" class="mascot-left">A working gem skeleton with three ideas in it: a <code>Step</code> that describes work, a
             <code>Registry</code> that knows how to perform it, and an error hierarchy that a user can rescue. No DSL
             yet.</p>
 
@@ -315,7 +315,7 @@ registry.sort_by { |name, _| name } # =&gt; [[:fetch, #&lt;Proc...&gt;]]
         <div class="warn">
             <h5>Common mistakes in Milestone 1</h5>
             <ul>
-                <li><strong>Defining <code>==</code> without <code>hash</code> and <code>eql?</code>.</strong>
+                <li><img src="../../assets/expressions/right_to_left/looking_bad_top.png" alt="The Mewlang cat, giving an annoyed side-eye from above" width="120" class="mascot-right"><strong>Defining <code>==</code> without <code>hash</code> and <code>eql?</code>.</strong>
                     Everything looks fine until <code>uniq</code>, <code>group_by</code> or a Hash key behaves
                     strangely.</li>
                 <li><strong>Forgetting <code>super</code> in a custom exception's <code>initialize</code>.</strong> The
@@ -353,7 +353,7 @@ registry.sort_by { |name, _| name } # =&gt; [[:fetch, #&lt;Proc...&gt;]]
 
         <h3>Design</h3>
 
-        <p>Three objects, each with one job:</p>
+        <p><img src="../../assets/expressions/left_to_right/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="120" class="mascot-left">Three objects, each with one job:</p>
 
         <pre class="plain"><code>  Automation.pipeline(name) { |p| ... }
         │
@@ -688,7 +688,7 @@ p Report.new("AI").naive.map(&amp;:to_s)
             the <code>topic:</code> option of the next step. The user asked for one step and got two, one of which
             contains a builder as data.</p>
 
-        <p><strong>This is the worst kind of bug</strong>: no exception, no warning, a plausible-looking result, and a
+        <p><img src="../../assets/expressions/right_to_left/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-right"><strong>This is the worst kind of bug</strong>: no exception, no warning, a plausible-looking result, and a
             failure that surfaces somewhere else entirely. It is the price of <code>method_missing</code> accepting
             everything.</p>
 
@@ -1484,7 +1484,7 @@ end
 
         <div class="why">
             <h5>Why are we using this language here?</h5>
-            <p>Milestone 3 is the strongest case for Ruby in this curriculum. Four lines of <code>instance_eval</code>
+            <p><img src="../../assets/expressions/left_to_right/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-left">Milestone 3 is the strongest case for Ruby in this curriculum. Four lines of <code>instance_eval</code>
                 plus <code>method_missing</code> turned a builder API into something that reads like a language, and the
                 loop example (<code>3.times { summarize index: i }</code> producing three steps) shows what you get that
                 a data format cannot offer at any price.</p>
@@ -1533,7 +1533,7 @@ $ git commit -am "milestone 4: an AST, source locations, and a validator"
             progression you did. Deleting the earlier versions is throwing away the argument.</p>
 
         <footer class="end">
-            <p>Instalment 7 of the five-course curriculum. Next: Ruby Milestones 5–8, where the runner grows a context
+            <p><img src="../../assets/expressions/left_to_right/stretching.png" alt="The Mewlang cat, stretching and relaxed" width="150" class="mascot-center">Instalment 7 of the five-course curriculum. Next: Ruby Milestones 5–8, where the runner grows a context
                 and middleware, failures get retries and handlers that actually work, plugins arrive via
                 <code>define_method</code> and <code>method_missing</code>, and the steps start doing real work against
                 HTTP, the filesystem and SQLite.</p>

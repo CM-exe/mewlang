@@ -35,7 +35,7 @@
 
         <h3>A1 · The object model as a debugging tool</h3>
 
-        <p>Metaprogramming makes "where did this method come from?" a real question. Ruby answers it directly, and these
+        <p><img src="../../assets/expressions/left_to_right/side.png" alt="The Mewlang cat, in a neutral curious side pose" width="120" class="mascot-left">Metaprogramming makes "where did this method come from?" a real question. Ruby answers it directly, and these
             four calls will save you hours:</p>
 
         <pre><code>Automation::Steps::Filter.instance_method(:matching).owner        # which module defined it
@@ -215,7 +215,7 @@ end
             preallocated array is safe here for the same reason it was in Go: separate slots, no resizing.</p>
 
         <div class="warn">
-            <h5>What about Ractors?</h5>
+            <h5><img src="../../assets/expressions/right_to_left/looking_up.png" alt="The Mewlang cat, looking up with curiosity" width="120" class="mascot-right">What about Ractors?</h5>
             <p>Ractors give real parallelism for Ruby code by giving each one its own GVL, at the cost of strict
                 isolation: objects crossing a Ractor boundary must be immutable (frozen and deeply so) or copied, and
                 most gems are not Ractor-safe. They remain officially experimental and print a warning on first use.</p>
@@ -341,7 +341,7 @@ steps:
 
         <h3>Compile the pipeline instead of interpreting it</h3>
 
-        <p>Everything so far interprets: the runner walks the AST at run time, looks each step up in a registry, and
+        <p><img src="../../assets/expressions/left_to_right/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="120" class="mascot-left">Everything so far interprets: the runner walks the AST at run time, looks each step up in a registry, and
             calls it. Now write a <strong>compiler</strong> that turns a pipeline into standalone Ruby source which runs
             with no interpreter, no registry lookups, and no dependency on this gem.</p>
 
@@ -399,7 +399,7 @@ $ ruby research_compiled.rb          # no `require "automation"` anywhere</code>
                 Write the target code by hand first, then work backwards to the generator.</li>
         </ul>
 
-        <p>This is the most valuable exercise in the Ruby course, because it is the bridge to Course 5. Racket does this
+        <p><img src="../../assets/expressions/right_to_left/happy.png" alt="The Mewlang cat, happy and celebrating" width="120" class="mascot-right">This is the most valuable exercise in the Ruby course, because it is the bridge to Course 5. Racket does this
             at compile time, with the language's own macro system, and produces better error messages while doing it.
             Building the clumsy version by hand is what makes the elegant version legible.</p>
 
@@ -1045,7 +1045,7 @@ MIT
 
         <h3>D5 · What to put in your portfolio</h3>
 
-        <p>Present this as <strong>a study of what it takes to make a DSL trustworthy</strong>, not as "a pipeline
+        <p><img src="../../assets/expressions/left_to_right/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-left">Present this as <strong>a study of what it takes to make a DSL trustworthy</strong>, not as "a pipeline
             runner". The interesting narrative is the sequence of realisations:</p>
 
         <ol>
@@ -1168,7 +1168,7 @@ MIT
             doing by hand what the other has as a primitive.</p>
 
         <footer class="end">
-            <p>Instalment 10 of the five-course curriculum, and the end of Course 2. Next: Course 3, Perl, and the Text
+            <p><img src="../../assets/expressions/back.png" alt="The Mewlang cat, viewed from behind, walking away" width="150" class="mascot-center">Instalment 10 of the five-course curriculum, and the end of Course 2. Next: Course 3, Perl, and the Text
                 Archaeologist. Parts 0–2 first (what we are building, installation and CPAN, the language crash course),
                 then twelve milestones turning ugly heterogeneous data into a searchable knowledge graph.</p>
         </footer>

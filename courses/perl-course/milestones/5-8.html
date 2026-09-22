@@ -36,7 +36,7 @@
         <h2 class="milestone-head"><span class="num">Milestone 5</span>Making it a distribution</h2>
 
         <h3>Goal</h3>
-        <p>Turn a folder of scripts into something installable: a version, documentation, declared dependencies, a build
+        <p><img src="../../assets/expressions/left_to_right/yawn.png" alt="The Mewlang cat, yawning" width="120" class="mascot-left">Turn a folder of scripts into something installable: a version, documentation, declared dependencies, a build
             file, and the two tests every Perl distribution should have before it has any others.</p>
 
         <h3>Concepts</h3>
@@ -368,7 +368,7 @@ share/fixtures/mixed.txt     =&gt; unstructured  apache=0.00 csv=0.00 json_lines
 share/fixtures/hard/latin1.log     apache              2 records        60B</code></pre>
 
         <div class="warn">
-            <h5>Bug: sniffing looked at the compressed bytes</h5>
+            <h5><img src="../../assets/expressions/right_to_left/looking_bad_top.png" alt="The Mewlang cat, glancing sideways with annoyance" width="110" class="mascot-right">Bug: sniffing looked at the compressed bytes</h5>
             <p>The gzipped Apache log was detected as CSV with zero records. The registry opened the file itself and
                 scored the <em>raw bytes</em>, which for a gzip file are compressed noise that happens to contain a
                 consistent number of commas. Meanwhile the <code>Source</code> was decompressing correctly, so the
@@ -583,7 +583,7 @@ problems
             file looks perfect in every editor you open it in. Excel writes these by default.</p>
 
         <div class="warn">
-            <h5>The finding I did not expect: Perl's default replacement is not U+FFFD</h5>
+            <h5><img src="../../assets/expressions/surprised.png" alt="The Mewlang cat, visibly startled" width="110" class="mascot-left">The finding I did not expect: Perl's default replacement is not U+FFFD</h5>
             <p>My test asserted that an invalid byte becomes the replacement character. It failed, and the actual
                 decoded characters were:</p>
             <pre class="bad"><code>U+005C U+0078 U+0045 U+0039     which is the four-character text  \xE9</code></pre>
@@ -864,7 +864,7 @@ sub _days_from_civil ($y, $m, $d) {
 Time::Piece strptime: 1.90s (105,445/sec)
 speedup: 4.0x</code></pre>
 
-        <p>Four times faster, and every correctness test still passes, which is the only reason the rewrite was safe to
+        <p><img src="../../assets/expressions/left_to_right/paw.png" alt="The Mewlang cat, raising a paw in celebration" width="110" class="mascot-left">Four times faster, and every correctness test still passes, which is the only reason the rewrite was safe to
             attempt. Three lessons, in order of importance: <strong>a comment claiming a speedup is a claim, and claims
                 get measured</strong>; the cost was object construction rather than parsing, which the benchmark told me
             and intuition did not; and a table of correctness tests written before the optimisation is what turns a
@@ -898,7 +898,7 @@ activity by hour
         </p>
 
         <div class="exercise">
-            <h5>Exercise 8</h5>
+            <h5><img src="../../assets/expressions/right_to_left/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="110" class="mascot-right">Exercise 8</h5>
             <ol>
                 <li><strong>More entity types</strong>: URLs (with scheme, host and path as separate entities), IPv6
                     (with proper canonicalisation, which is harder than it looks), credit-card-shaped numbers with a
@@ -1003,7 +1003,7 @@ $ git commit -am "milestones 5-8: distribution, formats, hardened reading, entit
 </code></pre>
 
         <footer class="end">
-            <p>Instalment 13 of the five-course curriculum. Next: Perl Milestones 9–12, where records go into SQLite and
+            <p><img src="../../assets/expressions/left_to_right/stretching.png" alt="The Mewlang cat, stretching contentedly" width="120" class="mascot-left">Instalment 13 of the five-course curriculum. Next: Perl Milestones 9–12, where records go into SQLite and
                 become correlated events, the CLI grows real option handling and Unix manners, the parser gets fuzzed
                 and profiled, and the whole thing becomes a queryable knowledge graph.</p>
         </footer>

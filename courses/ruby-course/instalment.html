@@ -36,7 +36,7 @@
 
         <h3>The final result</h3>
 
-        <p>A gem called <code>automation</code>. By the end of the course, someone who has never seen your source can
+        <p><img src="../assets/expressions/left_to_right/looking_up.png" alt="The Mewlang cat, looking up with curiosity" width="120" class="mascot-left">A gem called <code>automation</code>. By the end of the course, someone who has never seen your source can
             write this file:</p>
 
         <pre><code>Automation.define do
@@ -126,7 +126,7 @@ end
 
         <div class="why">
             <h5>Why are we using this language here?</h5>
-            <p>Honestly, for the front end of this project Ruby is close to unmatched, and it is the reason Rails,
+            <p><img src="../assets/expressions/right_to_left/glasses.png" alt="The Mewlang cat, wearing glasses, looking confident" width="120" class="mascot-right">Honestly, for the front end of this project Ruby is close to unmatched, and it is the reason Rails,
                 RSpec, Rake, Chef, Puppet, Homebrew, Vagrant and Fastlane all exist in Ruby rather than elsewhere. A
                 generation of tools with a DSL at the front chose Ruby for exactly the features above.</p>
             <p>Where Ruby is <em>not</em> the answer, and we will say so at the time:</p>
@@ -679,7 +679,7 @@ end
         <div class="warn">
             <h5>Common first-day errors</h5>
             <ul>
-                <li><code>cannot load such file -- automation (LoadError)</code> — <code>lib/</code> is not on the load
+                <li><img src="../assets/expressions/left_to_right/looking_bad.png" alt="The Mewlang cat, giving an unimpressed side-eye" width="120" class="mascot-left"><code>cannot load such file -- automation (LoadError)</code> — <code>lib/</code> is not on the load
                     path. Run with <code>ruby -Ilib ...</code>, or use <code>require_relative</code>, or run through
                     <code>rake</code>/<code>bundle exec</code>, which set it up for you.</li>
                 <li><code>undefined method 'greet' for Automation:Module</code> — you wrote <code>def greet</code>
@@ -779,7 +779,7 @@ true       # :name is always the same object
 
         <div class="warn">
             <h5>The frozen-literal surprise</h5>
-            <p>Run the same snippet in a file that starts with <code># frozen_string_literal: true</code> and the first
+            <p><img src="../assets/expressions/right_to_left/blink.png" alt="The Mewlang cat, winking playfully" width="120" class="mascot-right">Run the same snippet in a file that starts with <code># frozen_string_literal: true</code> and the first
                 line prints <strong>true</strong>: identical frozen literals are deduplicated into one object. So
                 <code>equal?</code> (object identity) gives different answers depending on a comment at the top of the
                 file. This is worth knowing before it confuses you at 2am. The lesson is not to avoid the magic comment;
@@ -1049,7 +1049,7 @@ lambda strict: wrong number of arguments (given 1, expected 2)
 
         <div class="exercise">
             <h5>Exercise 2.A</h5>
-            <p>Write a method <code>retrying(times:, on: StandardError)</code> that takes a block, calls it, and retries
+            <p><img src="../assets/expressions/left_to_right/thinking.png" alt="The Mewlang cat, thinking with a paw to its chin" width="120" class="mascot-left">Write a method <code>retrying(times:, on: StandardError)</code> that takes a block, calls it, and retries
                 up to <code>times</code> attempts if the block raises an exception of the given class, re-raising if it
                 never succeeds. It should return the block's value on success, and it should be usable as:</p>
             <pre class="plain"><code>result = retrying(times: 3) { flaky_call }</code></pre>
@@ -1590,7 +1590,7 @@ Mini::Runner.new({}).run(pipeline)
         </ol>
 
         <footer class="end">
-            <p>Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks
+            <p><img src="../assets/expressions/back.png" alt="The Mewlang cat, viewed from behind, walking away" width="150" class="mascot-center">Instalment 6 of the five-course curriculum. Next: Ruby Milestones 1–4, where the gem gets real, blocks
                 become a DSL, <code>instance_eval</code> earns and costs, and the whole thing turns into an AST.</p>
         </footer>
 

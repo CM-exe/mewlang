@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/right_to_left/looking_bad_top.png';
+import img2 from '../../../../courses/assets/expressions/left_to_right/yawn.png';
+import img3 from '../../../../courses/assets/expressions/left_to_right/looking_up.png';
+import img4 from '../../../../courses/assets/expressions/right_to_left/looking_bad.png';
+import img5 from '../../../../courses/assets/expressions/surprised.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/walking.png';
 
 export const metadata: Metadata = {
   title: "Go Milestones 9–12 — Metrics, Viewing, Speed, Distribution",
@@ -68,12 +74,18 @@ export default function Page() {
         <pre><code>{"// Handler builds the observability endpoints. We mount pprof explicitly\n// rather than relying on its init() registering itself on the default mux,\n// because exposing profiles by accident is a real security problem.\nfunc (s *Set) Handler() http.Handler {\n\tmux := http.NewServeMux()\n\n\tmux.HandleFunc(\"GET /healthz\", func(w http.ResponseWriter, r *http.Request) {\n\t\tfmt.Fprintln(w, \"ok\")\n\t})\n\n\tmux.HandleFunc(\"GET /metrics\", func(w http.ResponseWriter, r *http.Request) {\n\t\tw.Header().Set(\"Content-Type\", \"text/plain; version=0.0.4; charset=utf-8\")\n\t\ts.WriteProm(w)\n\t})\n\n\tmux.HandleFunc(\"GET /debug/pprof/\", pprof.Index)\n\tmux.HandleFunc(\"GET /debug/pprof/cmdline\", pprof.Cmdline)\n\tmux.HandleFunc(\"GET /debug/pprof/profile\", pprof.Profile)\n\tmux.HandleFunc(\"GET /debug/pprof/symbol\", pprof.Symbol)\n\tmux.HandleFunc(\"GET /debug/pprof/trace\", pprof.Trace)\n\n\treturn mux\n}\n"}</code></pre>
         <div className="warn">
           <h5>The pprof import is a trap worth knowing</h5>
-          <p>Almost every Go tutorial tells you to write <code>import _ "net/http/pprof"</code>. The underscore means "import for side effects only", and the side effect is that the package's <code>init()</code> registers its handlers on <code>http.DefaultServeMux</code>. If anything in your program then serves <code>DefaultServeMux</code> on a public port, you have published heap profiles, goroutine stacks, command-line arguments and a CPU profiler to the internet. This has caused real incidents.</p>
+          <p>
+            <img className="mascot-right" src={img1.src} alt="The Mewlang cat, giving a disapproving look" width="120" />
+            Almost every Go tutorial tells you to write <code>import _ "net/http/pprof"</code>. The underscore means "import for side effects only", and the side effect is that the package's <code>init()</code> registers its handlers on <code>http.DefaultServeMux</code>. If anything in your program then serves <code>DefaultServeMux</code> on a public port, you have published heap profiles, goroutine stacks, command-line arguments and a CPU profiler to the internet. This has caused real incidents.
+          </p>
           <p>Mounting the handlers yourself on your own mux, as above, makes the exposure a deliberate decision. In production you would bind this listener to localhost or an internal interface and reach it through a tunnel.</p>
           <p>Note the Go 1.22 method patterns: <code>"GET /metrics"</code> matches only GET requests, and <code>"GET /debug/pprof/"</code> with a trailing slash is a subtree match. Before 1.22 you checked <code>r.Method</code> by hand.</p>
         </div>
         <h4>Wiring it in</h4>
-        <p>The engine gets an embedded <code>metrics.Set</code>, and the interesting instrumentation is two lines in the request path:</p>
+        <p>
+          <img className="mascot-left" src={img2.src} alt="The Mewlang cat, yawning" width="120" />
+          The engine gets an embedded <code>metrics.Set</code>, and the interesting instrumentation is two lines in the request path:
+        </p>
         <pre><code>{"func (e *Engine) handle(r request) {\n\te.M.Requests.Inc()\n\te.M.QueueDepth.Set(int64(len(e.reqs)))\n\t...\n}\n"}</code></pre>
         <p><code>len()</code> on a channel returns how many values are buffered in it right now. It is a genuinely useful gauge (queue depth is the single best early warning that a consumer is falling behind) and it is a terrible basis for logic, because by the time you act on it the number has changed. Measure with it, never branch on it.</p>
         <pre><code>{"func (c *antClient) roundTrip(ctx context.Context, r request) (response, error) {\n\tstart := time.Now()\n\tdefer func() { c.e.M.RoundTrip.Observe(time.Since(start)) }()\n\t...\n}\n"}</code></pre>
@@ -134,7 +146,10 @@ export default function Page() {
         </ol>
         <h2 className="milestone-head"><span className="num">Milestone 10</span>A live picture, in the terminal and the browser </h2>
         <h3>Goal</h3>
-        <p>See the colony. An ANSI-redrawn terminal view for a quick look, and a browser page fed by server-sent events for a good one. Neither may ever slow the simulation down.</p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          See the colony. An ANSI-redrawn terminal view for a quick look, and a browser page fed by server-sent events for a good one. Neither may ever slow the simulation down.
+        </p>
         <h3>Concepts</h3>
         <p>Aggregating at the source, snapshot values as an interface between subsystems, ANSI escape codes, server-sent events, <code>http.Flusher</code>, request contexts as the client's lifetime, and dropping frames as a policy.</p>
         <h3>Design</h3>
@@ -255,7 +270,10 @@ export default function Page() {
         <pre className="plain"><code>{"Milestone 5 engine                    Milestone 11 engine\n──────────────────                    ───────────────────\nsense  → message → owner → reply      sense  → atomic loads (no message)\nmove   → message → owner → reply      move   → local compute\n                                             + one-way deposit if carrying\npickup → message → owner → reply      pickup → message → shard → reply\ndrop   → message → owner → reply      drop   → one-way message → shard\n\n1 owner, ~2 msgs/tick/ant             N shards, ~0.05 msgs/tick/ant"}</code></pre>
         <div className="warn">
           <h5>This trades safety for speed, deliberately</h5>
-          <p>The single-owner design had a property we are giving up: every world access was validated by one authority that saw everything in order. Now an ant computes its own position, so a buggy behaviour can put itself somewhere impossible; a drop is fire-and-forget, so nobody tells the ant it was rejected. We keep validation exactly where correctness demands it (a pickup still needs an authoritative answer about who got the unit) and drop it where the ant can be trusted.</p>
+          <p>
+            <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+            The single-owner design had a property we are giving up: every world access was validated by one authority that saw everything in order. Now an ant computes its own position, so a buggy behaviour can put itself somewhere impossible; a drop is fire-and-forget, so nobody tells the ant it was rejected. We keep validation exactly where correctness demands it (a pickup still needs an authoritative answer about who got the unit) and drop it where the ant can be trusted.
+          </p>
           <p>Do this <em>after</em> a profile, never before. The Milestone 5 engine is the one I would ship if 3 million requests a second were enough, and it is the one to write first in any new system.</p>
         </div>
         <h3>Implementation</h3>
@@ -275,7 +293,10 @@ export default function Page() {
         <h3>The bug the conservation test found</h3>
         <p>The first version passed <code>-race</code> cleanly and failed this:</p>
         <pre className="plain"><code>{"--- FAIL: TestFastEngineConservesFood (0.74s)\n    fast_test.go:22: food not conserved: 359 != 500\n        (ants 500 carrying 182 delivered 81 food left 96)\n"}</code></pre>
-        <p>141 units of food had ceased to exist. No race, no panic, no error in any log. Instrumenting the ledger showed 336 successful pickups, 216 drops, 90 ants carrying: 30 units taken from the ground that no ant held and nobody delivered.</p>
+        <p>
+          <img className="mascot-center" src={img5.src} alt="The Mewlang cat, wide-eyed with surprise" width="150" />
+          141 units of food had ceased to exist. No race, no panic, no error in any log. Instrumenting the ledger showed 336 successful pickups, 216 drops, 90 ants carrying: 30 units taken from the ground that no ant held and nobody delivered.
+        </p>
         <p>The cause was two shutdown bugs, both of them the kind that only appear at the boundary:</p>
         <pre className="bad"><code>{"\t// BUG 1: when ctx is cancelled while we wait for the pickup answer,\n\t// select may choose Done even though the reply is ready. The shard\n\t// already took the food. We just threw it away.\n\tselect {\n\tcase ok := <-reply:\n\t\ta.Carrying = ok\n\tcase <-ctx.Done():\n\t\treturn\n\t}\n"}</code></pre>
         <p>Remember that <code>select</code> picks randomly among ready cases. At cancellation time, a couple of dozen ants were mid-pickup; for each, the world had already removed a unit of food, and half of them discarded the answer. The fix is to insist on collecting an answer you have already paid for:</p>
@@ -425,7 +446,10 @@ export default function Page() {
         <pre className="plain"><code>{"antfarm/                                     2,961 lines of Go, no dependencies\n├── go.mod\n├── cmd/antfarm/main.go          flags, chaos parsing, signals, servers, wiring\n└── internal/\n    ├── sim/\n    │   ├── ant.go               Ant, Action, ActionKind, Generation\n    │   ├── behaviour.go         Behaviour, Forager, TrailFollower\n    │   ├── sense.go             Sense, senseAt\n    │   ├── engine.go            single-owner engine, supervisor, Frame, Run\n    │   ├── fast.go              sharded engine, WorldService, atomic sensing\n    │   ├── sim.go               Config, Chaos, Stats, the sequential Sim\n    │   ├── concurrent.go        milestone 4's mutex versions, kept for contrast\n    │   └── *_test.go            conservation, leaks, chaos, throughput, races\n    ├── world/\n    │   ├── grid.go              Position, Grid\n    │   ├── pheromone.go         FloatGrid\n    │   ├── atomicgrid.go        AtomicGrid, fixed-point pheromone\n    │   └── world.go             World, food, nest, errors\n    ├── metrics/\n    │   ├── metrics.go           Counter, Gauge, Histogram, Prometheus output\n    │   └── http.go              /metrics, /healthz, /debug/pprof\n    ├── view/\n    │   ├── terminal.go          ANSI renderer\n    │   ├── web.go               SSE stream\n    │   └── page.go              the embedded browser client\n    └── netsim/\n        ├── proto.go             Req, Resp\n        ├── server.go            TCP + gob server, connection registry\n        ├── client.go            reconnecting client, jittered backoff\n        └── net_test.go          colony over TCP, survives a server restart\n"}</code></pre>
         <pre className="plain"><code>{"$ gofmt -l . && go vet ./... && go test -race ./...\nok  \tgithub.com/yourname/antfarm/internal/netsim\t0.705s\nok  \tgithub.com/yourname/antfarm/internal/sim\t12.426s\nok  \tgithub.com/yourname/antfarm/internal/world\t0.001s\n$ git commit -am \"milestone 12: the world moves to another process\"\n"}</code></pre>
         <footer className="end">
-          <p>Instalment 4 of the five-course curriculum. Next, and last for Go: the advanced phase, the final challenge with acceptance criteria and a withheld solution, the full knowledge check (20 conceptual, 10 code-reading, 5 debugging, 5 implementation questions plus one substantial challenge), the README and GitHub description, portfolio notes and interview questions. Then Course 2 begins.</p>
+          <p>
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, strolling forward" width="120" />
+            Instalment 4 of the five-course curriculum. Next, and last for Go: the advanced phase, the final challenge with acceptance criteria and a withheld solution, the full knowledge check (20 conceptual, 10 code-reading, 5 debugging, 5 implementation questions plus one substantial challenge), the README and GitHub description, portfolio notes and interview questions. Then Course 2 begins.
+          </p>
         </footer>
          <Link className="button" href="/go-course/milestones/end/">Continue</Link> 
       </div>

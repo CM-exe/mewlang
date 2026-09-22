@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../courses/assets/expressions/left_to_right/looking_up.png';
+import img2 from '../../../courses/assets/expressions/right_to_left/glasses.png';
+import img3 from '../../../courses/assets/expressions/left_to_right/laptop.png';
+import img4 from '../../../courses/assets/expressions/right_to_left/looking_bad.png';
+import img5 from '../../../courses/assets/expressions/left_to_right/paw.png';
+import img6 from '../../../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   title: "Go Parts 0–2 — The Digital Ant Colony, Setup, and the Language",
@@ -16,7 +22,10 @@ export default function Page() {
         <pre className="plain"><code>{"$ antfarm run --ants 50000 --grid 512x512 --food 400 \\\n      --chaos crash=0.001,drop=0.02,slow=0.005 \\\n      --metrics :9090 --view web:8080\n\ncolony: 50000 ants, 512x512 grid, 400 food sources\ntick 1200 | alive 49863 | carrying 8214 | food delivered 31902\n           | restarts 137 | dropped msgs 4411 | p99 decide 412µs\n"}</code></pre>
         <p>while a browser tab shows the grid with pheromone trails intensifying along routes the colony has discovered, a Prometheus-style metrics endpoint exposes counters, and <code>go tool pprof</code> can attach to the running process and tell you where the CPU is going. In the final milestone the colony runs split across several operating-system processes that talk over TCP, and you can kill one of them and watch the rest continue.</p>
         <h3>Why this project is interesting</h3>
-        <p>Ant colonies are the canonical example of emergent behaviour: no ant knows where the food is, no ant is in charge, and yet the colony reliably finds short paths to food. The algorithm behind it is real (ant colony optimisation is a genuine technique for routing and scheduling problems), and it happens to be an almost perfect Go exercise, because the natural implementation is thousands of independent activities exchanging small messages.</p>
+        <p>
+          <img className="mascot-left" src={img1.src} alt="The Mewlang cat, looking up curiously" width="120" />
+          Ant colonies are the canonical example of emergent behaviour: no ant knows where the food is, no ant is in charge, and yet the colony reliably finds short paths to food. The algorithm behind it is real (ant colony optimisation is a genuine technique for routing and scheduling problems), and it happens to be an almost perfect Go exercise, because the natural implementation is thousands of independent activities exchanging small messages.
+        </p>
         <p>It is also a trap, in a useful way. The obvious first implementation puts the world in a shared data structure and lets every ant touch it. That works until you add concurrency, at which point it corrupts itself in ways that only appear under load. Milestone 4 walks you into that bug deliberately, and Milestone 5 walks you out of it using the idiom Go actually recommends. That sequence is the single most valuable thing in this course.</p>
         <h3>Why Go in particular</h3>
         <ul>
@@ -28,7 +37,10 @@ export default function Page() {
         </ul>
         <div className="why">
           <h5>Why are we using this language here?</h5>
-          <p>Honestly: Erlang would be better at the fault-tolerance half of this project, and you will see why in Course 4. Erlang gives you supervision, isolated heaps, and true preemption; in Go, a panicking goroutine kills the whole process unless you catch it, and a goroutine stuck in a tight loop cannot be cancelled by force. In Milestone 8 you will hand-build a supervisor that Erlang would have given you. </p>
+          <p>
+            <img className="mascot-right" src={img2.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+            Honestly: Erlang would be better at the fault-tolerance half of this project, and you will see why in Course 4. Erlang gives you supervision, isolated heaps, and true preemption; in Go, a panicking goroutine kills the whole process unless you catch it, and a goroutine stuck in a tight loop cannot be cancelled by force. In Milestone 8 you will hand-build a supervisor that Erlang would have given you. 
+          </p>
           <p>What Go wins on is the combination: it is fast, statically typed, trivially deployable, has excellent profiling, and its concurrency is cheap enough for this scale while remaining familiar enough that you can be productive in a week. Python's <code>asyncio</code> could express the structure but would be roughly two orders of magnitude slower at 50,000 agents; Rust would be faster and safer but would spend your attention on the borrow checker instead of on concurrency design; Java's virtual threads (Project Loom) are now genuinely comparable and would be a fair alternative.</p>
         </div>
         <h3>What is genuinely Go-specific here</h3>
@@ -121,7 +133,10 @@ export default function Page() {
           </tbody>
         </table>
         <h3>Installing</h3>
-        <p>You want Go 1.22 or newer for this course, because we use a few features introduced there (ranging over integers, and the corrected loop-variable semantics). At the time of writing the current release is in the 1.25/1.26 range; my knowledge of releases stops in mid-2026, so check <a href="https://go.dev/dl/">go.dev/dl</a> for what is current and prefer the newest stable version.</p>
+        <p>
+          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, typing on a laptop" width="120" />
+          You want Go 1.22 or newer for this course, because we use a few features introduced there (ranging over integers, and the corrected loop-variable semantics). At the time of writing the current release is in the 1.25/1.26 range; my knowledge of releases stops in mid-2026, so check <a href="https://go.dev/dl/">go.dev/dl</a> for what is current and prefer the newest stable version.
+        </p>
         <h5>macOS</h5>
         <pre className="plain"><code>{"# Option A: Homebrew\nbrew install go\n\n# Option B: official package\n# download the .pkg from https://go.dev/dl/ and double-click it\n\ngo version    # should print something like: go version go1.25.1 darwin/arm64\n"}</code></pre>
         <h5>Linux</h5>
@@ -195,7 +210,10 @@ export default function Page() {
         <div className="warn">
           <h5>Common first-day errors</h5>
           <ul>
-            <li><code>go: cannot find main module</code> — you are not inside a directory containing <code>go.mod</code>, or below one. Run <code>go mod init</code>. </li>
+            <li>
+              <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+              <code>go: cannot find main module</code> — you are not inside a directory containing <code>go.mod</code>, or below one. Run <code>go mod init</code>. 
+            </li>
             <li><code>imported and not used: "runtime"</code> — remove the import, or use it. Not a warning.</li>
             <li><code>declared and not used: x</code> — same idea for local variables. Assigning to <code>_</code> silences it deliberately: <code>_ = x</code>.</li>
             <li><code>syntax error: unexpected newline, expecting {'{'} after ...</code> — you put the opening brace on its own line.</li>
@@ -499,7 +517,10 @@ export default function Page() {
         </ul>
         <div className="exercise">
           <h5>Exercise 2.C — the capstone of Part 2</h5>
-          <p>Write a small program that models a very simple version of what we are about to build. Requirements:</p>
+          <p>
+            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, raising a paw for a high-five" width="120" />
+            Write a small program that models a very simple version of what we are about to build. Requirements:
+          </p>
           <ul>
             <li>A <code>Report</code> struct with an <code>AntID int</code> and a <code>Found bool</code>.</li>
             <li>A function <code>ant(ctx context.Context, id int, out chan{'<'}- Report)</code> that sends a report every 50 ms until the context is cancelled, with <code>Found</code> true roughly one time in four. It must return promptly on cancellation and must not block forever if nobody is reading <code>out</code>. </li>
@@ -544,7 +565,10 @@ export default function Page() {
           <li>Create the <code>antfarm</code> module and commit the empty skeleton. Milestone 1 assumes it exists. </li>
         </ol>
         <footer className="end">
-          <p>Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, seen from behind, walking off" width="150" />
+            Instalment 1 of the five-course curriculum. Next: Go Milestones 1–4.
+          </p>
         </footer>
          <Link className="button" href="/go-course/milestones/1-4/">Continue</Link> 
       </div>

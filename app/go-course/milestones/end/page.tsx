@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import img1 from '../../../../courses/assets/expressions/right_to_left/glasses.png';
+import img2 from '../../../../courses/assets/expressions/left_to_right/looking_bad.png';
+import img3 from '../../../../courses/assets/expressions/right_to_left/thinking.png';
+import img4 from '../../../../courses/assets/expressions/left_to_right/paw.png';
+import img5 from '../../../../courses/assets/expressions/right_to_left/happy.png';
+import img6 from '../../../../courses/assets/expressions/back.png';
 
 export const metadata: Metadata = {
   title: "Go: Advanced Phase, Final Challenge, Knowledge Check",
@@ -15,7 +21,10 @@ export default function Page() {
           <p className="lede">Six advanced topics with working code, one substantial final challenge with its solution withheld, a knowledge check of forty-one questions, and everything you need to put this on GitHub and defend it in an interview.</p>
         </header>
         <h2><span className="num">Part A</span>The advanced phase</h2>
-        <p>The colony works. These six topics are what you would reach for if this were a system you had to operate rather than a system you had to finish. Each is short, each has code you can drop in, and each names what to measure afterwards.</p>
+        <p>
+          <img className="mascot-right" src={img1.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" />
+          The colony works. These six topics are what you would reach for if this were a system you had to operate rather than a system you had to finish. Each is short, each has code you can drop in, and each names what to measure afterwards.
+        </p>
         <h3>A1 · Worker pools and bounded concurrency</h3>
         <p>"One goroutine per ant" is right because ants are the unit of simulation. "One goroutine per unit of work" is wrong for most other things: parsing 50,000 files, calling an API for each of 10,000 records, or replaying a chaos schedule. Unbounded goroutines mean unbounded memory, unbounded file descriptors, and a remote service you have accidentally attacked.</p>
         <p>The Go idiom for a bound is a buffered channel used as a counting semaphore. A slot in the buffer is a permit.</p>
@@ -98,12 +107,18 @@ export default function Page() {
         <p><code>CGO_ENABLED=0</code> produces a binary with no libc dependency, which is what makes the final image a few megabytes with no operating system in it. Distroless (or <code>scratch</code>) means no shell, no package manager and nothing for an attacker to pivot into.</p>
         <div className="warn">
           <h5>The container CPU trap</h5>
-          <p>Go sets <code>GOMAXPROCS</code> from the number of CPUs it can see, and in a container that is the number of host cores, not your CPU limit. A binary limited to 0.5 cores on a 64-core host will happily create 64 scheduler threads and spend its life being throttled. Set <code>GOMAXPROCS</code> explicitly from your limit, or use <code>go.uber.org/automaxprocs</code>, which reads the cgroup quota at startup. This is one of the most common and least-known causes of "our Go service is mysteriously slow in Kubernetes". </p>
+          <p>
+            <img className="mascot-left" src={img2.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" />
+            Go sets <code>GOMAXPROCS</code> from the number of CPUs it can see, and in a container that is the number of host cores, not your CPU limit. A binary limited to 0.5 cores on a 64-core host will happily create 64 scheduler threads and spend its life being throttled. Set <code>GOMAXPROCS</code> explicitly from your limit, or use <code>go.uber.org/automaxprocs</code>, which reads the cgroup quota at startup. This is one of the most common and least-known causes of "our Go service is mysteriously slow in Kubernetes". 
+          </p>
           <p>Similarly, Go's garbage collector targets a heap multiple, not a memory limit, so a container can be OOM-killed while the GC is being patient. <code>GOMEMLIMIT</code> (Go 1.19+) gives it a soft ceiling; set it to about 90% of the container limit.</p>
         </div>
         <hr />
         <h2><span className="num">Part B</span>The final challenge</h2>
-        <p>Everything up to here had a solution a few paragraphs later. This one does not, and you should spend real time on it before opening the last section. It is deliberately at the edge of what you can now do, and it is the kind of thing that makes a portfolio project memorable.</p>
+        <p>
+          <img className="mascot-right" src={img3.src} alt="The Mewlang cat, thinking, paw to chin" width="120" />
+          Everything up to here had a solution a few paragraphs later. This one does not, and you should spend real time on it before opening the last section. It is deliberately at the edge of what you can now do, and it is the kind of thing that makes a portfolio project memorable.
+        </p>
         <h3>Migrating ants across a sharded, failing world</h3>
         <p>Milestone 12 put the whole world in one remote process. Now split it: <strong>K world processes, each owning a region of the grid, with ants that walk from one region into another.</strong></p>
         <h4>Requirements</h4>
@@ -344,7 +359,10 @@ export default function Page() {
         <p>Requirements: production mode must compile to zero overhead (the scheduler calls must be inlinable no-ops, verified with <code>-gcflags=-m</code>); the fuzzer must find the "select chose Done and discarded the reply" bug from Milestone 11 when you reintroduce it; and a failing seed must be replayable. Hints: an interface with two implementations, one of which has empty methods; the real difficulty is not the scheduler but finding the right yield points, and the answer is "wherever the program's behaviour could depend on ordering".</p>
         <h3>C6 · You should now be able to explain</h3>
         <ul>
-          <li>The Go memory model in terms of happens-before, and how channel operations and mutexes create it.</li>
+          <li>
+            <img className="mascot-left" src={img4.src} alt="The Mewlang cat, raising a paw for a high-five" width="120" />
+            The Go memory model in terms of happens-before, and how channel operations and mutexes create it.
+          </li>
           <li>Why goroutines are cheap and what the runtime does when one blocks.</li>
           <li>Channel semantics in full: buffered, unbuffered, nil, closed, directional.</li>
           <li><code>select</code>, including random choice, <code>default</code>, and disabling a case with nil.</li>
@@ -472,11 +490,17 @@ export default function Page() {
         </ul>
         <hr />
         <h2><span className="num">Course 1 complete</span>What you built</h2>
-        <p>2,961 lines of dependency-free Go across six packages, four engine designs with measurements comparing them, a supervisor, a chaos subsystem, a metrics and profiling endpoint, two viewers, and a network protocol that survives its server being killed. More importantly: a habit of measuring before optimising, and of testing invariants rather than outputs.</p>
+        <p>
+          <img className="mascot-right" src={img5.src} alt="The Mewlang cat, beaming with delight" width="120" />
+          2,961 lines of dependency-free Go across six packages, four engine designs with measurements comparing them, a supervisor, a chaos subsystem, a metrics and profiling endpoint, two viewers, and a network protocol that survives its server being killed. More importantly: a habit of measuring before optimising, and of testing invariants rather than outputs.
+        </p>
         <p>The central question of this curriculum was <em>what kinds of problems does this language make unusually natural to solve?</em> Go's answer, stated as precisely as this project allows: <strong>problems with many independent activities that need to communicate, where you want the concurrency to be visible in the code, the failures to be detectable at run time, and the result to be a single binary you can deploy and profile in production.</strong> Not the fastest, not the safest, not the most expressive. The one where a competent team can build a correct concurrent system quickly and then find out what it is actually doing.</p>
         <p>Next instalment begins Course 2: Ruby, and the automation DSL. The change of gear is total. Nothing will be about throughput; everything will be about expressiveness, and the first question will be why a configuration file should be a program.</p>
         <footer className="end">
-          <p>Instalment 5 of the five-course curriculum, and the end of Course 1. Next: Ruby Parts 0–2 (what we are building, installation and tooling, the language crash course), then twelve milestones building a self-inspecting automation DSL.</p>
+          <p>
+            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, seen from behind, walking off" width="150" />
+            Instalment 5 of the five-course curriculum, and the end of Course 1. Next: Ruby Parts 0–2 (what we are building, installation and tooling, the language crash course), then twelve milestones building a self-inspecting automation DSL.
+          </p>
         </footer>
          <Link className="button" href="/ruby-course/instalment/">Next: Ruby instalment</Link> 
       </div>

@@ -51,6 +51,14 @@
     background: var(--color-select);
   }
 
+  /* clear-both is a no-op with no float in play — safe to set unconditionally
+     — but keeps a .mascot-left/.mascot-right image floated earlier in the
+     prose (see courses/*.html) from bleeding into the next heading's line
+     instead of stopping cleanly at the end of the paragraph it illustrates. */
+  h2, h3, h4 {
+    @apply clear-both;
+  }
+
   h2 {
     @apply text-[1.85rem] leading-[1.15] font-semibold mt-[3.4rem] mb-[.3rem] tracking-[-.01em];
   }
@@ -193,6 +201,11 @@
   .warn,
   .cmp {
     @apply my-6 px-[1.15rem] py-4 bg-panel rounded;
+    /* flow-root (a modern, side-effect-free clearfix) so a floated
+       .mascot-left/.mascot-right image placed inside one of these boxes is
+       contained by it — without it, the box's own border/background would
+       end above the bottom of a float taller than the surrounding text. */
+    @apply flow-root;
   }
 
   .why {
@@ -235,6 +248,35 @@
 
   .exercise h5 {
     @apply text-accent-2 mt-0;
+  }
+
+  /* Mascot expression images sprinkled through course content (see
+     courses/assets/expressions/). left_to_right/right_to_left variants are
+     mirror images whose gaze/motion reads toward the right or left
+     respectively — pair left_to_right with .mascot-left (the cat "looks
+     into" the text beside it) and right_to_left with .mascot-right. */
+  .mascot-left,
+  .mascot-right {
+    @apply w-28 max-w-[42%] h-auto;
+  }
+
+  .mascot-left {
+    @apply float-left mt-1 mr-4 mb-2;
+  }
+
+  .mascot-right {
+    @apply float-right mt-1 ml-4 mb-2;
+  }
+
+  .mascot-center {
+    @apply block mx-auto w-40 h-auto my-8;
+  }
+
+  /* A small inline Mewlang-logo stamp used in place of the old cat emoji
+     (see courses/index.html) — sized to sit on the same baseline as the
+     heading text beside it. */
+  .brand-icon {
+    @apply inline-block align-middle rounded-full mr-2 -mt-1;
   }
 
   .milestone-head {
@@ -395,10 +437,15 @@
    custom properties cascade normally.
    --------------------------------------------------------------------------- */
 
-.theme-index:not(.floating-menu),
-.theme-go:not(.floating-menu),
-.theme-ruby:not(.floating-menu),
-.theme-perl:not(.floating-menu) {
+/* :not(.floating-menu) and :not(.course-nav-theme) exist because both of
+   those components also carry a bare .theme-X class — to pick up the same
+   active-course color tokens as the page content — without wanting this
+   full-page-wrapper layout (a fixed nav bar and two small fixed buttons
+   are not page wrappers). */
+.theme-index:not(.floating-menu):not(.course-nav-theme),
+.theme-go:not(.floating-menu):not(.course-nav-theme),
+.theme-ruby:not(.floating-menu):not(.course-nav-theme),
+.theme-perl:not(.floating-menu):not(.course-nav-theme) {
   @apply block min-h-screen pt-13 bg-paper text-ink;
 }
 
@@ -590,6 +637,11 @@
 
 .floating-menu-brand {
   @apply font-semibold text-ink no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
+  @apply inline-flex items-center gap-[.4rem];
+}
+
+.floating-menu-logo {
+  @apply rounded-full;
 }
 
 .floating-menu-links {
@@ -659,4 +711,38 @@
 
 :root[data-theme="dark"] .floating-menu span.soon {
   @apply text-ink-soft/50;
+}
+
+/* mdBook-style previous/next chapter buttons (components/CourseNav.tsx).
+   Unlike .floating-menu, these render *inside* a per-course .theme-X div
+   (see the component), so — same reasoning as every other themed component —
+   they read the plain paper/ink/accent/rule tokens directly and need no
+   light/dark overrides of their own: the active theme scope already
+   resolves those tokens correctly in both modes. Hidden below `md` so a
+   fixed edge button never sits on top of narrow-viewport prose. */
+.course-nav-btn {
+  @apply hidden md:flex flex-col items-center gap-1 fixed top-1/2 -translate-y-1/2 z-40;
+  @apply no-underline opacity-60 hover:opacity-100 focus-visible:opacity-100 transition-opacity;
+}
+
+.course-nav-prev {
+  @apply left-2 lg:left-4;
+}
+
+.course-nav-next {
+  @apply right-2 lg:right-4;
+}
+
+.course-nav-mascot {
+  @apply w-11 h-auto drop-shadow-[0_2px_4px_rgb(0_0_0_/_0.25)];
+}
+
+.course-nav-caption {
+  @apply flex items-center gap-1 max-w-28 truncate;
+  @apply font-mono text-[.7rem] text-ink bg-paper/90 backdrop-blur;
+  @apply px-2 py-1 rounded-full border border-rule;
+}
+
+.course-nav-arrow {
+  @apply text-accent font-bold;
 }
