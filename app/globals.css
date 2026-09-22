@@ -150,7 +150,8 @@
   }
 
   .masthead h1 {
-    @apply text-[clamp(2rem, 5.5vw, 3.1rem)] leading-[1.1] font-semibold mb-4 tracking-[-.015em];
+    font-size: clamp(2rem, 5.5vw, 3.1rem);
+    @apply leading-[1.1] font-semibold mb-4 tracking-[-.015em];
   }
 
   .lede {
