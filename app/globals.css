@@ -453,7 +453,9 @@
 .theme-index:not(.floating-menu):not(.course-nav-theme),
 .theme-go:not(.floating-menu):not(.course-nav-theme),
 .theme-ruby:not(.floating-menu):not(.course-nav-theme),
-.theme-perl:not(.floating-menu):not(.course-nav-theme) {
+.theme-perl:not(.floating-menu):not(.course-nav-theme),
+.theme-erlang:not(.floating-menu):not(.course-nav-theme),
+.theme-racket:not(.floating-menu):not(.course-nav-theme) {
   @apply block min-h-screen pt-13 bg-paper text-ink;
 }
 
@@ -631,6 +633,100 @@
   --color-why: #7FC3BC;
   --color-cmp: #D79A6A;
   --color-select: rgba(215, 154, 106, .18);
+}
+
+/* Erlang: telecom-signal red against a cool steel-gray paper — "let it
+   crash" as a palette. accent-2 is the contrasting steel-teal used for
+   .cmp comparisons and (via --color-why) the .why boxes. */
+.theme-erlang {
+  --color-paper: #F1ECE9;
+  --color-ink: #241C1A;
+  --color-ink-soft: #6B5650;
+  --color-rule: #DDD0CB;
+  --color-code: #EBE3DF;
+  --color-panel: #E6DAD5;
+  --color-accent: #B23A2E;
+  --color-accent-2: #3E6B6B;
+  --color-why: #3E6B6B;
+  --color-cmp: #B23A2E;
+  --color-select: rgba(178, 58, 46, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-erlang {
+    --color-paper: #170F0E;
+    --color-ink: #F0E3DF;
+    --color-ink-soft: #C2A9A2;
+    --color-rule: #3A2B27;
+    --color-code: #1E1513;
+    --color-panel: #1D1512;
+    --color-accent: #E27563;
+    --color-accent-2: #7FC2C2;
+    --color-why: #7FC2C2;
+    --color-cmp: #E27563;
+    --color-select: rgba(226, 117, 99, .18);
+  }
+}
+
+:root[data-theme="dark"] .theme-erlang {
+  --color-paper: #170F0E;
+  --color-ink: #F0E3DF;
+  --color-ink-soft: #C2A9A2;
+  --color-rule: #3A2B27;
+  --color-code: #1E1513;
+  --color-panel: #1D1512;
+  --color-accent: #E27563;
+  --color-accent-2: #7FC2C2;
+  --color-why: #7FC2C2;
+  --color-cmp: #E27563;
+  --color-select: rgba(226, 117, 99, .18);
+}
+
+/* Racket: cerebral indigo against a cool pale-lavender paper, distinct from
+   every other course's palette family. accent-2 is a warm amber, used for
+   .cmp comparisons and (via --color-why) the .why boxes. */
+.theme-racket {
+  --color-paper: #EFEEF5;
+  --color-ink: #1C1B2E;
+  --color-ink-soft: #55536E;
+  --color-rule: #D2D0E2;
+  --color-code: #E6E5F0;
+  --color-panel: #E1DFEE;
+  --color-accent: #4C4A9C;
+  --color-accent-2: #A65D2E;
+  --color-why: #A65D2E;
+  --color-cmp: #4C4A9C;
+  --color-select: rgba(76, 74, 156, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-racket {
+    --color-paper: #121026;
+    --color-ink: #E5E3F2;
+    --color-ink-soft: #A9A6C4;
+    --color-rule: #2E2C4D;
+    --color-code: #17152C;
+    --color-panel: #17152C;
+    --color-accent: #9C9AE0;
+    --color-accent-2: #E0A56E;
+    --color-why: #E0A56E;
+    --color-cmp: #9C9AE0;
+    --color-select: rgba(156, 154, 224, .18);
+  }
+}
+
+:root[data-theme="dark"] .theme-racket {
+  --color-paper: #121026;
+  --color-ink: #E5E3F2;
+  --color-ink-soft: #A9A6C4;
+  --color-rule: #2E2C4D;
+  --color-code: #17152C;
+  --color-panel: #17152C;
+  --color-accent: #9C9AE0;
+  --color-accent-2: #E0A56E;
+  --color-why: #E0A56E;
+  --color-cmp: #9C9AE0;
+  --color-select: rgba(156, 154, 224, .18);
 }
 
 /* ---------------------------------------------------------------------------

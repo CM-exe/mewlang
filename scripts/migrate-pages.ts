@@ -34,7 +34,7 @@ const APP = join(ROOT, 'app');
 interface PageDef {
   src: string; // courses/-relative source .html path
   route: string; // "" for root, else "go-course/instalment" etc — also the app/ output dir
-  theme: 'theme-index' | 'theme-go' | 'theme-ruby' | 'theme-perl';
+  theme: 'theme-index' | 'theme-go' | 'theme-ruby' | 'theme-perl' | 'theme-erlang' | 'theme-racket';
   inheritTitle?: boolean; // let the root layout's default title stand instead of setting one
 }
 
@@ -56,6 +56,16 @@ const PAGES: PageDef[] = [
   { src: 'perl-course/milestones/5-8.html', route: 'perl-course/milestones/5-8', theme: 'theme-perl' },
   { src: 'perl-course/milestones/9-12.html', route: 'perl-course/milestones/9-12', theme: 'theme-perl' },
   { src: 'perl-course/milestones/end.html', route: 'perl-course/milestones/end', theme: 'theme-perl' },
+  { src: 'erlang-course/instalment.html', route: 'erlang-course/instalment', theme: 'theme-erlang' },
+  { src: 'erlang-course/milestones/1-4.html', route: 'erlang-course/milestones/1-4', theme: 'theme-erlang' },
+  { src: 'erlang-course/milestones/5-8.html', route: 'erlang-course/milestones/5-8', theme: 'theme-erlang' },
+  { src: 'erlang-course/milestones/9-12.html', route: 'erlang-course/milestones/9-12', theme: 'theme-erlang' },
+  { src: 'erlang-course/milestones/end.html', route: 'erlang-course/milestones/end', theme: 'theme-erlang' },
+  { src: 'racket-course/instalment.html', route: 'racket-course/instalment', theme: 'theme-racket' },
+  { src: 'racket-course/milestones/1-4.html', route: 'racket-course/milestones/1-4', theme: 'theme-racket' },
+  { src: 'racket-course/milestones/5-8.html', route: 'racket-course/milestones/5-8', theme: 'theme-racket' },
+  { src: 'racket-course/milestones/9-12.html', route: 'racket-course/milestones/9-12', theme: 'theme-racket' },
+  { src: 'racket-course/milestones/end.html', route: 'racket-course/milestones/end', theme: 'theme-racket' },
 ];
 
 // Old courses/-relative source path -> new absolute Next.js route. Resolving

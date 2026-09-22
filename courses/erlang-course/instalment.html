@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Erlang: The Internet That Never Dies — Instalment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../styles/common.css">
+    <link rel="stylesheet" href="../styles/erlang.css">
+    <meta name="description"
+        content="Course 4 of 5: build a simulated network of thousands of supervised Erlang processes that crash, restart, partition and recover, ending in a live dashboard and a real distributed cluster.">
+</head>
+
+<body>
+    <div class="wrap">
+
+        <header class="masthead">
+            <p class="kicker">Instalment 16 · Course 4 (Erlang) · Parts 0–2</p>
+            <h1>The language that assumes everything will crash</h1>
+            <p class="lede"><img src="../assets/expressions/left_to_right/looking_up.png" alt="The Mewlang cat, looking up curiously" width="120" class="mascot-left">A mesh of a thousand independent nodes that send each other messages, and periodically, deliberately,
+                fall over. Supervisors notice. They come back. Nothing else in this curriculum treats failure as
+                a first-class, expected, routinely-exercised code path the way this one does.</p>
+        </header>
+
+        <h2><span class="num">Course 4 · Part 0</span>What are we building?</h2>
+
+        <h3>The final result</h3>
+
+        <p>A simulated network, <code>mesh</code>, of up to several thousand independent nodes, each an Erlang
+            process. Nodes exchange messages, maintain a small amount of state, and periodically misbehave: a node
+            can crash outright, hang and stop responding, send another node a message it cannot parse, or simply
+            vanish. A supervision tree watches every node and restarts the ones that die, with a policy that says
+            precisely how much dying is tolerable before the supervisor gives up and takes the whole subtree down
+            with it.</p>
+
+        <p>On top of that: a registry so nodes can find each other by name instead of by process identifier: an
+            observability layer with counters for messages sent, nodes alive, nodes restarted, and message loss: a
+            live dashboard, served over plain HTTP from a process running inside the same system it is reporting on,
+            showing all of that updating in real time in a browser. Then, in the back half of the course, the
+            single-machine simulation becomes a genuine distributed system: several real operating-system processes,
+            each running its own instance of the Erlang virtual machine (the BEAM), connected over a real network,
+            able to survive one of those machines being killed outright.</p>
+
+        <pre class="plain"><code>$ ./bin/mesh start --nodes 2000 --dashboard :8080
+mesh: 2000 nodes started, supervisor tree depth 3
+mesh: dashboard listening on http://localhost:8080
+
+$ ./bin/mesh chaos --crash-rate 0.02 --partition-every 30s
+chaos: injecting failures into a live system
+
+  alive: 1,978   restarting: 14   partitioned: 8   msgs/sec: 40,221
+</code></pre>
+
+        <p>Everything in that output is a real, measured number from a real run once the project exists. Nothing here
+            is a diagram of an idea; every milestone below produces working, running, compiled code.</p>
+
+        <h3>Why this project is interesting</h3>
+
+        <p>Every other course in this curriculum treats a crash as a bug to eliminate. This one treats it as a
+            certainty to plan for. That is not a small difference in emphasis — it is a different starting axiom for
+            the whole design. A Go service that panics takes the whole process down with it, and the discipline is
+            to never let a goroutine panic in the first place. An Erlang process that crashes is <em>routine</em>: by
+            the end of Milestone 4 you will have a system where processes die constantly, on purpose, in the test
+            suite, and the assertion is never "no process died" — it is "the system as a whole kept working while
+            processes died."</p>
+
+        <p>That reframing is the entire subject of this course. Once you accept that any single process can and will
+            die, the interesting engineering question stops being "how do I prevent this" and becomes "who notices,
+            what do they do about it, and how fast." The answer Erlang and its OTP (Open Telecom Platform) library
+            give is <strong>supervision trees</strong>: a static, declarative description of which processes depend
+            on which, and exactly what should happen — restart just this one, restart its siblings too, give up
+            entirely — when one of them dies. You will hand-write the naive version in Milestone 4, before you have
+            been told what a supervisor is, discover exactly what it gets wrong, and then meet OTP's
+            <code>supervisor</code> behaviour in Milestone 6 as the answer to a problem you have already felt.</p>
+
+        <h3>Why Erlang in particular</h3>
+
+        <p>Three properties of the language are not available, in combination, anywhere else in this curriculum.</p>
+
+        <p><strong>Processes are cheap and share nothing.</strong> An Erlang process is not an OS thread and not a
+            goroutine — it is a lightweight, independently garbage-collected unit with its own heap, started in
+            microseconds, and a BEAM instance can comfortably run millions of them. Because no process can reach into
+            another's memory — the only way in is a message, copied, into a mailbox — a crashed process cannot
+            corrupt anything belonging to a process that did not crash. Go's goroutines are cheap too, but they share
+            an address space, so a wild pointer write in one can in principle corrupt data another is reading; the
+            <code>go</code> runtime's response to an unrecovered panic in any goroutine is to kill the entire
+            program. Erlang's response to an unhandled exception in a process is to kill exactly that process, and
+            nothing else, ever.</p>
+
+        <p><strong>Let it crash is a real engineering strategy, not a slogan.</strong> Given the isolation above, the
+            language actively discourages the defensive-programming instinct of catching every possible error and
+            trying to handle it in place. If a node receives a message it cannot make sense of, the idiomatic move is
+            to let the process crash — loudly, with a stack trace, to a log — and let the supervisor restart it into
+            a known-good state, rather than trying to enumerate every way input can be wrong and patch around each
+            one. Milestone 8 makes this concrete: you will feed the mesh genuinely malformed messages and watch the
+            system absorb them by discarding and restarting, rather than by defending.</p>
+
+        <p><strong>Distribution was never an afterthought.</strong> The message-passing model between two processes
+            on one machine and two processes on different machines is, by design, close to the same API — Erlang was
+            built at Ericsson in the late 1980s specifically to run telephone switches that were not allowed to go
+            down, and those switches were distributed hardware from day one. Milestone 11 turns your single-machine
+            mesh into several real operating-system processes talking over a real network with a change measured in
+            tens of lines, not a rewrite — because the message-passing discipline you have been using since
+            Milestone 3 was already, quietly, the distributed-systems discipline.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Be honest about the trade this makes. Erlang's processes are wonderful for isolation and terrible for
+                sharing a large, frequently-updated data structure between many workers — there is no equivalent of
+                Go's atomic-read sharded engine from Course 1, because sharing memory is exactly what the model
+                refuses to do. Where Go would shard a struct behind atomics for raw throughput, Erlang would shard
+                the <em>problem</em> into more processes and accept the cost of a message copy at the boundary. For
+                a system whose entire premise is "parts of it are broken right now," that trade is the right one:
+                you are buying certainty about blast radius, and you are paying for it in copying overhead. Both
+                are measured, in this course, rather than asserted.</p>
+        </div>
+
+        <h3>Architecture we are building toward</h3>
+
+        <pre class="plain"><code>                         mesh_sup (one_for_one)
+                        /          |            \
+              node_sup_1   registry_sup      dashboard_sup
+             (simple_one   (name -> pid,    (http listener,
+              _for_one)      process groups)  metrics collector)
+              /   |   \
+          node  node  node  ...  (up to several thousand,
+           |     |     |          each a gen_server, each linked
+        mailbox mailbox mailbox   to node_sup_1, each able to
+                                   crash independently)
+
+  every arrow above is a supervision link: a child's death is
+  reported to its supervisor, which decides — by a declared,
+  static policy — whether to restart just that child, restart
+  every child alongside it, or give up and die itself, which
+  reports the death one level further up
+</code></pre>
+
+        <p>Three architectural decisions, explained now because they shape every milestone that follows.</p>
+
+        <p><strong>A node is a <code>gen_server</code></strong>, OTP's standard behaviour for "a process with state
+            that answers requests" — you will write the raw <code>receive</code> loop version first in Milestone 3,
+            by hand, before meeting <code>gen_server</code> in Milestone 5 as the same idea with the boilerplate
+            handled for you and a long list of footguns removed.</p>
+
+        <p><strong>Every node sits under a supervisor, and supervisors sit under supervisors.</strong> This is the
+            <em>tree</em> in "supervision tree": <code>node_sup_1</code> is a <code>simple_one_for_one</code>
+            supervisor, a template for spawning an unbounded, dynamic number of identical children — exactly what a
+            few thousand interchangeable network nodes need — while <code>mesh_sup</code> at the root uses
+            <code>one_for_one</code>, because the registry, the node pool and the dashboard are three genuinely
+            different things that should not be restarted as a group just because one of them died.</p>
+
+        <p><strong>The registry and the dashboard are processes too</strong>, supervised exactly like the nodes they
+            serve. There is no special "infrastructure" tier that gets to skip the discipline the rest of the system
+            follows — if the registry crashes, something notices and restarts it, the same as everything else.</p>
+
+        <h3>The twelve milestones</h3>
+
+        <table class="grid">
+            <tr>
+                <th>#</th>
+                <th>Milestone</th>
+                <th>What it teaches</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>The shell and a first module</td>
+                <td><code>erl</code>, expressions, atoms, compiling, <code>rebar3</code></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Functions over data</td>
+                <td>pattern matching, immutability, lists/tuples/maps, recursion, tail calls, guards</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>A node as a raw process</td>
+                <td><code>spawn</code>, <code>!</code>, <code>receive</code>, mailboxes, selective receive</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Let it crash</td>
+                <td>links, monitors, exit signals, <code>trap_exit</code>, why defensive code is discouraged</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>The node as a <code>gen_server</code></td>
+                <td>OTP behaviours, <code>call</code> vs <code>cast</code>, state, timeouts</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Supervision trees</td>
+                <td>restart strategies, intensity limits, dynamic children, startup ordering</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>A network of a thousand nodes</td>
+                <td>registries, <code>ETS</code>, process groups, routing, message loss</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>Chaos injection</td>
+                <td>random crashes, slow handlers, malformed messages, memory pressure</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>Observability</td>
+                <td>counters, <code>observer</code>, <code>recon</code>, tracing a live system safely</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>The live dashboard</td>
+                <td>an HTTP server in Erlang, streaming updates, aggregation without slowing the system</td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td>Actually distributed</td>
+                <td>multiple BEAM nodes, cookies, <code>net_kernel</code>, partitions, split brain</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>Releases and property tests</td>
+                <td>EUnit, Common Test, PropEr, <code>relx</code> releases, upgrades</td>
+            </tr>
+        </table>
+
+        <h3>What you will know afterwards</h3>
+
+        <p>Why isolating failure is a design decision with a measurable cost, not a free lunch; how to describe a
+            system's failure-response policy declaratively instead of scattering try/catch through it; how OTP's
+            standard behaviours turn "a process that holds state and answers requests" from a hand-rolled loop into a
+            few callback functions; what actually changes, in code, when a message-passing system stops being
+            single-machine and becomes genuinely distributed; and why a network partition is not a bug you fix but a
+            condition you are required to have an opinion about.</p>
+
+        <hr>
+
+        <h2><span class="num">Course 4 · Part 1</span>Install and first program</h2>
+
+        <h3>What Erlang is</h3>
+
+        <p>Erlang is a dynamically typed, functional, concurrent language built at Ericsson starting in 1986 to
+            program telephone exchanges — hardware that was contractually required to have at most a few minutes of
+            downtime a year. Two consequences follow directly from that origin and explain nearly everything the
+            language does differently from a general-purpose scripting or systems language. First, the runtime (the
+            <strong>BEAM</strong>, Erlang's virtual machine) was built around lightweight, isolated processes and
+            message passing from the start, because a telephone exchange is naturally a huge number of mostly
+            independent, concurrent calls. Second, the language and its standard library, together known as
+            <strong>OTP</strong> (Open Telecom Platform), encode decades of "how do you build a system that must not
+            go down" as reusable behaviours — <code>gen_server</code>, <code>supervisor</code>, and others — rather
+            than leaving every team to reinvent them.</p>
+
+        <p>Erlang is not "the old version of Elixir." Elixir is a newer language that compiles to the same BEAM
+            bytecode and can call Erlang code directly (and vice versa); Erlang came first, by about 25 years, and
+            this course uses it directly rather than through Elixir's syntax, because the OTP behaviours and the
+            supervision-tree model — the actual subject of this course — are identical either way, and Erlang's
+            syntax, once past the first hour of unfamiliarity, gets out of the way of that subject rather than adding
+            a second one.</p>
+
+        <h3>Installing</h3>
+
+        <p>You want a recent OTP — this course was verified on <strong>OTP 25</strong> (Erlang/OTP 25, erts-13.1.5)
+            — and, separately, <strong>rebar3</strong>, the standard build tool and package manager, roughly
+            equivalent to Go's own toolchain or Ruby's Bundler.</p>
+
+        <h5>Linux</h5>
+        <pre class="plain"><code>sudo apt install erlang rebar3      # Debian/Ubuntu
+sudo dnf install erlang rebar3      # Fedora
+
+erl -eval 'io:format("~s~n", [erlang:system_info(system_version)]), halt().' -noshell
+# Erlang/OTP 25 [erts-13.1.5] [source] [64-bit] [smp:N:N] [ds:N:N:N] [jit:ns]
+</code></pre>
+
+        <h5>macOS</h5>
+        <pre class="plain"><code>brew install erlang rebar3
+</code></pre>
+
+        <h5>Windows</h5>
+        <pre class="plain"><code>:: the official installer from erlang.org, or:
+winget install ErlangSolutions.Erlang
+:: rebar3 is a self-contained escript; download rebar3 and put it on PATH
+</code></pre>
+        <p>WSL2 is worth it here, as it was for Perl: <code>observer</code> (Milestone 9) is a GUI tool that is
+            simplest to run from a proper Linux environment, and the distributed-node work in Milestone 11 involves
+            Unix-y networking assumptions that are easiest to reason about on Linux.</p>
+
+        <h5>When you need a specific version</h5>
+        <pre class="plain"><code>curl -fsSL https://raw.githubusercontent.com/kerl/kerl/master/kerl -o kerl
+chmod +x kerl
+./kerl build 25.3.2.9 25.3.2.9
+./kerl install 25.3.2.9 ~/erlangs/25.3.2.9
+. ~/erlangs/25.3.2.9/activate
+</code></pre>
+        <p><code>kerl</code> is the Erlang-world equivalent of Perl's <code>perlbrew</code> or Go's own version
+            management: it builds a specific OTP release from source into an isolated directory and gives you an
+            <code>activate</code> script to bring it onto your <code>PATH</code>.</p>
+
+        <h3>The shell is not optional</h3>
+
+        <p>Every other course in this curriculum treats its language's REPL as a nice-to-have for quick experiments.
+            Erlang's shell, <code>erl</code>, is closer to a permanent fixture of how you work: it can connect to a
+            <em>running production system</em> and let you call functions, inspect process state, and even hot-load
+            new code into it without stopping it — a capability the telephone-exchange origin story makes obvious in
+            retrospect. You will use it constantly, not just at the start.</p>
+
+        <pre class="plain"><code>$ erl
+Erlang/OTP 25 [erts-13.1.5] [source] [64-bit] [smp:6:6] [jit:ns]
+
+Eshell V13.1.5  (abort with ^G)
+1&gt; 1 + 1.
+2
+2&gt; X = 40 + 2.
+42
+3&gt; X = 42.
+42
+4&gt; X = 43.
+** exception error: no match of right hand side value 43
+</code></pre>
+
+        <p>That last line is not a typo in this document — it is the single most important fact about the language,
+            arriving in the fourth line of the shell. <code>=</code> is not assignment. It is
+            <strong>pattern matching</strong>: <code>X = 42</code> succeeds because <code>X</code> was unbound and
+            binds it to <code>42</code>; <code>X = 42</code> again succeeds because <code>42</code> matches what
+            <code>X</code> is already bound to; <code>X = 43</code> <em>fails</em>, loudly, with an exception,
+            because <code>43</code> does not match <code>42</code>. Once a variable is bound in Erlang, it stays
+            bound to that value for the rest of its scope — there is no reassignment, anywhere, ever. Section 2.1
+            below is entirely about what this buys you.</p>
+
+        <h3>Project layout, with <code>rebar3</code></h3>
+
+        <pre class="plain"><code>$ rebar3 new app mesh
+$ tree mesh
+mesh/
+├── rebar.config          dependencies and build config (like a Gemfile or go.mod)
+├── src/
+│   ├── mesh.app.src       application metadata: name, modules, dependencies
+│   ├── mesh_app.erl        the application behaviour's entry point
+│   └── mesh_sup.erl        the top-level supervisor (empty for now)
+└── test/
+</code></pre>
+
+        <p><code>rebar3 new app</code> scaffolds an OTP <strong>application</strong> — not just a script, but a unit
+            with a declared name, a supervision tree entry point, and a place for dependencies, tests and releases to
+            live. That is deliberately more structure than Milestone 1 needs; the scaffold is there because by
+            Milestone 6 you will need every part of it, and generating it once now means never having to
+            retrofit it later.</p>
+
+        <h3>Hello, mesh</h3>
+
+        <pre><code>%% src/hello.erl
+-module(hello).
+-export([world/0]).
+
+world() ->
+    io:format("hello, ~s~n", [node()]).
+</code></pre>
+
+        <pre class="plain"><code>$ erlc hello.erl
+$ erl -noshell -eval 'hello:world(), halt().'
+hello, nonode@nohost
+</code></pre>
+
+        <h4>Every line, explained</h4>
+
+        <ul>
+            <li><strong><code>-module(hello).</code></strong> declares the module name, and it must match the
+                filename (<code>hello.erl</code>) — the compiler enforces this, unlike Go's package-directory
+                convention which is a strong suggestion rather than a rule.</li>
+            <li><strong><code>-export([world/0]).</code></strong> lists which functions are visible outside this
+                module, by name <em>and arity</em> — <code>world/0</code> is "the zero-argument function named
+                world", a genuinely different, independently-exportable function from a hypothetical
+                <code>world/1</code>. Nothing not listed here is callable from outside the module at all; there is
+                no equivalent of Go's capitalisation convention, this is enforced by the compiler.</li>
+            <li><strong><code>io:format("hello, ~s~n", [node()])</code></strong> calls the <code>format</code>
+                function in the standard library's <code>io</code> module. <code>~s</code> is a format directive
+                meaning "a string here"; <code>~n</code> is a portable newline; the second argument is always a
+                <em>list</em> of values, one per directive, which is why a single argument still needs its own
+                brackets.</li>
+            <li><strong><code>node()</code></strong> returns the name of the current Erlang node — the runtime
+                concept, not this course's "network node" concept, and the collision between those two uses of the
+                word "node" is real and worth flagging now rather than mid-sentence in Milestone 11.
+                <code>nonode@nohost</code> is what an Erlang VM is called when it was started without a name, which
+                is the normal case until Milestone 11 gives every VM instance a real one.</li>
+        </ul>
+
+        <div class="warn">
+            <h5>The two names for "node", and how to keep them apart</h5>
+            <p>This course's simulated network is made of <strong>mesh nodes</strong> — ordinary Erlang processes,
+                thousands of them, all living inside one BEAM instance for most of the course. Erlang's own runtime
+                separately has a notion of a <strong>distributed node</strong> — one running BEAM instance,
+                identified by a name like <code>mesh1@192.168.1.10</code>, that can connect to other BEAM instances
+                over the network. Until Milestone 11 there is exactly one distributed node and thousands of mesh
+                nodes running inside it; from Milestone 11 onward there are several distributed nodes, each still
+                running many mesh nodes. The text says "process" whenever precision matters and "mesh node" for the
+                simulated concept; "node" alone, unqualified, always means the Erlang runtime sense.</p>
+        </div>
+
+        <h3>Documentation, and getting help without leaving the shell</h3>
+
+        <pre class="plain"><code>$ erl
+1&gt; h(lists, map).
+...
+2&gt; lists:map(fun(X) -&gt; X * 2 end, [1,2,3]).
+[2,4,6]
+</code></pre>
+        <pre class="plain"><code>$ erl -man gen_server        # the full behaviour reference, as a man page
+$ open https://www.erlang.org/doc/                # the official docs, browsable
+</code></pre>
+        <p><code>h/2</code> inside the shell prints a function's documentation without leaving your session — the
+            closest thing here to Perl's <code>perldoc -f</code> or Go's <code>go doc</code>. The official docs at
+            erlang.org are unusually good and unusually stable: OTP's standard library has unusually few breaking
+            changes release to release, so documentation from three OTP releases ago is still mostly correct today.
+        </p>
+
+        <h3>Testing, from the first day</h3>
+
+        <p>OTP ships <strong>EUnit</strong>, a lightweight unit-testing framework, in the standard library — no
+            dependency to add, the same way Go ships <code>testing</code>.</p>
+
+        <pre><code>%% src/basics.erl
+-module(basics).
+-export([classify/1]).
+
+classify(N) when N &lt; 0 -&gt; negative;
+classify(0) -&gt; zero;
+classify(N) when N rem 2 =:= 0 -&gt; even;
+classify(_) -&gt; odd.
+</code></pre>
+
+        <pre><code>%% test/basics_tests.erl
+-module(basics_tests).
+-include_lib("eunit/include/eunit.hrl").
+
+classify_test() ->
+    ?assertEqual(negative, basics:classify(-1)),
+    ?assertEqual(zero,     basics:classify(0)),
+    ?assertEqual(even,     basics:classify(4)),
+    ?assertEqual(odd,      basics:classify(7)).
+</code></pre>
+
+        <pre class="plain"><code>$ rebar3 eunit
+===&gt; Running EUnit tests...
+  basics_tests: classify_test...[0.001 s] ok
+  [done in 0.012 s]
+=======================================================
+  All 1 tests passed.
+</code></pre>
+
+        <p><code>-include_lib("eunit/include/eunit.hrl")</code> pulls in the <code>?assertEqual</code> family of
+            macros — yes, Erlang has a preprocessor and macros starting with <code>?</code>, inherited from its C
+            heritage and used sparingly outside test code. A function whose name ends in <code>_test</code>
+            (singular) is a single test; one ending in <code>_test_</code> (trailing underscore) is a
+            <strong>test generator</strong>, returning a list of tests built programmatically — you will use both
+            shapes throughout this course.</p>
+
+        <h4>Checkpoint</h4>
+        <ol>
+            <li>What does <code>=</code> actually do in Erlang, and why does <code>X = 43</code> fail after
+                <code>X = 42</code>?</li>
+            <li>What two, independently meaningful things does a function's <em>arity</em> distinguish that a
+                function's name alone does not?</li>
+            <li>Name the two things a "node" can mean in this course, and which one <code>node()</code> the function
+                returns.</li>
+            <li>What is the difference between an EUnit test named <code>foo_test</code> and one named
+                <code>foo_test_</code>?</li>
+        </ol>
+
+        <hr>
+
+        <h2><span class="num">Course 4 · Part 2</span>Language crash course</h2>
+
+        <h3>2.1 Pattern matching, and the rule with no equivalent in Go, Ruby or Perl</h3>
+
+        <p>You met it above: <code>=</code> matches rather than assigns. The same mechanism — not a special case of
+            it, the literal same operation — is how you pull values out of compound data, choose between function
+            clauses, and receive messages. There is exactly one destructuring rule in the whole language, used
+            everywhere.</p>
+
+        <pre><code>1&gt; {Status, Value} = {ok, 42}.
+{ok,42}
+2&gt; Status.
+ok
+3&gt; [First | Rest] = [1,2,3,4].
+[1,2,3,4]
+4&gt; First.
+1
+5&gt; Rest.
+[2,3,4]
+6&gt; {ok, 42} = {ok, 43}.
+** exception error: no match of right hand side value {ok,43}
+</code></pre>
+
+        <p>Line 6 is not a corner case to remember — it is the mechanism working as designed. Matching a
+            <em>literal</em> against a value, rather than a fresh variable against it, asserts that the value has
+            exactly that shape. This is how Erlang code routinely reads: a function expects its argument to look
+            like <code>{ok, Result}</code> or its message to look like <code>{From, Ref, Request}</code>, and if it
+            does not, the match fails and the process crashes — which, per this course's whole premise, is the
+            correct response, not a bug to prevent.</p>
+
+        <p>Compare this to how a typical language handles the same job:</p>
+
+        <div class="cmp">
+            <h5>A typical language vs. Erlang</h5>
+            <p>In Python or Ruby you would write <code>status, value = pair</code> and then a separate
+                <code>if status != "ok": raise ...</code> to assert the shape you expected. Erlang's match
+                <em>is</em> the assertion — there is no separate step, because the destructuring and the shape check
+                are the same operation. The cost is that a bound variable can never be reused for something else in
+                the same scope; the benefit is that "this data has the shape I assumed" is enforced at the exact
+                point you assume it, not several lines later when something built from the wrong assumption finally
+                breaks.</p>
+        </div>
+
+        <h4>Exercise 2.1</h4>
+        <div class="exercise">
+            <p>In the shell, bind <code>Point = {3, 4}</code>. Write a pattern match that extracts both coordinates
+                into <code>X</code> and <code>Y</code> in one line, then write an expression using only pattern
+                matching (no <code>if</code>, no function call) that succeeds if and only if the point is exactly
+                the origin, <code>{0, 0}</code>.</p>
+            <details>
+                <summary>Solution</summary>
+                <pre><code>1&gt; Point = {3, 4}.
+{3,4}
+2&gt; {X, Y} = Point.
+{3,4}
+3&gt; {0, 0} = Point.
+** exception error: no match of right hand side value {3,4}
+</code></pre>
+                <p>The third line is the answer to the second half: it succeeds silently for the origin and raises
+                    for anything else, which <em>is</em> "succeeds if and only if". Wrapping it in
+                    <code>catch {0,0} = Point</code> converts the exception into an ordinary value if you need the
+                    result rather than the side effect of not crashing.</p>
+            </details>
+        </div>
+
+        <h3>2.2 Atoms, tuples and the convention that runs through everything</h3>
+
+        <p>An <strong>atom</strong> is a name that is its own value — <code>ok</code>, <code>error</code>,
+            <code>undefined</code>, <code>mesh_node</code> — comparable in spirit to a Ruby symbol, with no
+            equivalent that is quite as central in Go or Perl. Atoms are used everywhere a smaller language would
+            reach for a string constant or a small integer enum, and OTP's standard library leans on one convention
+            hard enough that you should adopt it immediately: a function that can fail returns
+            <code>{ok, Result}</code> on success and <code>{error, Reason}</code> on failure, as a two-element
+            tuple, rather than throwing.</p>
+
+        <pre><code>1&gt; file:read_file("does_not_exist.txt").
+{error,enoent}
+2&gt; file:read_file("/etc/hostname").
+{ok,&lt;&lt;"my-machine\n"&gt;&gt;}
+</code></pre>
+
+        <p>Matching directly against the shape you expect is the idiomatic way to consume this:</p>
+
+        <pre><code>{ok, Contents} = file:read_file(Path),
+%% ... use Contents; if the read failed, the match fails and the
+%% process crashes here, with a clear reason, which is correct —
+%% see the "let it crash" section above.
+</code></pre>
+
+        <p><code>&lt;&lt;"my-machine\n"&gt;&gt;</code> is a <strong>binary</strong>, Erlang's efficient
+            representation for raw byte data — the type file contents, network payloads and, later in this course,
+            malformed chaos-test messages arrive as.</p>
+
+        <h3>2.3 Lists, recursion, and tail calls</h3>
+
+        <p>Erlang has no loop construct at all — no <code>for</code>, no <code>while</code>. Repetition is always
+            recursion, which sounds alarming until you meet the guarantee that makes it practical: a
+            <strong>tail call</strong> — a recursive call in the last position of a function clause, with nothing
+            left to do after it returns — is compiled to a jump, not a new stack frame, so a correctly-written
+            recursive loop runs in constant stack space no matter how many times it recurses.</p>
+
+        <pre><code>%% NOT tail-recursive: the multiplication happens *after* the
+%% recursive call returns, so a stack frame must be kept for it
+fact(0) -&gt; 1;
+fact(N) -&gt; N * fact(N - 1).
+
+%% tail-recursive: the recursive call is the very last thing this
+%% clause does — there is nothing left to do with its result except
+%% return it, so no frame needs to be kept
+fact_tail(N) -&gt; fact_tail(N, 1).
+fact_tail(0, Acc) -&gt; Acc;
+fact_tail(N, Acc) -&gt; fact_tail(N - 1, N * Acc).
+</code></pre>
+
+        <p>Both compute the same thing and both are used in this course — <code>fact/1</code>'s shape is completely
+            fine for small, bounded recursion, and its accumulator-passing sibling is what you reach for once the
+            recursion depth is genuinely unbounded, which for a mesh of several thousand nodes, it routinely will
+            be.</p>
+
+        <div class="cmp">
+            <h5>A typical language vs. Erlang</h5>
+            <p>Go and Ruby both have <code>for</code> loops with mutable loop variables; writing the equivalent
+                accumulation is a variable you reassign each iteration. Erlang cannot reassign a variable at all
+                (Section 2.1), so the accumulator has to be threaded through as an extra function argument instead —
+                which looks like more ceremony for a five-line function and stops looking that way the moment the
+                accumulator needs to be something more interesting than a running total, because it is then just an
+                ordinary function parameter with an ordinary type, not a mutable variable whose type you have to
+                keep straight across dozens of loop iterations by eye.</p>
+        </div>
+
+        <h4>Exercise 2.3</h4>
+        <div class="exercise">
+            <p>Write <code>my_reverse/1</code>, reversing a list, tail-recursively (accumulator-passing), without
+                using the built-in <code>lists:reverse/1</code>.</p>
+            <details>
+                <summary>Solution</summary>
+                <pre><code>my_reverse(List) -&gt; my_reverse(List, []).
+my_reverse([], Acc) -&gt; Acc;
+my_reverse([H | T], Acc) -&gt; my_reverse(T, [H | Acc]).
+</code></pre>
+                <p>Each step moves the head of the input onto the front of the accumulator, which is exactly reversal
+                    happening one element at a time — verified: <code>my_reverse([1,2,3])</code> gives
+                    <code>[3,2,1]</code>.</p>
+            </details>
+        </div>
+
+        <h3>2.4 Maps</h3>
+
+        <p>A map is Erlang's key-value structure, added relatively recently (OTP 17, 2015) as a friendlier
+            alternative to the older, more rigid <code>record</code> and property-list idioms for "a bag of named
+            fields" — the shape this course's per-node state will mostly take.</p>
+
+        <pre><code>1&gt; Node = #{id =&gt; 42, status =&gt; alive, energy =&gt; 100}.
+#{id =&gt; 42,status =&gt; alive,energy =&gt; 100}
+2&gt; #{id := Id, status := Status} = Node.
+#{energy =&gt; 100,id =&gt; 42,status =&gt; alive}
+3&gt; Id.
+42
+4&gt; Node2 = Node#{status := crashed}.
+#{id =&gt; 42,status =&gt; crashed,energy =&gt; 100}
+</code></pre>
+
+        <p><code>=&gt;</code> is used when constructing or when a key may or may not already be present;
+            <code>:=</code> is used when matching or updating a key that <em>must</em> already exist — updating a
+            genuinely new key with <code>:=</code> is a runtime error, which is a real, useful guard against typos
+            in a field name silently creating a new field instead of updating the one you meant.
+            <code>Node#{status := crashed}</code> produces a <em>new</em> map, leaving <code>Node</code> itself
+            untouched — maps, like everything else bound to a variable, are immutable once created.</p>
+
+        <h3>2.5 Functions: multiple clauses and guards</h3>
+
+        <p>You saw this shape already in <code>classify/1</code> above: a function can be defined as several
+            clauses, each with its own pattern for the arguments, tried top to bottom until one matches. A
+            <strong>guard</strong> — the <code>when</code> clause — adds a further condition that must also hold,
+            drawn from a restricted set of side-effect-free, always-fast operations (comparisons, arithmetic, type
+            tests) precisely so that a guard can never itself crash or hang while the runtime is deciding which
+            clause to run.</p>
+
+        <pre><code>describe(N) when is_integer(N), N &gt; 0 -&gt; positive_integer;
+describe(N) when is_integer(N) -&gt; non_positive_integer;
+describe(N) when is_float(N) -&gt; float_value;
+describe(N) when is_atom(N) -&gt; atom_value;
+describe(_) -&gt; something_else.
+</code></pre>
+
+        <p>This is Erlang's real substitute for both function overloading and a chain of <code>if</code>/
+            <code>else if</code> — and it is genuinely the idiomatic way to branch, not merely an alternative to it.
+            Milestone 3 onward, nearly every message a node handles is dispatched this way: one function clause per
+            message shape.</p>
+
+        <h3>2.6 Modules and exports</h3>
+
+        <p>You have already seen the whole mechanism: <code>-module(name)</code> must match the filename, and
+            <code>-export([f/1, g/2])</code> lists exactly which <code>name/arity</code> pairs are callable from
+            outside. Two more attributes worth knowing now:</p>
+
+        <pre><code>-module(mesh_node).
+-behaviour(gen_server).       %% declares intent; checked at compile time
+                               %% once the callbacks below exist — Milestone 5
+
+-export([start_link/1, stop/1]).   %% the public API
+-export([init/1, handle_call/3]).  %% gen_server callbacks — technically
+                                    %% exported so OTP's machinery can call
+                                    %% them, not meant for other modules to
+                                    %% call directly; the underscore-free
+                                    %% naming convention signals that
+</code></pre>
+
+        <p><code>-behaviour(gen_server)</code> does not exist yet in code you will write until Milestone 5, but it
+            is worth previewing the shape now: a behaviour is a contract — a fixed set of callback functions a
+            module promises to implement — and the compiler warns you at compile time if you declare one and forget
+            a required callback. This is the closest thing in Erlang to Go's interfaces, with one inversion worth
+            noting: a Go interface is satisfied implicitly, by having the right methods; an Erlang behaviour is
+            declared explicitly, and the compiler checks the declaration against the module's actual exports.</p>
+
+        <h3>2.7 Processes: <code>spawn</code>, <code>!</code>, and <code>receive</code></h3>
+
+        <p>This is the syntax Milestone 3 will build a real node architecture out of. Three primitives, and nothing
+            else is needed to create concurrency in Erlang — no thread pool to configure, no async keyword to
+            remember to add.</p>
+
+        <pre><code>-module(echo).
+-export([loop/0]).
+
+loop() ->
+    receive
+        {From, Ref, Msg} ->
+            From ! {Ref, {echo, Msg}},
+            loop();
+        stop ->
+            ok
+    end.
+</code></pre>
+
+        <pre><code>1&gt; Pid = spawn(echo, loop, []).
+&lt;0.94.0&gt;
+2&gt; Ref = make_ref().
+#Ref&lt;0.123.456.789&gt;
+3&gt; Pid ! {self(), Ref, hello}.
+{&lt;0.85.0&gt;,#Ref&lt;0.123.456.789&gt;,hello}
+4&gt; flush().
+Shell got {#Ref&lt;0.123.456.789&gt;,{echo,hello}}
+ok
+</code></pre>
+
+        <p><strong><code>spawn/3</code></strong> starts a new, independent process running
+            <code>echo:loop()</code> and returns its <strong>process identifier</strong> (a <code>pid</code>)
+            immediately, without waiting for it to do anything — spawning is not a blocking operation and there is
+            no thread limit to worry about hitting. <strong><code>!</code></strong> (pronounced "bang") sends a
+            message: it copies the term on its right into the target process's <strong>mailbox</strong> — an
+            unbounded, per-process FIFO queue that only that process reads from — and returns immediately, whether or
+            not anyone is listening. <strong><code>receive</code></strong> blocks the calling process until a
+            message matching one of its patterns arrives in its own mailbox, then runs the matching clause; a bare
+            <code>loop()</code> as the tail of each clause is exactly the tail-recursion from Section 2.3, and it is
+            what makes this an ongoing server rather than a one-shot responder.</p>
+
+        <p>The reply pattern — <code>{From, Ref, Msg}</code> in, <code>{Ref, Reply}</code> back — is not a special
+            language feature, it is a convention, and it is worth understanding why the <code>Ref</code> is there at
+            all rather than replying to <code>From</code> directly. <code>make_ref/0</code> creates a value
+            guaranteed unique for the lifetime of the runtime; including it lets the caller distinguish a reply to
+            <em>this specific request</em> from some unrelated message that happens to also be addressed to it,
+            which matters the moment a process can have several requests in flight at once. <code>gen_server</code>,
+            met in Milestone 5, does exactly this under the hood, automatically.</p>
+
+        <h4>Selective receive</h4>
+
+        <pre><code>receive
+    {Ref, Reply} -&gt; Reply     %% only matches a message tagged with THIS Ref
+after 1000 -&gt;
+    timeout
+end
+</code></pre>
+
+        <p><code>receive</code> does not take the next message in the mailbox unconditionally — it scans for the
+            first message that matches one of its clauses, leaving anything that does not match sitting in the
+            mailbox for a later <code>receive</code> to find. This is <strong>selective receive</strong>, and the
+            <code>Ref</code> convention above is precisely what makes it possible to say "wait specifically for the
+            reply to this request" in a process that might have other, unrelated messages arriving in the meantime.
+            <code>after 1000 -&gt;</code> bounds the wait to one second, returning <code>timeout</code> if nothing
+            matching arrives in time — without it, a reply that never comes blocks the caller forever.</p>
+
+        <div class="warn">
+            <h5>A mailbox with no selective clause for a message keeps that message forever</h5>
+            <p>If a process's <code>receive</code> only ever matches messages of one shape, and something sends it a
+                message of a different shape, that message is not discarded — it sits in the mailbox, permanently,
+                skipped by every future <code>receive</code> that also does not match it. Enough of these accumulate
+                and the mailbox itself becomes a genuine memory leak, and every <code>receive</code> after it gets
+                slightly slower, because a selective receive has to scan past every unmatched message to find one
+                that does match. Milestone 7 measures exactly this cost once the mesh is under load; the fix,
+                covered there, is a catch-all clause that at least logs and discards anything unrecognised, rather
+                than a mailbox with no fallback at all.</p>
+        </div>
+
+        <h3>2.8 Links, monitors, and <code>trap_exit</code></h3>
+
+        <p>Two mechanisms exist for one process to learn that another one died, and they are not interchangeable —
+            Milestone 4 is built entirely on the distinction.</p>
+
+        <table class="grid">
+            <tr>
+                <th></th>
+                <th>Link</th>
+                <th>Monitor</th>
+            </tr>
+            <tr>
+                <td>Direction</td>
+                <td>bidirectional — either side dying affects the other</td>
+                <td>one-directional — only the watcher is notified</td>
+            </tr>
+            <tr>
+                <td>Default effect of the other side dying</td>
+                <td>you die too, propagating the exit signal onward, unless you set
+                    <code>trap_exit</code></td>
+                <td>you receive a <code>{'DOWN', ...}</code> message; you are never killed by it</td>
+            </tr>
+            <tr>
+                <td>Used for</td>
+                <td>supervision — a supervisor and its children are always linked</td>
+                <td>observation without ownership — the registry watching nodes it does not supervise</td>
+            </tr>
+        </table>
+
+        <pre><code>1&gt; process_flag(trap_exit, true).
+false
+2&gt; {Pid, Ref} = spawn_monitor(fun() -&gt; exit(boom) end).
+{&lt;0.101.0&gt;,#Ref&lt;0.123.456.789&gt;}
+3&gt; flush().
+Shell got {'DOWN',#Ref&lt;0.123.456.789&gt;,process,&lt;0.101.0&gt;,boom}
+ok
+</code></pre>
+
+        <p><code>process_flag(trap_exit, true)</code> is what turns a link from "their death kills me too" into
+            "their death sends me a plain <code>{'EXIT', Pid, Reason}</code> message instead" — this is exactly the
+            flag every OTP supervisor sets, because a supervisor's entire job is to survive its children's deaths
+            and react to them, which is the opposite of the default linked behaviour.
+            <code>spawn_monitor/1</code> both spawns and monitors in one call, convenient for exactly the "watch
+            this thing, but I am not responsible for it" relationship the registry will have with nodes in
+            Milestone 7.</p>
+
+        <h3>2.9 Errors: <code>try</code>/<code>catch</code>, and when not to use it</h3>
+
+        <pre><code>1&gt; try 1 / 0 catch error:badarith -&gt; {error, division_by_zero} end.
+{error,division_by_zero}
+2&gt; try throw(custom_signal) catch throw:Reason -&gt; {caught, Reason} end.
+{caught,custom_signal}
+</code></pre>
+
+        <p>Erlang has three distinct ways to signal something exceptional — <code>error</code> (a genuine bug —
+            division by zero, a failed pattern match, a bad argument), <code>throw</code> (a value used for
+            non-local control flow, the sender expects it to be caught somewhere), and <code>exit</code> (a
+            deliberate request that a process should stop, which is also what an unhandled <code>error</code>
+            becomes) — and <code>try ... catch Class:Reason -&gt; ...</code> can distinguish between them by
+            matching on <code>Class</code>.</p>
+
+        <p>The honest advice, and the whole thesis of "let it crash": <strong>reach for <code>try</code>/
+                <code>catch</code> far less often than instinct suggests.</strong> Wrapping every fallible operation
+            defensively is the instinct this language actively argues against — the idiomatic response to "this
+            function can fail in a way I have not planned for" is usually to let the process crash and have a
+            supervisor restart it into clean state, not to catch the failure and attempt to continue in a state you
+            were not prepared for. <code>try</code>/<code>catch</code> earns its place at a genuine boundary: the
+            edge of the system (a network request, user input), or a place where "fail and report a specific,
+            recoverable reason" is itself the correct behaviour rather than "fail and restart."</p>
+
+        <h3>2.10 A first taste of behaviours</h3>
+
+        <p>You will not write a full <code>gen_server</code> until Milestone 5, but it is worth seeing the shape of
+            an OTP behaviour once now, so Milestone 5 is recognising a pattern rather than meeting one cold. A
+            behaviour is a module that implements a fixed set of callbacks; OTP's generic machinery — code you never
+            see or modify — handles the process loop, the message protocol, and a long list of edge cases (what
+            happens if a reply never comes, how to shut down cleanly) uniformly for every module that implements it.
+        </p>
+
+        <pre><code>%% the shape you will fill in for real in Milestone 5 — not runnable yet
+-module(mesh_node).
+-behaviour(gen_server).
+
+init(Args) -&gt; {ok, InitialState}.
+handle_call(Request, From, State) -&gt; {reply, Reply, NewState}.
+handle_cast(Request, State) -&gt; {noreply, NewState}.
+</code></pre>
+
+        <p>Compare the raw <code>receive</code> loop from Section 2.7 to this: the loop itself, the reply-matching
+            convention, the timeout handling — all of it is gone, replaced by three small functions that only
+            describe <em>what should happen</em>, never <em>how the message actually gets there</em>. That is the
+            entire value proposition of an OTP behaviour, and Milestone 5 is the moment you stop hand-writing the
+            "how" and start trusting a library that has handled it correctly for four decades.</p>
+
+        <h3>2.11 Testing with EUnit, properly</h3>
+
+        <pre><code>-module(mesh_node_tests).
+-include_lib("eunit/include/eunit.hrl").
+
+%% a fixture: setup, the tests that need it, then teardown — for when a
+%% test needs a running process rather than a pure function
+spawn_and_stop_test_() ->
+    {setup,
+     fun() -&gt; {ok, Pid} = mesh_node:start_link(#{id =&gt; 1}), Pid end,
+     fun(Pid) -&gt; mesh_node:stop(Pid) end,
+     fun(Pid) -&gt;
+         [?_assert(is_process_alive(Pid)),
+          ?_assertEqual(alive, mesh_node:status(Pid))]
+     end}.
+</code></pre>
+
+        <p>The <code>{setup, Setup, Cleanup, Tests}</code> tuple is EUnit's fixture shape, roughly parallel to Go's
+            table-driven tests with a shared <code>TestMain</code>, or RSpec's <code>before</code>/<code>after</code>
+            — and it is the shape nearly every test in Milestones 3 onward will use, because nearly every test needs
+            a real, running process to test against.</p>
+
+        <h4>Part 2 checkpoint</h4>
+        <ol>
+            <li>Why is a guard restricted to a small set of side-effect-free operations, rather than allowed to call
+                any function?</li>
+            <li>What is the actual difference between a linked process and a monitored one, and which relationship
+                does a supervisor have with its children?</li>
+            <li>Why does an unmatched message sitting forever in a mailbox get worse over time, specifically?</li>
+            <li>Name the three ways Erlang signals something exceptional, and which one this course's philosophy
+                argues you should reach for least.</li>
+            <li>What does a behaviour's callback module <em>not</em> have to implement, compared to the raw
+                <code>receive</code> loop version of the same server?</li>
+        </ol>
+
+        <h3>What is next</h3>
+
+        <p><img src="../assets/expressions/left_to_right/laptop.png" alt="The Mewlang cat, typing at a laptop" width="120" class="mascot-left">Milestone 1 turns the shell experiments above into a real, compiled, tested
+            <code>rebar3</code> project. Milestone 2 builds the pure data-handling functions the rest of the node
+            will need. Milestone 3 is where a mesh node becomes a real, running process for the first time —
+            everything from Section 2.7 onward, applied.</p>
+
+        <footer class="end">
+            <p>Instalment 16 of the five-course curriculum. Next: Erlang Milestones 1–4, where the shell experiments
+                above become a real project, and a node becomes a process that can crash on purpose.</p>
+        </footer>
+
+        <a href="./milestones/1-4.html" class="button">Continue</a>
+
+    </div>
+</body>
+
+</html>
