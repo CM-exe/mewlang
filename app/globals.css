@@ -402,7 +402,50 @@
   @apply block min-h-screen pt-13 bg-paper text-ink;
 }
 
-.theme-index,
+.theme-index {
+  --color-paper: #FFF8F0;
+  --color-ink: #2A211C;
+  --color-ink-soft: #6B5A4D;
+  --color-rule: #E4D4C4;
+  --color-code: #F5EADF;
+  --color-panel: #F3E6D8;
+  --color-accent: #B34A2F;
+  --color-accent-2: #7A4E9B;
+  --color-why: #B34A2F;
+  --color-cmp: #7A4E9B;
+  --color-select: rgba(179, 74, 47, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-index {
+    --color-paper: #1B1512;
+    --color-ink: #F4E8DC;
+    --color-ink-soft: #C8B2A1;
+    --color-rule: #49362C;
+    --color-code: #281D18;
+    --color-panel: #33231C;
+    --color-accent: #F08A68;
+    --color-accent-2: #C9A0E3;
+    --color-why: #F08A68;
+    --color-cmp: #C9A0E3;
+    --color-select: rgba(240, 138, 104, .18);
+  }
+}
+
+:root[data-theme="dark"] .theme-index {
+  --color-paper: #1B1512;
+  --color-ink: #F4E8DC;
+  --color-ink-soft: #C8B2A1;
+  --color-rule: #49362C;
+  --color-code: #281D18;
+  --color-panel: #33231C;
+  --color-accent: #F08A68;
+  --color-accent-2: #C9A0E3;
+  --color-why: #F08A68;
+  --color-cmp: #C9A0E3;
+  --color-select: rgba(240, 138, 104, .18);
+}
+
 .theme-go {
   --color-paper: #F2F4F1;
   --color-ink: #1B2320;
@@ -418,8 +461,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-
-  :root:not([data-theme="light"]) .theme-index,
   :root:not([data-theme="light"]) .theme-go {
     --color-paper: #101613;
     --color-ink: #E4EAE4;
@@ -435,7 +476,6 @@
   }
 }
 
-:root[data-theme="dark"] .theme-index,
 :root[data-theme="dark"] .theme-go {
   --color-paper: #101613;
   --color-ink: #E4EAE4;
@@ -545,11 +585,11 @@
 
 .floating-menu {
   @apply fixed inset-x-0 top-0 z-50 flex items-center gap-[.15rem] h-13 px-3;
-  @apply bg-[#F2F4F1]/90 backdrop-blur border-b border-black/10 overflow-x-auto font-mono text-[.8rem];
+  @apply bg-[#FFF8F0]/90 backdrop-blur border-b border-[#E4D4C4] overflow-x-auto font-mono text-[.8rem];
 }
 
 .floating-menu-brand {
-  @apply font-semibold text-[#1B2320] no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
+  @apply font-semibold text-[#2A211C] no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
 }
 
 .floating-menu-links {
@@ -562,61 +602,61 @@
 }
 
 .floating-menu a {
-  color: rgb(27 35 32 / .65);
+  color: rgb(42 33 28 / .68);
 }
 
 .floating-menu a:hover,
 .floating-menu a:focus-visible,
 .floating-menu a[data-active="true"] {
-  @apply bg-black/[.08] text-[#1B2320];
+  @apply bg-[#B34A2F]/[.12] text-[#B34A2F];
 }
 
 .floating-menu span.soon {
-  @apply text-black/30 italic;
+  @apply text-[#6B5A4D]/50 italic;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .floating-menu {
-    @apply bg-[#101613]/90 border-white/10;
+    @apply bg-[#1B1512]/90 border-[#49362C];
   }
 
   :root:not([data-theme="light"]) .floating-menu-brand {
-    @apply text-[#E4EAE4];
+    @apply text-[#F4E8DC];
   }
 
   :root:not([data-theme="light"]) .floating-menu a {
-    color: rgb(228 234 228 / .68);
+    color: rgb(244 232 220 / .72);
   }
 
   :root:not([data-theme="light"]) .floating-menu a:hover,
   :root:not([data-theme="light"]) .floating-menu a:focus-visible,
   :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
-    @apply bg-white/[.14] text-[#E4EAE4];
+    @apply bg-[#F08A68]/[.16] text-[#F08A68];
   }
 
   :root:not([data-theme="light"]) .floating-menu span.soon {
-    @apply text-white/30;
+    @apply text-[#C8B2A1]/50;
   }
 }
 
 :root[data-theme="dark"] .floating-menu {
-  @apply bg-[#101613]/90 border-white/10;
+  @apply bg-[#1B1512]/90 border-[#49362C];
 }
 
 :root[data-theme="dark"] .floating-menu-brand {
-  @apply text-[#E4EAE4];
+  @apply text-[#F4E8DC];
 }
 
 :root[data-theme="dark"] .floating-menu a {
-  color: rgb(228 234 228 / .68);
+  color: rgb(244 232 220 / .72);
 }
 
 :root[data-theme="dark"] .floating-menu a:hover,
 :root[data-theme="dark"] .floating-menu a:focus-visible,
 :root[data-theme="dark"] .floating-menu a[data-active="true"] {
-  @apply bg-white/[.14] text-[#E4EAE4];
+  @apply bg-[#F08A68]/[.16] text-[#F08A68];
 }
 
 :root[data-theme="dark"] .floating-menu span.soon {
-  @apply text-white/30;
+  @apply text-[#C8B2A1]/50;
 }
