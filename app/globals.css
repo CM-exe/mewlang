@@ -742,7 +742,7 @@
 }
 
 .floating-menu-brand {
-  @apply min-w-0 max-w-full overflow-hidden text-ellipsis font-semibold text-ink no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
+  @apply font-semibold text-ink no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
   @apply inline-flex items-center gap-[.4rem];
 }
 
