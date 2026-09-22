@@ -111,6 +111,10 @@
     @apply bg-transparent p-0 text-[.8rem] leading-[1.55] block whitespace-pre;
   }
 
+  p code {
+    @apply break-all;
+  }
+
   blockquote {
     @apply my-[1.2rem] pl-4 border-l-2 border-cmp text-ink-soft italic;
   }
