@@ -885,7 +885,7 @@
   @apply flex flex-nowrap items-center gap-1 whitespace-nowrap;
   @apply font-mono text-[.65rem] text-ink bg-paper/90 backdrop-blur;
   @apply px-[.55rem] py-[.35rem] rounded-full border border-rule;
-  @apply md:max-w-28 md:text-[.7rem] md:px-2 md:py-1;
+  @apply md:text-[.7rem] md:px-2 md:py-1;
 }
 
 .course-nav-arrow {
