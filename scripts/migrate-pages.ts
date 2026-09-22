@@ -54,6 +54,8 @@ const PAGES: PageDef[] = [
   { src: 'perl-course/instalment.html', route: 'perl-course/instalment', theme: 'theme-perl' },
   { src: 'perl-course/milestones/1-4.html', route: 'perl-course/milestones/1-4', theme: 'theme-perl' },
   { src: 'perl-course/milestones/5-8.html', route: 'perl-course/milestones/5-8', theme: 'theme-perl' },
+  { src: 'perl-course/milestones/9-12.html', route: 'perl-course/milestones/9-12', theme: 'theme-perl' },
+  { src: 'perl-course/milestones/end.html', route: 'perl-course/milestones/end', theme: 'theme-perl' },
 ];
 
 // Old courses/-relative source path -> new absolute Next.js route. Resolving
@@ -162,13 +164,16 @@ function indent(depth: number): string {
 // "Stats are pointer-free").
 const INLINE_TAGS = new Set(['a', 'code', 'strong', 'em', 'small', 'span', 'br']);
 
-function childrenAreFlowContent(children: AnyNode[]): boolean {
-  return children.every(
-    (n) =>
-      defaultTreeAdapter.isTextNode(n) ||
-      defaultTreeAdapter.isCommentNode(n) ||
-      (defaultTreeAdapter.isElementNode(n) && INLINE_TAGS.has((n as ElementNode).tagName))
+function isFlowNode(n: AnyNode): boolean {
+  return (
+    defaultTreeAdapter.isTextNode(n) ||
+    defaultTreeAdapter.isCommentNode(n) ||
+    (defaultTreeAdapter.isElementNode(n) && INLINE_TAGS.has((n as ElementNode).tagName))
   );
+}
+
+function childrenAreFlowContent(children: AnyNode[]): boolean {
+  return children.every(isFlowNode);
 }
 
 /**
@@ -196,12 +201,53 @@ function serializeChildren(
   insidePreCode: boolean,
   tight: boolean
 ): string {
-  const out = nodes.map((n) => serializeNode(srcRel, n, depth, insidePreCode, tight)).join('');
-  if (tight) return out;
-  // Non-tight (block) context: if the last child rendered was inline text
-  // with no trailing newline (e.g. "Mewlang"), put the parent's closing
-  // tag on its own line. Safe because it's the *last* child — there's no
-  // following sibling in this parent for a newline to wrongly join into.
+  if (tight) {
+    return nodes.map((n) => serializeNode(srcRel, n, depth, insidePreCode, true)).join('');
+  }
+
+  // Non-tight (block) context. A parent can mix flow-content children (text,
+  // <code>, <strong>, ...) with a block-level child — e.g. a <li> whose
+  // intro sentence is followed by a <pre> example. childrenAreFlowContent
+  // only looks at the *whole* list, so a single block sibling used to force
+  // every flow sibling into individual block treatment too: each one got
+  // its own indent + trailing newline, even though it was really adjacent,
+  // inline, running text. That injected newline sits directly before the
+  // next flow sibling's text, and JSX's compiler drops it — and the space
+  // after it — entirely, fusing words together ("Symptom:the" instead of
+  // "Symptom: the"). The fix: partition into maximal runs of consecutive
+  // flow-content nodes, serialize each run as one *tight* unit (exact
+  // original adjacency, zero added whitespace inside the run), and treat
+  // the run as a whole — not each node in it — as one block-level sibling
+  // among the parent's other, non-flow children.
+  const parts: string[] = [];
+  let i = 0;
+  while (i < nodes.length) {
+    if (isFlowNode(nodes[i])) {
+      let j = i + 1;
+      while (j < nodes.length && isFlowNode(nodes[j])) j++;
+      const runOut = nodes
+        .slice(i, j)
+        .map((n) => serializeNode(srcRel, n, depth, insidePreCode, true))
+        .join('');
+      // A run can be pure whitespace (e.g. source indentation between a
+      // preceding block element and a following one) with no rendered
+      // effect at all — drop it, exactly as a lone whitespace-only text
+      // node would be dropped in this same non-tight context.
+      if (runOut.trim().length > 0) {
+        parts.push(`${indent(depth)}${runOut}\n`);
+      }
+      i = j;
+    } else {
+      parts.push(serializeNode(srcRel, nodes[i], depth, insidePreCode, false));
+      i++;
+    }
+  }
+
+  // If the last part rendered was inline text with no trailing newline
+  // (e.g. "Mewlang"), put the parent's closing tag on its own line. Safe
+  // because it's the *last* child — there's no following sibling in this
+  // parent for a newline to wrongly join into.
+  const out = parts.join('');
   if (out.length > 0 && !/\s$/.test(out)) {
     return out + '\n';
   }
@@ -231,7 +277,18 @@ function serializeNode(
       // noise with no rendered effect at all — drop it.
       return tight ? ' ' : '';
     }
-    return escapeJsxText(text);
+    // A non-whitespace-only text node can still carry a leading or trailing
+    // run of whitespace that *contains a newline* — e.g. the source line
+    // wraps right at an inline-tag boundary ("...behaves under\n<code>").
+    // Left as literal newlines, JSX's own whitespace handling treats that
+    // trailing run as a blank line and drops it *entirely* (not collapsed
+    // to a space), silently fusing the word before it into the tag that
+    // follows ("underCtrl-C"). HTML itself collapses any whitespace run —
+    // newlines included — to a single rendered space in normal flow text,
+    // so replacing every run with one literal space character before
+    // escaping both matches real rendering and sidesteps JSX's collapsing
+    // entirely (a lone space with no newline is never touched by it).
+    return escapeJsxText(text.replace(/\s+/g, ' '));
   }
   if (defaultTreeAdapter.isCommentNode(node)) {
     return `{/* ${node.data.replace(/\*\//g, '* /')} */}`;

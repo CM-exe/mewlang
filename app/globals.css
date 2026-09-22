@@ -585,11 +585,11 @@
 
 .floating-menu {
   @apply fixed inset-x-0 top-0 z-50 flex items-center gap-[.15rem] h-13 px-3;
-  @apply bg-[#FFF8F0]/90 backdrop-blur border-b border-[#E4D4C4] overflow-x-auto font-mono text-[.8rem];
+  @apply bg-paper/90 backdrop-blur border-b border-rule overflow-x-auto font-mono text-[.8rem];
 }
 
 .floating-menu-brand {
-  @apply font-semibold text-[#2A211C] no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
+  @apply font-semibold text-ink no-underline whitespace-nowrap mr-2 px-2 py-[.35rem] rounded-full;
 }
 
 .floating-menu-links {
@@ -602,61 +602,61 @@
 }
 
 .floating-menu a {
-  color: rgb(42 33 28 / .68);
+  color: color-mix(in srgb, var(--color-ink) 68%, transparent);
 }
 
 .floating-menu a:hover,
 .floating-menu a:focus-visible,
 .floating-menu a[data-active="true"] {
-  @apply bg-[#B34A2F]/[.12] text-[#B34A2F];
+  @apply bg-accent/[.12] text-accent;
 }
 
 .floating-menu span.soon {
-  @apply text-[#6B5A4D]/50 italic;
+  @apply text-ink-soft/50 italic;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .floating-menu {
-    @apply bg-[#1B1512]/90 border-[#49362C];
+    @apply bg-paper/90 border-rule;
   }
 
   :root:not([data-theme="light"]) .floating-menu-brand {
-    @apply text-[#F4E8DC];
+    @apply text-ink;
   }
 
   :root:not([data-theme="light"]) .floating-menu a {
-    color: rgb(244 232 220 / .72);
+    color: color-mix(in srgb, var(--color-ink) 72%, transparent);
   }
 
   :root:not([data-theme="light"]) .floating-menu a:hover,
   :root:not([data-theme="light"]) .floating-menu a:focus-visible,
   :root:not([data-theme="light"]) .floating-menu a[data-active="true"] {
-    @apply bg-[#F08A68]/[.16] text-[#F08A68];
+    @apply bg-accent/[.16] text-accent;
   }
 
   :root:not([data-theme="light"]) .floating-menu span.soon {
-    @apply text-[#C8B2A1]/50;
+    @apply text-ink-soft/50;
   }
 }
 
 :root[data-theme="dark"] .floating-menu {
-  @apply bg-[#1B1512]/90 border-[#49362C];
+  @apply bg-paper/90 border-rule;
 }
 
 :root[data-theme="dark"] .floating-menu-brand {
-  @apply text-[#F4E8DC];
+  @apply text-ink;
 }
 
 :root[data-theme="dark"] .floating-menu a {
-  color: rgb(244 232 220 / .72);
+  color: color-mix(in srgb, var(--color-ink) 72%, transparent);
 }
 
 :root[data-theme="dark"] .floating-menu a:hover,
 :root[data-theme="dark"] .floating-menu a:focus-visible,
 :root[data-theme="dark"] .floating-menu a[data-active="true"] {
-  @apply bg-[#F08A68]/[.16] text-[#F08A68];
+  @apply bg-accent/[.16] text-accent;
 }
 
 :root[data-theme="dark"] .floating-menu span.soon {
-  @apply text-[#C8B2A1]/50;
+  @apply text-ink-soft/50;
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface CourseLink {
   href: string;
@@ -28,9 +29,31 @@ function isSoon(link: CourseLink | SoonLink): link is SoonLink {
 
 export default function FloatingMenu() {
   const pathname = usePathname();
+  const [themeClass, setThemeClass] = useState('');
+
+  useEffect(() => {
+    const updateThemeClass = () => {
+      const themeElement = Array.from(document.body.querySelectorAll<HTMLElement>('*')).find(
+        (element) =>
+          element !== document.querySelector('.floating-menu') &&
+          Array.from(element.classList).some((className) => className.startsWith('theme-'))
+      );
+      const nextThemeClass = themeElement
+        ? Array.from(themeElement.classList).find((className) => className.startsWith('theme-')) ?? ''
+        : '';
+
+      setThemeClass(nextThemeClass);
+    };
+
+    updateThemeClass();
+    const observer = new MutationObserver(updateThemeClass);
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <nav className="floating-menu" aria-label="Site navigation">
+    <nav className={`floating-menu ${themeClass}`} aria-label="Site navigation">
       <Link href="/" className="floating-menu-brand" data-active={pathname === '/'}>
         🐱 Mewlang
       </Link>

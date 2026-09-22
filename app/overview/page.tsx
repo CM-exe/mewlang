@@ -12,37 +12,28 @@ export default function Page() {
       <div className="wrap">
         <header className="masthead">
           <h1>What kinds of problems does this language make unusually natural to solve?</h1>
-          <p className="lede">Five languages, five projects, one question asked five times. This page covers the whole
-                curriculum plan: how it's delivered, prerequisites, recommended order, difficulty, and the full
-                milestone syllabus for every course. Each course's actual material — installation, language crash
-                course, and all twelve milestones — lives in its own instalment, linked at the bottom of this page.</p>
+          <p className="lede">Five languages, five projects, one question asked five times. This page covers the whole curriculum plan: how it's delivered, prerequisites, recommended order, difficulty, and the full milestone syllabus for every course. Each course's actual material — installation, language crash course, and all twelve milestones — lives in its own instalment, linked at the bottom of this page.</p>
           <table className="index">
             <tbody>
               <tr>
                 <td>Go</td>
-                <td><strong>Digital Ant Colony.</strong> Thousands of independent agents, channels, failure
-                            injection, eventually a small distributed system.</td>
+                <td><strong>Digital Ant Colony.</strong> Thousands of independent agents, channels, failure injection, eventually a small distributed system.</td>
               </tr>
               <tr>
                 <td>Ruby</td>
-                <td><strong>Automation DSL.</strong> A pipeline language built out of blocks and metaprogramming
-                            that inspects and rewrites itself.</td>
+                <td><strong>Automation DSL.</strong> A pipeline language built out of blocks and metaprogramming that inspects and rewrites itself.</td>
               </tr>
               <tr>
                 <td>Perl</td>
-                <td><strong>Text Archaeologist.</strong> Ingest ugly heterogeneous data, extract entities,
-                            correlate events, build a searchable graph.</td>
+                <td><strong>Text Archaeologist.</strong> Ingest ugly heterogeneous data, extract entities, correlate events, build a searchable graph.</td>
               </tr>
               <tr>
                 <td>Erlang</td>
-                <td><strong>The Internet That Never Dies.</strong> Thousands of supervised processes that crash,
-                            restart, partition, and recover.</td>
+                <td><strong>The Internet That Never Dies.</strong> Thousands of supervised processes that crash, restart, partition, and recover.</td>
               </tr>
               <tr>
                 <td>Racket</td>
-                <td><strong>Language Factory.</strong> A toolkit for defining small languages, ending in real
-                            <code>#lang</code> implementations.
-                        </td>
+                <td><strong>Language Factory.</strong> A toolkit for defining small languages, ending in real <code>#lang</code> implementations. </td>
               </tr>
             </tbody>
           </table>
@@ -57,15 +48,10 @@ export default function Page() {
             <li>Difficulty and time estimates</li>
             <li>Detailed syllabus for each of the five courses</li>
           </ol>
-          <p style={{ marginBottom: "0" }}>From here, each course starts with its own instalment: what we're building,
-                installation and first program, then the language crash course, before the twelve milestones begin.</p>
+          <p style={{ marginBottom: "0" }}>From here, each course starts with its own instalment: what we're building, installation and first program, then the language crash course, before the twelve milestones begin.</p>
         </div>
         <h2><span className="num">Section 1</span>How the curriculum is delivered</h2>
-        <p>Written in full, these five courses are the size of a book. Delivering them as one document would mean
-            losing exactly the parts that make them worth reading: the line-by-line explanations, the exercises, the
-            debugging sections. So each course is split into instalments — this curriculum map, then five
-            self-contained documents per course, each readable on its own. Every instalment ends with a button to the
-            next one, so you can move through a whole course, or the whole curriculum, by clicking forward.</p>
+        <p>Written in full, these five courses are the size of a book. Delivering them as one document would mean losing exactly the parts that make them worth reading: the line-by-line explanations, the exercises, the debugging sections. So each course is split into instalments — this curriculum map, then five self-contained documents per course, each readable on its own. Every instalment ends with a button to the next one, so you can move through a whole course, or the whole curriculum, by clicking forward.</p>
         <p>The instalment sequence, and how far each course currently reaches:</p>
         <table className="grid">
           <tbody>
@@ -101,13 +87,9 @@ export default function Page() {
             </tr>
           </tbody>
         </table>
-        <p>Instalments are numbered continuously across the whole curriculum — each one says which number it is, and
-            what's next, in a footer at the bottom. If you'd rather reorder the courses themselves — for example,
-            taking Erlang immediately after Go so the two concurrency models sit side by side — nothing here enforces
-            the numbered order; jump straight to that course's instalment from the links at the end of this page.</p>
+        <p>Instalments are numbered continuously across the whole curriculum — each one says which number it is, and what's next, in a footer at the bottom. If you'd rather reorder the courses themselves — for example, taking Erlang immediately after Go so the two concurrency models sit side by side — nothing here enforces the numbered order; jump straight to that course's instalment from the links at the end of this page.</p>
         <h2><span className="num">Section 2</span>Overview of the five courses</h2>
-        <p>Each course is built around one question that the language answers unusually well. The project exists to
-            force you into that answer.</p>
+        <p>Each course is built around one question that the language answers unusually well. The project exists to force you into that answer.</p>
         <table className="grid">
           <tbody>
             <tr>
@@ -117,98 +99,64 @@ export default function Page() {
             </tr>
             <tr>
               <td>Go</td>
-              <td>How do I write a program with tens of thousands of independent activities without drowning in
-                        locks?</td>
-              <td>Shared mutable state between concurrent agents, and the discipline of passing ownership through
-                        channels instead.</td>
+              <td>How do I write a program with tens of thousands of independent activities without drowning in locks?</td>
+              <td>Shared mutable state between concurrent agents, and the discipline of passing ownership through channels instead.</td>
             </tr>
             <tr>
               <td>Ruby</td>
               <td>How do I make a configuration file executable, readable, and extensible by its users?</td>
-              <td>The line between "data describing work" and "code performing work", and how blocks plus
-                        metaprogramming erase it.</td>
+              <td>The line between "data describing work" and "code performing work", and how blocks plus metaprogramming erase it.</td>
             </tr>
             <tr>
               <td>Perl</td>
-              <td>How do I turn a pile of inconsistent, half-broken text into structured facts, fast, on the
-                        command line?</td>
-              <td>Real-world data that violates every assumption your parser makes, at a scale where you cannot
-                        load it into memory.</td>
+              <td>How do I turn a pile of inconsistent, half-broken text into structured facts, fast, on the command line?</td>
+              <td>Real-world data that violates every assumption your parser makes, at a scale where you cannot load it into memory.</td>
             </tr>
             <tr>
               <td>Erlang</td>
               <td>How do I build something that keeps working while parts of it are broken?</td>
-              <td>Failure as a normal, expected, routinely-exercised code path rather than an exception to be
-                        prevented.</td>
+              <td>Failure as a normal, expected, routinely-exercised code path rather than an exception to be prevented.</td>
             </tr>
             <tr>
               <td>Racket</td>
-              <td>How do I build the language the problem wants, instead of encoding the problem in the language I
-                        have?</td>
+              <td>How do I build the language the problem wants, instead of encoding the problem in the language I have?</td>
               <td>The compile-time/run-time boundary, and the fact that syntax is data you can compute with.</td>
             </tr>
           </tbody>
         </table>
-        <p>There is a deliberate pairing structure. Go and Erlang are both about concurrency and disagree profoundly
-            about how to get it. Ruby and Racket are both about growing a language toward the problem and disagree about
-            whether you do that at run time or compile time. Perl stands alone as the Unix-shaped view of computing: a
-            program is a filter, text is the universal interface.</p>
+        <p>There is a deliberate pairing structure. Go and Erlang are both about concurrency and disagree profoundly about how to get it. Ruby and Racket are both about growing a language toward the problem and disagree about whether you do that at run time or compile time. Perl stands alone as the Unix-shaped view of computing: a program is a filter, text is the universal interface.</p>
         <h2><span className="num">Section 3</span>Prerequisites</h2>
         <h4>What you need to already know</h4>
         <ul>
-          <li><strong>General programming.</strong> Variables, functions, recursion, data structures, complexity, why
-                a hash map is fast. You have written a few thousand lines of something.</li>
-          <li><strong>A terminal.</strong> <code>cd</code>, <code>ls</code>, pipes, redirection, environment
-                variables, editing <code>PATH</code>. The Perl course leans on this heavily; the others assume it.</li>
-          <li><strong>Git.</strong> Enough to commit per milestone, which I will ask you to do, because the diffs are
-                part of the learning.</li>
-          <li><strong>An editor you are fast in.</strong> Each course tells you how to wire up the language server.
-            </li>
+          <li><strong>General programming.</strong> Variables, functions, recursion, data structures, complexity, why a hash map is fast. You have written a few thousand lines of something.</li>
+          <li><strong>A terminal.</strong> <code>cd</code>, <code>ls</code>, pipes, redirection, environment variables, editing <code>PATH</code>. The Perl course leans on this heavily; the others assume it.</li>
+          <li><strong>Git.</strong> Enough to commit per milestone, which I will ask you to do, because the diffs are part of the learning.</li>
+          <li><strong>An editor you are fast in.</strong> Each course tells you how to wire up the language server. </li>
         </ul>
         <h4>What you do not need</h4>
-        <p>Any prior exposure to these five languages, functional programming, actor models, compiler theory, or
-            distributed systems. Every term gets defined when it first appears. Where a concept is genuinely hard
-            (hygiene in macros, split-brain in distributed systems) it gets its own section rather than a parenthesis.
-        </p>
+        <p>Any prior exposure to these five languages, functional programming, actor models, compiler theory, or distributed systems. Every term gets defined when it first appears. Where a concept is genuinely hard (hygiene in macros, split-brain in distributed systems) it gets its own section rather than a parenthesis. </p>
         <h4>Machine and environment</h4>
         <ul>
-          <li>Any machine from the last decade with about 10 GB free. The Go and Erlang projects spawn tens of
-                thousands of lightweight tasks, which is a memory question rather than a CPU question, and 8 GB of
-                RAM is plenty.</li>
-          <li>macOS, Linux, or Windows. Commands are given for all three. On Windows, <strong>WSL2</strong> (Windows
-                Subsystem for Linux) is strongly recommended for the Perl and Erlang courses, and optional for the rest.
-                Native Windows instructions are included where they differ.</li>
-          <li>Docker is optional throughout. The distributed stages of Go and Erlang work fine as multiple processes
-                on one machine.</li>
+          <li>Any machine from the last decade with about 10 GB free. The Go and Erlang projects spawn tens of thousands of lightweight tasks, which is a memory question rather than a CPU question, and 8 GB of RAM is plenty.</li>
+          <li>macOS, Linux, or Windows. Commands are given for all three. On Windows, <strong>WSL2</strong> (Windows Subsystem for Linux) is strongly recommended for the Perl and Erlang courses, and optional for the rest. Native Windows instructions are included where they differ.</li>
+          <li>Docker is optional throughout. The distributed stages of Go and Erlang work fine as multiple processes on one machine.</li>
         </ul>
         <h4>Time</h4>
-        <p>Roughly 180–260 hours for all five if you do the exercises rather than reading past them. At six hours a week
-            that is about a year. At fifteen it is about four months. Doing one course properly beats skimming five.</p>
+        <p>Roughly 180–260 hours for all five if you do the exercises rather than reading past them. At six hours a week that is about a year. At fifteen it is about four months. Doing one course properly beats skimming five.</p>
         <h2><span className="num">Section 4</span>Recommended order</h2>
         <p>The courses are numbered as you listed them, but the order I recommend studying them in is different:</p>
         <pre className="plain"><code>{"  Go  ──────────►  Erlang  ──────────►  Ruby  ──────────►  Racket\n  (1)               (4)                  (2)                (5)\n   │                                                          \n   └── Perl (3) fits anywhere; it shares no concepts with the others\n"}</code></pre>
         <p>The reasoning:</p>
         <ul>
-          <li><strong>Go first.</strong> Its syntax is the least surprising of the five, its tooling is the best, and
-                its error messages are the kindest. You spend your energy on concurrency rather than on the language.
-            </li>
-          <li><strong>Erlang second, while Go is fresh.</strong> The moment you have hand-written a supervisor
-                goroutine that restarts crashed ants, Erlang's supervision trees land as "oh, this is built in, and
-                thought through far more carefully than mine". That contrast is worth a great deal and it fades if you
-                wait a year.</li>
-          <li><strong>Ruby third.</strong> After two courses of systems thinking, a course about expressiveness is a
-                real change of gear. It also introduces DSL design at run time.</li>
-          <li><strong>Racket fourth.</strong> Racket is the same ambition as the Ruby course pushed to its conclusion:
-                the Ruby DSL is a library pretending to be a language, and Racket makes it an actual language. Having
-                felt the limits of the Ruby approach makes macros feel necessary rather than clever.</li>
-          <li><strong>Perl whenever.</strong> It depends on nothing and nothing depends on it. It is a good palate
-                cleanser after Erlang, and a good warm-up if you want an easy start.</li>
+          <li><strong>Go first.</strong> Its syntax is the least surprising of the five, its tooling is the best, and its error messages are the kindest. You spend your energy on concurrency rather than on the language. </li>
+          <li><strong>Erlang second, while Go is fresh.</strong> The moment you have hand-written a supervisor goroutine that restarts crashed ants, Erlang's supervision trees land as "oh, this is built in, and thought through far more carefully than mine". That contrast is worth a great deal and it fades if you wait a year.</li>
+          <li><strong>Ruby third.</strong> After two courses of systems thinking, a course about expressiveness is a real change of gear. It also introduces DSL design at run time.</li>
+          <li><strong>Racket fourth.</strong> Racket is the same ambition as the Ruby course pushed to its conclusion: the Ruby DSL is a library pretending to be a language, and Racket makes it an actual language. Having felt the limits of the Ruby approach makes macros feel necessary rather than clever.</li>
+          <li><strong>Perl whenever.</strong> It depends on nothing and nothing depends on it. It is a good palate cleanser after Erlang, and a good warm-up if you want an easy start.</li>
         </ul>
-        <p>If you would rather work strictly in the numbered order, nothing breaks. The Ruby-then-Racket connection is
-            the only one I would try to preserve.</p>
+        <p>If you would rather work strictly in the numbered order, nothing breaks. The Ruby-then-Racket connection is the only one I would try to preserve.</p>
         <h2><span className="num">Section 5</span>Difficulty and learning goals</h2>
-        <p>Four different kinds of difficulty, rated 1 (easy) to 5 (hard), because they are not the same thing. A
-            language can have easy syntax and a brutal conceptual model, or the reverse.</p>
+        <p>Four different kinds of difficulty, rated 1 (easy) to 5 (hard), because they are not the same thing. A language can have easy syntax and a brutal conceptual model, or the reverse.</p>
         <table className="grid">
           <tbody>
             <tr>
@@ -261,31 +209,17 @@ export default function Page() {
             </tr>
           </tbody>
         </table>
-        <p>Notes on the ratings. Go's concept score is entirely concurrency; the rest of the language is deliberately
-            small. Perl's syntax score is high because of sigils and context, a rule that has no equivalent in most
-            languages, and its debugging score is high because a typo can be silently valid. Erlang is hard on every
-            axis at once: unfamiliar syntax, an unfamiliar build tool, and a model that asks you to unlearn defensive
-            programming. Racket's syntax is trivial to read after an hour, and its concept score comes entirely from
-            macros and phase separation.</p>
+        <p>Notes on the ratings. Go's concept score is entirely concurrency; the rest of the language is deliberately small. Perl's syntax score is high because of sigils and context, a rule that has no equivalent in most languages, and its debugging score is high because a typo can be silently valid. Erlang is hard on every axis at once: unfamiliar syntax, an unfamiliar build tool, and a model that asks you to unlearn defensive programming. Racket's syntax is trivial to read after an hour, and its concept score comes entirely from macros and phase separation.</p>
         <h4>Learning goals, stated as things you will be able to do</h4>
         <ul>
-          <li><strong>Go:</strong> design a concurrent system where ownership of data is explicit; read a race
-                detector report and fix the cause; shut a system down cleanly under load; profile and find the actual
-                bottleneck.</li>
-          <li><strong>Ruby:</strong> design an internal DSL that reads like a language, is testable, produces an
-                inspectable intermediate representation, and can be extended by third parties without editing your
-                source.</li>
-          <li><strong>Perl:</strong> build a streaming data pipeline that survives malformed input, correlates records
-                across sources, and runs as a well-behaved Unix citizen.</li>
-          <li><strong>Erlang:</strong> design a supervision tree; choose restart strategies with reasons; reason about
-                what happens during a network partition; observe a live system without stopping it.</li>
-          <li><strong>Racket:</strong> implement an interpreter, then a compiler, for a small language; write hygienic
-                macros with good error messages; ship a working <code>#lang</code>.</li>
+          <li><strong>Go:</strong> design a concurrent system where ownership of data is explicit; read a race detector report and fix the cause; shut a system down cleanly under load; profile and find the actual bottleneck.</li>
+          <li><strong>Ruby:</strong> design an internal DSL that reads like a language, is testable, produces an inspectable intermediate representation, and can be extended by third parties without editing your source.</li>
+          <li><strong>Perl:</strong> build a streaming data pipeline that survives malformed input, correlates records across sources, and runs as a well-behaved Unix citizen.</li>
+          <li><strong>Erlang:</strong> design a supervision tree; choose restart strategies with reasons; reason about what happens during a network partition; observe a live system without stopping it.</li>
+          <li><strong>Racket:</strong> implement an interpreter, then a compiler, for a small language; write hygienic macros with good error messages; ship a working <code>#lang</code>.</li>
         </ul>
         <h2><span className="num">Section 6</span>Detailed syllabi</h2>
-        <p>Each course follows the same shape: Part 0 (what we are building), Part 1 (install and first program), Part 2
-            (language crash course), then twelve milestones, then an advanced phase, a final challenge, and a knowledge
-            check. Below is the milestone plan for each.</p>
+        <p>Each course follows the same shape: Part 0 (what we are building), Part 1 (install and first program), Part 2 (language crash course), then twelve milestones, then an advanced phase, a final challenge, and a knowledge check. Below is the milestone plan for each.</p>
         <h3>Course 1 — Go: Digital Ant Colony</h3>
         <table className="grid">
           <tbody>
@@ -312,8 +246,7 @@ export default function Page() {
             <tr>
               <td>4</td>
               <td>Each ant becomes a goroutine</td>
-              <td>goroutines, <code>WaitGroup</code>, the first real data race, <code>go test -race</code>,
-                        mutexes</td>
+              <td>goroutines, <code>WaitGroup</code>, the first real data race, <code>go test -race</code>, mutexes</td>
             </tr>
             <tr>
               <td>5</td>
@@ -333,8 +266,7 @@ export default function Page() {
             <tr>
               <td>8</td>
               <td>Chaos: crashes, drops, slow ants</td>
-              <td><code>panic</code>/<code>recover</code>, supervisor goroutines, timeouts, fault injection as
-                        config</td>
+              <td><code>panic</code>/<code>recover</code>, supervisor goroutines, timeouts, fault injection as config</td>
             </tr>
             <tr>
               <td>9</td>
@@ -399,8 +331,7 @@ export default function Page() {
             <tr>
               <td>7</td>
               <td>Steps registered dynamically</td>
-              <td><code>define_method</code>, <code>method_missing</code>, <code>respond_to_missing?</code>,
-                        registries</td>
+              <td><code>define_method</code>, <code>method_missing</code>, <code>respond_to_missing?</code>, registries</td>
             </tr>
             <tr>
               <td>8</td>
@@ -415,8 +346,7 @@ export default function Page() {
             <tr>
               <td>10</td>
               <td>Self-inspection</td>
-              <td>reflection, <code>to_h</code>, dry runs, graph rendering, instrumentation via module prepend
-                    </td>
+              <td>reflection, <code>to_h</code>, dry runs, graph rendering, instrumentation via module prepend </td>
             </tr>
             <tr>
               <td>11</td>
@@ -441,8 +371,7 @@ export default function Page() {
             <tr>
               <td>1</td>
               <td>A filter that reads standard input</td>
-              <td>scalars, <code>strict</code>/<code>warnings</code>, <code>perldoc</code>, the diamond operator
-                    </td>
+              <td>scalars, <code>strict</code>/<code>warnings</code>, <code>perldoc</code>, the diamond operator </td>
             </tr>
             <tr>
               <td>2</td>
@@ -462,8 +391,7 @@ export default function Page() {
             <tr>
               <td>5</td>
               <td>Splitting into modules</td>
-              <td>packages, <code>lib/</code>, <code>use</code>, <code>cpanm</code>, local::lib, dependency
-                        management</td>
+              <td>packages, <code>lib/</code>, <code>use</code>, <code>cpanm</code>, local::lib, dependency management</td>
             </tr>
             <tr>
               <td>6</td>
@@ -472,7 +400,7 @@ export default function Page() {
             </tr>
             <tr>
               <td>7</td>
-              <td>Streaming a 10 GB file</td>
+              <td>Streaming a 10 GB file</td>
               <td>line-by-line processing, encodings, memory profiling, malformed-input policy</td>
             </tr>
             <tr>
@@ -493,9 +421,7 @@ export default function Page() {
             <tr>
               <td>11</td>
               <td>Testing and profiling</td>
-              <td><code>Test2</code>, <code>prove</code>, fuzzing with corrupted input,
-                        <code>Devel::NYTProf</code>, optimisation
-                    </td>
+              <td><code>Test2</code>, <code>prove</code>, fuzzing with corrupted input, <code>Devel::NYTProf</code>, optimisation </td>
             </tr>
             <tr>
               <td>12</td>
@@ -644,11 +570,9 @@ export default function Page() {
             </tr>
           </tbody>
         </table>
-        <p>That's the whole curriculum. Go is first, so its instalment picks up next: what we're building (an
-            ant colony that finds itself corrupting its own state the moment it goes concurrent, and the idiom
-            that fixes it), installing the toolchain, and a full language crash course, before Milestone 1 begins.</p>
+        <p>That's the whole curriculum. Go is first, so its instalment picks up next: what we're building (an ant colony that finds itself corrupting its own state the moment it goes concurrent, and the idiom that fixes it), installing the toolchain, and a full language crash course, before Milestone 1 begins.</p>
         <hr />
-        <Link className="button" href="/go-course/instalment/">Next: Go instalment</Link>
+         <Link className="button" href="/go-course/instalment/">Next: Go instalment</Link> 
       </div>
     </div>
   );
