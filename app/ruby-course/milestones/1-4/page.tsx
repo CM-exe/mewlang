@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import img1 from '../../../../courses/assets/expressions/left_to_right/laptop.png';
 import img2 from '../../../../courses/assets/expressions/right_to_left/looking_bad_top.png';
-import img3 from '../../../../courses/assets/expressions/left_to_right/thinking.png';
-import img4 from '../../../../courses/assets/expressions/right_to_left/looking_bad.png';
-import img5 from '../../../../courses/assets/expressions/left_to_right/glasses.png';
-import img6 from '../../../../courses/assets/expressions/left_to_right/stretching.png';
+import img3 from '../../../../courses/assets/expressions/front.png';
+import img4 from '../../../../courses/assets/expressions/left_to_right/thinking.png';
+import img5 from '../../../../courses/assets/expressions/right_to_left/looking_bad.png';
+import img6 from '../../../../courses/assets/expressions/left_to_right/glasses.png';
+import img7 from '../../../../courses/assets/expressions/left_to_right/stretching.png';
 
 export const metadata: Metadata = {
   title: "Ruby Milestones 1–4 — From Objects to an AST",
@@ -38,6 +39,7 @@ export default function Page() {
         <h3>Implementation</h3>
         <h4>lib/automation/errors.rb</h4>
         <pre><code>{"# frozen_string_literal: true\n\nmodule Automation\n  # Every error this gem raises inherits from Error, so a user can write\n  # `rescue Automation::Error` and catch everything we throw without\n  # catching everything in the world.\n  class Error < StandardError; end\n\n  # Raised when a pipeline references a step nobody registered.\n  class UnknownStep < Error\n    attr_reader :name, :known\n\n    def initialize(name, known, location: nil)\n      @name = name\n      @known = known\n      message = +\"unknown step #{name.inspect}\"\n      message << \" at #{location}\" if location\n      message << \"; known steps: #{known.sort.join(', ')}\" unless known.empty?\n      message << \"; no steps are registered\" if known.empty?\n      super(message)\n    end\n  end\n\n  # Raised when a step implementation fails. Keeps the original as #cause.\n  class StepFailed < Error\n    attr_reader :step\n\n    def initialize(step, cause)\n      @step = step\n      super(\"step #{step.name} failed: #{cause.message} (#{cause.class})\")\n    end\n  end\nend\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><strong>One base class, everything under it.</strong> This is not politeness, it is the only way a user can write a correct <code>rescue</code>. A library that raises bare <code>RuntimeError</code> forces its users to rescue everything or nothing.</li>
           <li><code>+"unknown step ..."</code> — the unary plus returns an unfrozen copy of a frozen string literal. Without it, the <code>{'<'}{'<'}</code> on the next line raises <code>FrozenError</code>, because of the magic comment at the top of the file. This is the frozen-literal rule from Part 2 arriving in real code. </li>
@@ -46,6 +48,7 @@ export default function Page() {
         </ul>
         <h4>lib/automation/step.rb</h4>
         <pre><code>{"module Automation\n  # Step is one instruction in a pipeline: a name, positional arguments and\n  # options. It describes work; it does not perform it.\n  class Step\n    attr_reader :name, :args, :options\n\n    def initialize(name, *args, **options)\n      @name = name.to_sym\n      @args = args.freeze\n      @options = options.freeze\n      freeze\n    end\n\n    def to_s\n      parts = args.map(&:inspect) + options.map { |k, v| \"#{k}: #{v.inspect}\" }\n      \"#{name}(#{parts.join(', ')})\"\n    end\n\n    def ==(other)\n      other.is_a?(Step) && name == other.name &&\n        args == other.args && options == other.options\n    end\n    alias eql? ==\n\n    def hash = [self.class, name, args, options].hash\n  end\nend\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>name.to_sym</code> normalises at the boundary, so <code>"fetch"</code> and <code>:fetch</code> are the same step forever after. Do this once, at construction, and never think about it again.</li>
           <li><code>freeze</code> as the last line of <code>initialize</code> makes the object immutable. Note that freezing is <em>shallow</em>: it stops <code>@name = ...</code>, but the Hash in <code>@options</code> needs its own <code>freeze</code>, which is why both appear.</li>
@@ -55,6 +58,7 @@ export default function Page() {
         </ul>
         <h4>lib/automation/registry.rb</h4>
         <pre><code>{"module Automation\n  # Registry maps step names to implementations. An implementation is\n  # anything that responds to #call: a lambda, a method object, or an\n  # instance of a class you wrote.\n  class Registry\n    def initialize\n      @steps = {}\n    end\n\n    def register(name, callable = nil, &block)\n      impl = callable || block\n      raise ArgumentError, \"register(#{name.inspect}) needs a callable or a block\" if impl.nil?\n      unless impl.respond_to?(:call)\n        raise ArgumentError, \"step #{name.inspect} must respond to #call, got #{impl.class}\"\n      end\n\n      @steps[name.to_sym] = impl\n      self\n    end\n\n    def fetch(name, location: nil)\n      @steps.fetch(name.to_sym) { raise UnknownStep.new(name, known, location: location) }\n    end\n\n    def registered?(name) = @steps.key?(name.to_sym)\n    def known = @steps.keys\n  end\nend\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>callable = nil, &block</code> accepts both <code>register(:fetch) {'{'} ... {'}'}</code> and <code>register(:fetch, MyStep.new)</code>. <code>impl = callable || block</code> takes whichever arrived, and <code>||</code> works because <code>nil</code> is falsy.</li>
           <li><strong><code>respond_to?(:call)</code> is the duck-typing check</strong>, and it is the right one. We do not require a base class or a module. A lambda, a method object (<code>method(:foo)</code>), a class instance with <code>#call</code>, and a curried proc all qualify. Ruby libraries that demand you inherit from their base class are usually a design smell.</li>
@@ -105,6 +109,14 @@ export default function Page() {
           <li>What does <code>Hash#fetch</code> with a block do that <code>Hash#[]</code> does not?</li>
           <li>Why must every error in a gem inherit from one base class?</li>
         </ol>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p>
+            <img className="mascot-center" src={img3.src} alt="The Mewlang cat, facing forward" width="120" loading="lazy" />
+            Nothing in Milestone 1 needs Ruby specifically. <code>Registry#register</code> accepting "anything that responds to <code>#call</code>" is duck typing, and it is genuinely convenient: a lambda, a <code>Method</code> object and a plain object all work with zero adapter code. But the same design is one interface declaration away in Go, and a Python <code>Protocol</code> gets you the same check with static tooling behind it. What this milestone actually shows off is smaller and more concrete: <code>Data.define</code>-adjacent value semantics done by hand (<code>==</code>, <code>eql?</code>, <code>hash</code>, <code>freeze</code>) are four separate decisions in Ruby that a case class or a Go struct with a generated comparator would bundle for you automatically.
+          </p>
+          <p>The honest cost showed up immediately: forgetting <code>hash</code> while defining <code>==</code> breaks <code>uniq</code> and Hash lookups with no warning at write time, only at use time, and only if a test happens to exercise it. Milestone 4's <code>Data.define</code> makes this whole category of mistake impossible by generating all three together — which is itself an admission that hand-rolled value equality in Ruby is a trap worth avoiding once a better tool exists.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 2</span>Blocks: the DSL with its receiver showing</h2>
         <h3>Goal</h3>
         <p><code>Automation.pipeline("research") do |p| ... end</code> builds a runnable pipeline. The builder is an explicit block parameter, which is deliberately one step short of the DSL we want, because the difference between this and Milestone 3 is the entire lesson.</p>
@@ -112,7 +124,7 @@ export default function Page() {
         <p><code>yield</code> and block parameters, <code>reduce</code> as an interpreter, exception wrapping with automatic <code>cause</code>, and the difference between a build-time and a run-time error.</p>
         <h3>Design</h3>
         <p>
-          <img className="mascot-left" src={img3.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
+          <img className="mascot-left" src={img4.src} alt="The Mewlang cat, thinking with a paw to its chin" width="120" loading="lazy" />
           Three objects, each with one job:
         </p>
         <pre className="plain"><code>{"  Automation.pipeline(name) { |p| ... }\n        │\n        ├─ creates a Builder, hands it to the block\n        │\n        ├─ Builder#step collects Step descriptions\n        │\n        └─ Builder#to_pipeline produces a frozen Pipeline\n\n  Pipeline#run  →  reduce over the steps, looking each one up\n"}</code></pre>
@@ -173,6 +185,11 @@ export default function Page() {
           <li>Where does <code>e.cause</code> come from, and what is the Go equivalent?</li>
           <li>Why is a typo in a step name not caught until run time?</li>
         </ol>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p><code>yield builder</code> is the whole trick in this milestone, and it is smaller than it looks: a block that receives an object and calls methods on it is one line of Ruby, and the same builder pattern exists in Go (a function taking a <code>*Builder</code>), in Java (a fluent builder class) and everywhere else. Nothing here required a dynamic language yet — Milestone 3 is where that changes.</p>
+          <p>What this milestone is honest about instead is the price of choosing "return a result" over "raise an exception". A <code>Pipeline#run</code> that returns bare values, with no result wrapper, makes a failed step indistinguishable from a step that legitimately returned <code>nil</code>. We pay for that simplicity later, in Milestone 5, with a whole <code>RunResult</code> type built specifically to stop conflating the two. A language feature this milestone leans on without remarking on it: <code>rescue StandardError ={'>'} e</code> inside a bare method body works because a method definition is an implicit <code>begin</code> block — convenient here, and one more thing a reader coming from a language with explicit <code>try</code> blocks has to learn once and then never think about again.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 3</span>instance_eval: what it buys, and what it costs </h2>
         <h3>Goal</h3>
         <p>Remove the receiver, so the block reads as a language:</p>
@@ -196,7 +213,7 @@ export default function Page() {
         <pre className="plain"><code>{"[\"default_topic()\", \"filter(topic: #<Automation::NaiveDSL:0x00007f754b7183c0 @name=\\\"r\\\",\n @steps=[#<Automation::Step:0x00007f754b718118 @name=:default_topic, ...>]>)\"]\n"}</code></pre>
         <p>Look at what happened. <code>default_topic</code> was not a <code>NoMethodError</code>; it was captured by <code>method_missing</code> and became a <em>step</em> called <code>default_topic</code>. Then, because <code>method_missing</code> returns <code>self</code>, its return value was the builder, which got passed as the <code>topic:</code> option of the next step. The user asked for one step and got two, one of which contains a builder as data.</p>
         <p>
-          <img className="mascot-right" src={img4.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
+          <img className="mascot-right" src={img5.src} alt="The Mewlang cat, giving an unimpressed side-eye" width="120" loading="lazy" />
           <strong>This is the worst kind of bug</strong>: no exception, no warning, a plausible-looking result, and a failure that surfaces somewhere else entirely. It is the price of <code>method_missing</code> accepting everything.
         </p>
         <h4>Failure 2: a step name that collides with an Object method</h4>
@@ -348,6 +365,7 @@ export default function Page() {
         <h3>Implementation</h3>
         <h4>lib/automation/ast.rb</h4>
         <pre><code>{"module Automation\n  # The AST. Every node is a Data object: immutable, value-compared, and\n  # carrying the source location it came from so errors can point at the\n  # user's file rather than at ours.\n  module AST\n    StepNode = Data.define(:name, :args, :options, :location) do\n      def to_s\n        parts = args.map(&:inspect) + options.map { |k, v| \"#{k}: #{v.inspect}\" }\n        \"#{name}(#{parts.join(', ')})\"\n      end\n\n      def to_h = { name: name, args: args, options: options, location: location }\n    end\n\n    HandlerNode = Data.define(:kind, :callable, :location)\n\n    PipelineNode = Data.define(:name, :steps, :handlers, :location) do\n      def step_names = steps.map(&:name)\n      def find(name) = steps.find { |s| s.name == name.to_sym }\n      def handler(kind) = handlers.find { |h| h.kind == kind }\n\n      def to_h\n        { name: name, location: location,\n          steps: steps.map(&:to_h), handlers: handlers.map(&:kind) }\n      end\n\n      # Returns a NEW pipeline: transformations never mutate.\n      def with_steps(new_steps) = with(steps: new_steps.freeze)\n\n      def insert_before(name, node)\n        index = steps.index { |s| s.name == name.to_sym }\n        raise Error, \"no step named #{name.inspect} in #{self.name}\" if index.nil?\n\n        with_steps(steps.dup.insert(index, node))\n      end\n    end\n  end\nend\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>Data.define(:name, :args, :options, :location)</code> creates a class with readers, keyword construction, value equality, <code>hash</code>, a readable <code>inspect</code> and frozen instances. Compare with the hand-written <code>Step</code> in Milestone 1: same guarantees, a quarter of the code, and no chance of forgetting <code>hash</code>.</li>
           <li><strong>The block passed to <code>Data.define</code> is a class body.</strong> Methods defined in it become instance methods of the new class. This is the same "class bodies are executable code" idea from Part 2, used as an API.</li>
@@ -437,7 +455,7 @@ export default function Page() {
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>
-            <img className="mascot-left" src={img5.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
+            <img className="mascot-left" src={img6.src} alt="The Mewlang cat, wearing glasses, looking confident" width="120" loading="lazy" />
             Milestone 3 is the strongest case for Ruby in this curriculum. Four lines of <code>instance_eval</code> plus <code>method_missing</code> turned a builder API into something that reads like a language, and the loop example (<code>3.times {'{'} summarize index: i {'}'}</code> producing three steps) shows what you get that a data format cannot offer at any price.
           </p>
           <p>Milestone 4 is the honest correction. Everything we built there (source locations, a validator, an allow-list for untrusted input, a test asserting that building does not execute) is work that a compiled language would either give you free or make unnecessary. Racket, in Course 5, will do this <em>at compile time</em>: a typo in a step name becomes an error before the program runs, with the source location handled by the macro system rather than by counting stack frames. That comparison is the reason these two courses are adjacent in my recommended order.</p>
@@ -449,7 +467,7 @@ export default function Page() {
         <p>Note that <code>pipeline.rb</code> and <code>dsl.rb</code> are still there. Keep them: they are the Milestone 2 and 3 designs, they still pass their tests, and a reader of your repository can follow the same progression you did. Deleting the earlier versions is throwing away the argument.</p>
         <footer className="end">
           <p>
-            <img className="mascot-center" src={img6.src} alt="The Mewlang cat, stretching and relaxed" width="150" loading="lazy" />
+            <img className="mascot-center" src={img7.src} alt="The Mewlang cat, stretching and relaxed" width="150" loading="lazy" />
             Instalment 7 of the five-course curriculum. Next: Ruby Milestones 5–8, where the runner grows a context and middleware, failures get retries and handlers that actually work, plugins arrive via <code>define_method</code> and <code>method_missing</code>, and the steps start doing real work against HTTP, the filesystem and SQLite.
           </p>
         </footer>

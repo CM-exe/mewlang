@@ -37,6 +37,11 @@ export default function Page() {
         <p><code>main.rkt</code> re-exporting everything from <code>labeled.rkt</code> is the project's public entry point — <code>(require "main.rkt")</code> from anywhere else in the project, or eventually from outside it, is meant to be the one line that pulls in the whole toolkit's public surface, the same role Perl's top-level <code>Strata.pm</code> or Go's package-level exports played in earlier courses.</p>
         <h4>Verified</h4>
         <pre className="plain"><code>{"> (require \"labeled.rkt\")\n> (define l (labeled \"checking\" 2400.00))\n> (labeled-name l)\n\"checking\"\n> (labeled-value l)\n2400.0\n"}</code></pre>
+        <h4>Experiment</h4>
+        <p>Construct a second <code>labeled</code> value with an exact integer instead of a decimal literal — <code>2400</code>, not <code>2400.00</code> — and compare what prints back.</p>
+        <pre><code>{"(define l2 (labeled \"checking\" 2400))\n(labeled-value l2)\n(exact? (labeled-value l2))\n"}</code></pre>
+        <pre className="plain"><code>{"> (labeled-value l2)\n2400\n> (exact? (labeled-value l2))\n#t\n"}</code></pre>
+        <p>No <code>.0</code> this time, and <code>exact?</code> confirms why: a literal written without a decimal point is an exact integer, and Racket only normalises the way <code>2400.00</code> did above when a number is inexact in the first place. Nothing about <code>labeled</code> itself changed — the same struct, the same accessor — only the kind of number handed to it did.</p>
         <div className="exercise">
           <h5>Exercise 1</h5>
           <ol>
@@ -59,15 +64,27 @@ export default function Page() {
         <p>Build the pure, data-handling functions the rest of the toolkit needs — before any macro or interpreter exists to use them — the same "get the data model right while it is still trivial to test" instinct Erlang's Milestone 2 and Go's Milestone 1 both applied.</p>
         <h3>Concepts</h3>
         <p>Lists, pairs, <code>map</code>/<code>filter</code>/<code>foldl</code>, recursion, and <code>match</code> applied to more than one shape at once.</p>
+        <h3>Design</h3>
+        <p>Every function here takes a plain Racket list and returns a plain number — not a custom "dataset" struct wrapping one, and not a <code>labeled</code> value from Milestone 1. The toolkit does not yet know what these numbers will eventually represent (an account balance, a robot's recorded positions, a benchmark's measured timings), so keeping <code>sum</code>, <code>average</code>, <code>minimum</code>, and <code>maximum</code> ignorant of all of that, working over the single simplest shape Racket gives you for "a bunch of values," is what lets these same four functions get reused unchanged wherever a later milestone needs one. <code>foldl</code> specifically, rather than hand-written recursion, is the other half of the decision: all four are "reduce a list to one value," and writing that shape once as a call to a built-in higher-order function is both shorter and, per the comparison below, the exact pattern every other course in this curriculum converges on under a different name.</p>
         <h3>Implementation</h3>
         <pre><code>{";; stats.rkt\n#lang racket\n(provide sum average minimum maximum)\n\n(define (sum xs) (foldl + 0 xs))\n\n(define (average xs)\n  (if (empty? xs) 0 (/ (sum xs) (length xs))))\n\n(define (minimum xs) (foldl min (first xs) (rest xs)))\n(define (maximum xs) (foldl max (first xs) (rest xs)))\n"}</code></pre>
         <h4>Verified</h4>
         <pre className="plain"><code>{"> (sum (list 1 2 3 4 5))\n15\n> (average (list 10 20 30))\n20\n> (minimum (list 5 2 8 1 9))\n1\n> (maximum (list 5 2 8 1 9))\n9\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong><code>(foldl min (first xs) (rest xs))</code></strong> is worth pausing on: rather than special- casing an empty list with an awkward sentinel value ("what is the minimum of nothing?"), it seeds the fold with the list's own first element and folds over the rest — which is also, not incidentally, why <code>minimum</code> and <code>maximum</code> both raise a clear error on an empty list (<code>first</code> of <code>'()</code> fails) rather than silently returning a made-up default the way <code>average</code> deliberately chose to for zero.</p>
         <div className="cmp">
           <h5>A typical language vs. Racket</h5>
           <p>Every course in this curriculum has now built some version of "reduce a list to one value" — Go's <code>for</code> loop with a mutable accumulator, Erlang's tail-recursive accumulator-passing function, Perl's <code>foreach</code> with a running total. <code>foldl</code> is the same idea named and factored out as a single higher-order function, parametrised by the combining operation (<code>+</code>, <code>min</code>, <code>max</code>, or, in Milestone 4, evaluating an AST node) — worth noticing as the same shape recurring for the fifth time in five languages, not a Racket-specific trick.</p>
         </div>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p>Be honest about the readability trade this makes. <code>(foldl min (first xs) (rest xs))</code> is shorter than a loop, but it asks you to already know what <code>foldl</code>'s three arguments mean and in what order — a newcomer reading <code>for (x : xs) {'{'} m = min(m, x) {'}'}</code> in Go can guess the whole algorithm from the shape alone, where <code>foldl</code>'s call reveals nothing about which argument is the seed and which is the list without already knowing the function's contract. Stepping through a <code>foldl</code> call with a debugger is also genuinely less natural than stepping through an imperative loop's iterations one at a time, since there is no loop body to set a breakpoint inside. The trade is worth making here — four tiny, obviously-correct one-liners instead of four small loops — but "shorter" and "more readable to someone who has not internalised <code>foldl</code> yet" are not the same claim, and this course is asking you to internalise it early precisely because Milestone 4 onward assumes you already have.</p>
+        </div>
+        <h4>Experiment</h4>
+        <p>Call <code>average</code> and <code>minimum</code> on the same empty list, and predict, before running it, whether both behave the same way.</p>
+        <pre><code>{"(average (list))\n(minimum (list))\n"}</code></pre>
+        <pre className="plain"><code>{"> (average (list))\n0\n> (minimum (list))\n; first: contract violation\n;   expected: (and/c list? (not/c empty?))\n;   given: '()\n"}</code></pre>
+        <p>They do not — <code>average</code> silently returns <code>0</code> for an empty list, a deliberate choice made explicit in its own <code>if</code>, while <code>minimum</code> raises immediately, because its <code>foldl</code> seed is <code>(first xs)</code> and <code>first</code> has nothing to return on an empty list. Two different, equally deliberate answers to "what should the empty case do," living side by side in the same four-function file — worth noticing precisely because nothing about <code>average</code>'s or <code>minimum</code>'s code loudly announces that they disagree.</p>
         <div className="exercise">
           <h5>Exercise 2</h5>
           <ol>
@@ -94,6 +111,7 @@ export default function Page() {
         <p>Two different validation points, used for two different purposes, both meeting in this milestone. A <strong><code>#:guard</code></strong> on a struct makes an invalid instance impossible to construct at all, anywhere, including inside the module that defines it — the strongest guarantee available. <strong>Contracts on <code>provide</code></strong> check values crossing the module boundary specifically, which is the right place to check when the validation genuinely only matters for external callers (internal code that already maintains its own invariants pays no contract-checking cost for calls to itself).</p>
         <h3>Implementation</h3>
         <pre><code>{";; robot.rkt\n#lang racket\n(provide (struct-out robot) move)\n\n(struct robot (name x y energy) #:transparent\n  #:guard (lambda (name x y energy type-name)\n    (unless (>= energy 0)\n      (error type-name \"energy cannot be negative: ~a\" energy))\n    (values name x y energy)))\n\n(define (move r dx dy)\n  (struct-copy robot r\n    [x (+ (robot-x r) dx)]\n    [y (+ (robot-y r) dy)]\n    [energy (max 0 (- (robot-energy r) 1))]))\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong><code>(provide (struct-out robot) move)</code></strong> — <code>struct-out</code> exports the constructor, predicate, and every accessor for <code>robot</code> in one line, rather than listing <code>robot</code>, <code>robot?</code>, <code>robot-name</code>, <code>robot-x</code>, <code>robot-y</code>, and <code>robot-energy</code> individually. <strong>The guard runs on every construction</strong>, including the one inside <code>move</code>'s own <code>struct-copy</code> — move a robot until its energy would go negative and the guard rejects it just as firmly as a hand-written bad literal would, which is exactly why <code>move</code> clamps with <code>(max 0 ...)</code> itself rather than relying on the guard to catch a case it should simply never produce.</p>
         <h4>Verified</h4>
         <pre className="plain"><code>{"> (define r (robot \"wall-e\" 0 0 100))\n> (move r 3 4)\n#(struct:robot \"wall-e\" 3 4 99)\n> (robot \"bad\" 0 0 -5)\nrobot: energy cannot be negative: -5\n"}</code></pre>
@@ -101,6 +119,11 @@ export default function Page() {
           <h5>A guard runs on every construction, including ones you did not think of as "constructing"</h5>
           <p>The first version of <code>move</code> built a replacement robot with <code>(robot (robot-name r) (+ (robot-x r) dx) (+ (robot-y r) dy) (- (robot-energy r) 1))</code> rather than <code>struct-copy</code>, and a chaos-flavoured test that moved a near-empty robot several times in a row crashed on the guard, mid-loop, with no warning. This was correct behaviour, not a bug — an energy value going negative genuinely should be rejected — but it revealed that <code>move</code>'s own responsibility was clamping the value <em>before</em> constructing, not relying on the guard to stop it after the fact and catching the resulting exception everywhere <code>move</code> is called. <strong>A guard is a last line of defence, not a substitute for the calling code doing its own arithmetic correctly.</strong></p>
         </div>
+        <h4>Experiment</h4>
+        <p>Move a robot a very long way — far past any sensible board edge — and confirm the guard, as written so far, has nothing to say about it.</p>
+        <pre><code>{"(define r (robot \"wall-e\" 0 0 1))\n(define r2 (move (move r 100000 0) 0 0))\n(printf \"x=~a y=~a energy=~a\\n\" (robot-x r2) (robot-y r2) (robot-energy r2))\n"}</code></pre>
+        <pre className="plain"><code>{"$ racket robot-far.rkt\nx=100000 y=0 energy=0\n"}</code></pre>
+        <p>Accepted without complaint. The guard only ever checks <code>energy</code> — <code>x</code> and <code>y</code> can be anything at all right now, however far outside a sensible playing field, because nothing has told the struct that a bound on position is even a rule yet. Exercise 3 is precisely where that rule gets written.</p>
         <div className="exercise">
           <h5>Exercise 3</h5>
           <ol>
@@ -132,6 +155,7 @@ export default function Page() {
         <p>Five AST node types, each a small struct: a number literal, a string literal, addition, a variable reference, and a <code>let</code>-binding. An environment is a list of <code>(name . value)</code> pairs — genuinely the simplest correct representation, and, per Milestone 2's own established idiom, already exactly the shape <code>assoc</code> from the standard library knows how to search.</p>
         <h3>Implementation</h3>
         <pre><code>{";; config-interp.rkt\n#lang racket\n(provide (struct-out num-e) (struct-out str-e) (struct-out add-e)\n         (struct-out var-e) (struct-out let-e) eval-expr)\n\n(struct num-e (val) #:transparent)\n(struct str-e (val) #:transparent)\n(struct add-e (l r) #:transparent)\n(struct var-e (name) #:transparent)\n(struct let-e (name val body) #:transparent)\n\n(define (eval-expr e env)\n  (match e\n    [(num-e v) v]\n    [(str-e v) v]\n    [(add-e l r) (+ (eval-expr l env) (eval-expr r env))]\n    [(var-e name)\n     (cond [(assoc name env) => cdr]\n           [else (error 'eval-expr \"unbound variable: ~a\" name)])]\n    [(let-e name val body)\n     (eval-expr body (cons (cons name (eval-expr val env)) env))]))\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong>One <code>match</code>, one clause per AST node type</strong> — this is the entire evaluator, and it reads almost like a specification of the language's semantics rather than an implementation of one: a number evaluates to itself, addition evaluates both sides and adds them, a variable looks itself up in the environment, a <code>let</code> evaluates its value, extends the environment with a new binding, and evaluates its body in that extended environment. <strong><code>(cond [(assoc name env) ={'>'} cdr] ...)</code></strong> is a real, idiomatic Racket form worth knowing: <code>={'>'}</code> inside a <code>cond</code> clause means "if the test expression is truthy, pass <em>that value</em> (not just a boolean) to the function on the right" — <code>assoc</code> returns the whole matching pair or <code>#f</code>, and <code>cdr</code> extracts the value from it, without needing to call <code>assoc</code> a second time or bind an intermediate variable.</p>
         <h4>Verified</h4>
         <pre className="plain"><code>{";; (let x = 2 + 3 in x + 10)\n> (define prog\n    (let-e 'x (add-e (num-e 2) (num-e 3))\n           (add-e (var-e 'x) (num-e 10))))\n> (eval-expr prog '())\n15\n> (eval-expr (var-e 'y) '())\neval-expr: unbound variable: y\n"}</code></pre>
@@ -140,6 +164,11 @@ export default function Page() {
           <h5>Why are we using this language here?</h5>
           <p>Notice what did <em>not</em> need to exist for this milestone: no separate parser, no separate token stream, no bespoke AST library distinct from ordinary Racket data. The AST is five struct types; the "parser" for now is simply writing out struct constructors directly, which works because — Section 2.1's whole point — a nested struct expression <em>is</em> already a tree, the exact shape an AST needs. Milestone 8's toolkit work generates structs like these from a specification; Milestone 9 replaces "write out constructors by hand" with a real reader parsing actual <code>.finance</code> text. Every later milestone is variations on exactly the shape built here.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Shadow a name: build a program where an inner <code>let</code> rebinds <code>x</code> to a different value while an outer <code>x</code> is still in scope, and confirm each reference to <code>x</code> sees the binding that was actually closest to it, not the first one ever created.</p>
+        <pre><code>{";; (let x = 1 in x + (let x = 100 in x + 0))\n(define prog\n  (let-e 'x (num-e 1)\n    (add-e (var-e 'x)\n      (let-e 'x (num-e 100)\n        (add-e (var-e 'x) (num-e 0))))))\n(eval-expr prog '())\n"}</code></pre>
+        <pre className="plain"><code>{"> (eval-expr prog '())\n101\n"}</code></pre>
+        <p>101, not 1 and not 200 — the inner <code>(var-e 'x)</code> uses (100), and the outer one uses 1. Nothing in <code>eval-expr</code> was written specifically to handle shadowing; it falls out entirely from <code>let-e</code>'s clause consing the new binding onto the <em>front</em> of <code>env</code> and <code>assoc</code> always returning the first match it finds — the newest binding for a name is always the first one <code>assoc</code> sees, which is exactly what "closest enclosing scope wins" means, implemented with no special-casing at all.</p>
         <div className="exercise">
           <h5>Exercise 4</h5>
           <ol>
@@ -161,6 +190,12 @@ export default function Page() {
           <li>What does <code>={'>'}</code> inside a <code>cond</code> clause do, and why does it avoid calling <code>assoc</code> twice?</li>
           <li>Why does <code>var-e</code>'s clause raise its own specific error rather than letting a failed lookup propagate some other way?</li>
         </ol>
+        <h4>Common mistakes in Milestone 4</h4>
+        <div className="warn">
+          <p><strong>Forgetting to actually extend the environment inside <code>let-e</code>'s clause</strong> — writing <code>(eval-expr body env)</code> instead of <code>(eval-expr body (cons (cons name (eval-expr val env)) env))</code>. The mistake compiles without complaint, because <code>env</code> is exactly the right type either way — a list of pairs — and the bug only shows up when the body actually references the name the <code>let</code> was supposed to introduce:</p>
+          <pre className="plain"><code>{"; eval-expr: unbound variable: x\n"}</code></pre>
+          <p>for the ordinary example this milestone verifies, <code>(let x = 2 + 3 in x + 10)</code>, that message is genuinely confusing the first time: <code>x</code> is right there, bound, in the source — the bug is that it was never bound in the environment the evaluator actually threads through, which is a distinction the error message itself cannot show you, only the source of <code>eval-expr</code> can.</p>
+        </div>
         <h4>Common mistakes in Milestones 1–4</h4>
         <div className="warn">
           <ul>

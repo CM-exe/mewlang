@@ -578,6 +578,23 @@ func TestDifferentSeedDiffersSomewhere(t *testing.T) {
             <li>What does <code>flag.Int</code> return, and why is it not an <code>int</code>?</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Milestone 1 is deliberately small, and Go does not do much heavy lifting yet: a struct, a constructor
+                function, and <code>flag</code> parsing would look almost identical in any statically typed
+                language. Two small things are worth noticing anyway. The flat-array grid (<code>[]int</code> of
+                length <code>w*h</code> instead of <code>[][]int</code>) is a pattern Go nudges you toward because
+                slices of slices are genuinely more expensive here — multiple allocations, worse cache behaviour —
+                where a language with true multi-dimensional arrays (Fortran, or NumPy in Python) would give you the
+                fast layout by default. And <code>go test</code>, <code>go vet</code> and a formatter being built
+                into the toolchain from day one means this project has real tests before it has any real complexity
+                to test, with no dependency to install.</p>
+            <p>The honest cost: Go's error handling is already visible in <code>parseGrid</code>
+                (<code>fmt.Errorf</code> plus a manual check), and for a program this small that is more ceremony
+                than a language with exceptions would need for the same behaviour. At this scale, Go's discipline is
+                mostly overhead you are paying in advance for milestones that have not arrived yet.</p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 2</span>A thousand ants, still sequential</h2>
 
         <h3>Goal</h3>
@@ -605,6 +622,21 @@ func TestDifferentSeedDiffersSomewhere(t *testing.T) {
             is fine at 1,000 ants and wasteful at 50,000 when a viewer asks 60 times a second. We will do the naive
             thing now and fix it in Milestone 9 with counters, because doing it now would be optimising a system whose
             shape we do not yet know. Write down the fact that it is O(n), then move on.</p>
+
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>In Python, Ruby or Java, "a list of ants" is unambiguous: <code>list</code>/<code>ArrayList</code>
+                holds references to objects, full stop, and there is no other option to weigh. Iterating and
+                mutating an element in place just works, because every element was a reference to begin with.</p>
+            <p>Go makes you choose, because <code>[]Ant</code> and <code>[]*Ant</code> are genuinely different types
+                with different behaviour: a value slice copies on iteration and can be more cache-friendly, a
+                pointer slice gives every ant a stable address that a goroutine can hold onto safely later. Neither
+                is the "normal" choice the way a reference-typed list is in those other languages — you have to
+                decide, and the decision has consequences four milestones from now. The cost of that freedom is
+                exactly the bug in this milestone's Common mistakes box: <code>for _, a := range ants { a.Energy-- }</code>
+                silently does nothing with <code>[]Ant</code>, a mistake that cannot even be expressed in a language
+                where lists always hold references.</p>
+        </div>
 
         <h3>Implementation</h3>
 
@@ -886,6 +918,23 @@ BenchmarkStep1000Ants-1   	  102345	     11234 ns/op	       0 B/op	       0 allo
                 benefit of that choice.</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>This milestone's real content — scattering food, growing a slice, computing statistics — is
+                language-agnostic. What Go contributes is <code>testing.B</code> and <code>-benchmem</code> built
+                into the standard toolchain: no separate benchmarking library, no separate profiler to wire up, just
+                <code>go test -bench . -benchmem</code> and a number. Getting to "zero allocations per op" for
+                <code>Step</code> is realistic specifically because Go gives you value types, arrays, and
+                preallocated slices as first-class, unremarkable choices, not an optimisation you reach for only
+                under pressure.</p>
+            <p>The honest counterweight: none of this matters yet. At 1,000 ants a Python or Ruby version of the
+                same sequential loop would run measurably slower but would still be fast enough to develop against
+                and to teach from; the zero-allocation discipline pays for itself starting around Milestone 4, when
+                the ant count and the concurrency both grow by orders of magnitude. Optimising a program before you
+                know its real shape is a waste of a milestone, and this one is honest that the payoff is deferred.
+            </p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 3</span>Behaviour: forage, carry, return</h2>
 
         <h3>Goal</h3>
@@ -1143,6 +1192,22 @@ func caller() {
                 pointer. The rule that avoids it entirely: <strong>functions that can fail return <code>error</code>,
                     never a concrete error type.</strong> Our <code>TakeFood</code> returns <code>error</code>, which is
                 why it is safe.</p>
+        </div>
+
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>In Python, Ruby or Java, a missing-food pickup would typically be an exception:
+                <code>raise NoFoodError</code>, caught somewhere up the call stack, with the normal and the failure
+                paths visually separated by <code>try</code>/<code>except</code>. It reads well for the happy path,
+                and it is easy to let an exception cross a boundary it should not — a caller three frames up
+                catching, or silently swallowing, a failure it does not understand.</p>
+            <p>Go's idiomatic answer makes failure an ordinary return value: <code>TakeFood</code> returns
+                <code>error</code> alongside its other results, every caller sees it at the call site, and the
+                compiler does not stop you from ignoring it (though <code>go vet</code> and linters will nag). The
+                cost is <code>if err != nil</code> after nearly every call, which reads as noise until you have
+                debugged a system where a silent exception three services away turned out to be the whole incident.
+                Neither approach is strictly better; Go trades brevity for the failure path always being visible in
+                the code you are reading.</p>
         </div>
 
         <h4>internal/sim/sim.go — apply and handle</h4>

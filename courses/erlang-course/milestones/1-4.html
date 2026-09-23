@@ -130,6 +130,15 @@ validity_test_() ->
                 did not" is a real, common Erlang mistake worth recognising on sight.</p>
         </div>
 
+        <h4>Explanation</h4>
+
+        <p>The design goal from above is already visible in <code>mesh_id.erl</code>'s two exported functions:
+            <code>new/0</code> is the only way to produce an id, and <code>is_valid/1</code> is the only way to ask
+            whether some value someone else handed you looks like one. Nothing else in this module is exported, and
+            nothing else in this project is meant to construct an id by writing an integer literal directly — a
+            small discipline now, paying off the moment id generation needs to change (as it does in Milestone 3).
+        </p>
+
         <h4><code>rebar3 shell</code>: your project, interactively</h4>
 
         <pre class="plain"><code>$ rebar3 shell
@@ -170,6 +179,42 @@ true
                 Nothing about the process dictionary is written to disk; it is memory belonging to one specific,
                 now-dead process.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Compile <code>mesh_id.erl</code> with a bare <code>erlc</code> in its own directory, then start a plain
+            <code>erl</code> shell from a <em>different</em> directory and try calling <code>mesh_id:new()</code>.
+            Predict whether it works before trying it.</p>
+        <pre class="plain"><code>$ cd /tmp/somewhere
+$ erlc mesh_id.erl
+$ cd /tmp/elsewhere
+$ erl
+1&gt; mesh_id:new().
+** exception error: undefined function mesh_id:new/0
+</code></pre>
+        <p><code>undef</code>, not a compile error — the module compiled fine, but the plain <code>erl</code> shell
+            has no reason to know where its <code>.beam</code> file landed, because nothing told it to look there.
+            <code>rebar3 shell</code> never has this problem because it manages the project's code path for you as
+            part of booting the application; a bare <code>erl</code> session started from an arbitrary directory
+            does not, which is exactly the workflow gap <code>rebar3 shell</code> exists to close.</p>
+
+        <h4>Common mistakes in Milestone 1</h4>
+        <div class="warn">
+            <p><strong>Forgetting that <code>reset/0</code> (Solution 1) sets the counter to <code>0</code>, not
+                    to "unset."</strong> <code>new/0</code> treats <code>undefined</code> (never called before) and
+                any integer identically — increment it by one — so <code>reset/0</code> followed by <code>new/0</code>
+                behaves exactly like a fresh process would, which is easy to assume without checking:</p>
+            <pre class="plain"><code>1&gt; mesh_id:new(), mesh_id:new(), mesh_id:new().
+3
+2&gt; mesh_id:reset().
+ok
+3&gt; mesh_id:new().
+1
+</code></pre>
+            <p>Worth confirming rather than assuming, precisely because <code>get(mesh_id_counter)</code> returning
+                <code>0</code> after a reset and returning <code>undefined</code> before the first call are
+                different values that happen to produce the same next id — a coincidence of this specific
+                implementation, not a guarantee <code>reset/0</code> makes explicit anywhere in its own code.</p>
+        </div>
 
         <h4>Checkpoint</h4>
         <ol>
@@ -237,6 +282,8 @@ summarize([Node | Rest], Alive, Total) -&gt;
         false -&gt; summarize(Rest, Alive, Total + 1)
     end.
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p><strong>The <code>if</code> inside <code>drain/2</code></strong> is Erlang's other conditional form,
             distinct from a guard: each branch is a boolean expression (not restricted the way a guard's clause
@@ -332,6 +379,42 @@ healthiest([_ | Rest], Best) ->
                 the instalment is doing the entire comparison.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p><code>drain/2</code>'s guard requires <code>Amount &gt;= 0</code>. Call it with a negative amount and
+            predict the failure mode before running it — does it crash, silently do nothing, or something else?</p>
+        <pre class="plain"><code>1&gt; N0 = mesh_node_state:new(1).
+#{energy =&gt; 100,id =&gt; 1,status =&gt; alive}
+2&gt; mesh_node_state:drain(N0, -10).
+** exception error: no function clause matching
+                     mesh_node_state:drain(#{energy =&gt; 100,id =&gt; 1,
+                                              status =&gt; alive},-10)
+</code></pre>
+        <p><code>function_clause</code>, immediately — <code>drain/2</code> has exactly one clause, guarded by
+            <code>Amount &gt;= 0</code>, and no fallback clause for anything else, so a negative amount matches
+            nothing at all rather than silently doing the wrong thing. This is why <code>recharge/2</code>
+            (Solution 2) exists as its own separate function instead of letting <code>drain/2</code> accept a
+            negative amount to mean "recharge": the guard is deliberately narrow, and widening it to accept
+            negative numbers would make "what does draining by -10 mean?" a question the function's own name no
+            longer honestly answers.</p>
+
+        <h4>Common mistakes in Milestone 2</h4>
+        <div class="warn">
+            <p><strong>Writing the accumulator-based recursion for <code>average_energy/1</code> without the
+                    dedicated empty-list base case.</strong> The real implementation is two clauses —
+                <code>average_energy([]) -&gt; 0</code> for the empty-mesh case, then
+                <code>average_energy(Nodes) -&gt; average_energy(Nodes, 0, 0)</code> for everything else — precisely
+                so an empty list never reaches the three-argument accumulator version at all. Drop the first clause
+                and let the accumulator version handle <em>every</em> input, including <code>[]</code>, and the
+                empty case now computes <code>0 / 0</code> instead of returning the documented default:</p>
+            <pre class="plain"><code>1&gt; badavg:average_energy([]).
+** exception error: an error occurred when evaluating an arithmetic expression
+     in function  badavg:average_energy/3
+</code></pre>
+            <p><code>badarith</code>, not <code>0</code> — the one-line arity-1 clause in the real
+                <code>average_energy/1</code> is not a stylistic flourish, it is the entire reason the documented
+                "0 for an empty list" behaviour from Solution 2 actually holds.</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why can <code>N0</code> never change after <code>drain(N0, 60)</code> is called, even though the
@@ -410,12 +493,29 @@ loop(State) -&gt;
     end.
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong>Two exports, two audiences.</strong> The first <code>-export</code> is the real public API:
             <code>start/1</code>, <code>get_status/1</code>, and so on, meant to be called from other modules. The
             second, <code>loop/1</code> alone, exists purely because <code>spawn/3</code> calls a function by module
             and name from <em>outside</em> the module, which requires it to be exported — but nothing about
             <code>loop/1</code> is meant to be called directly by other code, and the comment says so, because the
             export list alone cannot express "technically public, please do not use this."</p>
+
+        <div class="cmp">
+            <h5>A typical language vs. Erlang</h5>
+            <p>Asking another thread for a value and waiting for the answer is usually built on a library
+                primitive — a <code>Future</code> or <code>CompletableFuture</code> in Java, a <code>Promise</code>
+                in JavaScript, a channel used as a one-shot rendezvous in Go — something the language or its
+                standard library hands you already assembled. <code>call/2</code> here is that same idea, built
+                from two lower-level primitives that were already sitting in the language before this module ever
+                needed them: an ordinary message send, and a <code>receive</code> that only matches a reply tagged
+                with the specific <code>Ref</code> this call made up. Nothing new had to be added to the language to
+                get a request/response pattern — it falls out of "send" and "selectively wait for a matching
+                message" being primitives in the first place, which is also exactly why Milestone 5 can later
+                replace this by-hand version with <code>gen_server:call/2</code> without changing what calling a
+                mesh node feels like from the outside.</p>
+        </div>
 
         <h4>Verified: a live process, answering by message</h4>
 
@@ -500,6 +600,40 @@ io:format("~p nodes started in ~p ms~n", [N, Time div 1000]).</code></pre>
                 different failure mode from the unmatched-message case in part 2.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Suppose <code>crash/1</code> had been written to go through the call/reply wrapper, like
+            <code>get_status/1</code> and <code>drain/2</code> do, instead of the direct <code>Pid ! crash</code>
+            it actually uses. Try it — write a <code>crash_wrong/1</code> that does
+            <code>call(Pid, crash)</code> — and predict what happens when you call it.</p>
+        <pre class="plain"><code>1&gt; Pid = mesh_node:start(1).
+&lt;0.94.0&gt;
+2&gt; timer:tc(fun() -&gt; mesh_node:crash_wrong(Pid) end).
+{1003211,{error,timeout}}
+3&gt; mesh_node:get_status(Pid).
+alive
+</code></pre>
+        <p>It takes just over a second and returns <code>{error, timeout}</code> — the node never crashes at all.
+            <code>call/2</code> sends <code>{self(), Ref, crash}</code>, but <code>loop/1</code>'s crash clause
+            matches the bare atom <code>crash</code>, not a three-tuple containing it — a shape mismatch, not a
+            missing feature. The message sits unmatched in the mailbox forever (the same fate as the plain
+            <code>banana</code> message from Exercise 3's part 2), and the caller waits out the full <code>after
+            1000</code> timeout for a reply that was never coming, because the process it was calling never even
+            saw a message it recognised. This is exactly why the design section's rule — "callers never construct a
+            message tuple by hand, only the module's own API functions do" — exists: <code>crash/1</code>'s actual
+            implementation (<code>Pid ! crash, ok</code>) matches what <code>loop/1</code> actually expects, and a
+            plausible-looking but wrong wrapper does not.</p>
+
+        <h4>Common mistakes in Milestone 3</h4>
+        <div class="warn">
+            <p><strong>Assuming <code>loop/1</code>'s pattern-matching is forgiving about message shape.</strong>
+                It is exactly as strict as any other function clause — <code>{From, Ref, get_status}</code> matches
+                only a three-tuple with <code>get_status</code> as its third element, nothing that merely
+                "looks similar" or carries the same intent in a different shape. The Experiment above is one
+                concrete instance of a more general trap: every one of <code>call/2</code>'s callers is trusting
+                that whatever message it sends is one <code>loop/1</code> actually has a clause for, and nothing in
+                the type system checks that for you — only running it, or reading both sides carefully, does.</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why does <code>loop/1</code> need to be exported even though it is not meant to be called from other
@@ -566,6 +700,8 @@ watcher: node 7 is now &lt;0.81.0&gt;
 Error in process &lt;0.80.0&gt; with exit value:
 {simulated_crash,[{mesh_node,loop,1,[{file,"mesh_node.erl"},{line,14}]}]}
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p>Read the process identifiers carefully: the dead node was <code>&lt;0.80.0&gt;</code>, and its
             replacement is <code>&lt;0.81.0&gt;</code> — a genuinely different process, with genuinely fresh state,
@@ -658,6 +794,28 @@ watch_loop(Id, Restarts) -&gt;
                 default propagate-and-die behaviour running in the wrong direction when the supervisor itself has a
                 bug.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Using Solution 4's restart-counting <code>watch_loop/2</code>, crash the <em>same</em> node five times in
+            a tight loop, back to back, with no delay. Predict whether the watcher ever refuses to restart it —
+            compare your prediction to what Milestone 6's supervisor will do under the same crash pattern.</p>
+        <pre class="plain"><code>1&gt; WPid = mesh_watcher:start(7).
+watcher: node 7 is now &lt;0.80.0&gt; (restart #0)
+&lt;0.79.0&gt;
+2&gt; [mesh_node:crash(element(2, ...)) || _ &lt;- lists:seq(1,5)].   %% grab the latest pid each time
+watcher: node 7 is now &lt;0.81.0&gt; (restart #1)
+watcher: node 7 is now &lt;0.82.0&gt; (restart #2)
+watcher: node 7 is now &lt;0.83.0&gt; (restart #3)
+watcher: node 7 is now &lt;0.84.0&gt; (restart #4)
+watcher: node 7 is now &lt;0.85.0&gt; (restart #5)
+3&gt; is_process_alive(WPid).
+true
+</code></pre>
+        <p>It never refuses. Five crashes, five restarts, no hesitation, no threshold anywhere in the code to hit —
+            confirmed live, not just asserted by the warn box above. This is the concrete, observed version of "no
+            restart intensity limit": a real supervisor with <code>intensity =&gt; 3, period =&gt; 5</code>
+            (Milestone 6) would have terminated itself on the fourth of these same five crashes; this hand-rolled
+            watcher, on the fifth crash exactly as on the first, does not know how to give up.</p>
 
         <h4>Common mistakes in Milestones 1–4</h4>
         <div class="warn">

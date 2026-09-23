@@ -129,6 +129,8 @@ ok
 crashed
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p>Character for character, the public API's usage is unchanged from Milestone 3 — the whole point. What
             changed is fifteen lines of hand-written message plumbing became four callback functions, and a class of
             bug (a reply sent with the wrong <code>Ref</code>, a forgotten timeout, a loop call with stale state)
@@ -150,6 +152,20 @@ crashed
                 backpressure at all, so a caster that outpaces its target simply grows the target's mailbox without
                 limit, which is exactly the mailbox-growth hazard from the instalment's Section 2.7 warning, now
                 self-inflicted by choosing the wrong primitive.</p>
+        </div>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p><code>gen_server</code> is a contract, not magic: everything it does, Milestone 3's hand-rolled
+                <code>loop/1</code> already did, by hand, in fifteen lines. What OTP buys is that the fifteen lines
+                are written once, in the standard library, tested across decades of production systems, and a bug
+                in them is nobody's bug in this project ever again. The honest cost is a real one: a behaviour adds
+                a layer of indirection between "what message arrived" and "what code runs" that a newcomer has to
+                learn before <code>mesh_node.erl</code> makes sense at a glance — Milestone 3's raw
+                <code>receive</code> loop, for all its manual plumbing, is more immediately legible to someone who
+                has never seen <code>gen_server</code> before. That tradeoff — less code and fewer footguns, in
+                exchange for needing to already know the convention — is the same one every framework built on
+                "implement these callbacks, we call the shots" makes, in any language.</p>
         </div>
 
         <div class="exercise">
@@ -190,6 +206,39 @@ handle_call(_Unknown, _From, State) ->
                 before timing out on exactly this case, with no way to distinguish "dead process" from "alive but
                 slow to reply" from the caller's side.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Call <code>gen_server:call/3</code> directly, bypassing <code>get_status/1</code>'s wrapper, with a
+            timeout of <code>0</code> milliseconds. Predict whether it behaves like Milestone 3's hand-rolled
+            <code>{error, timeout}</code> return value.</p>
+        <pre class="plain"><code>1&gt; {ok, Pid} = mesh_node:start_link(1).
+{ok,&lt;0.83.0&gt;}
+2&gt; catch gen_server:call(Pid, get_status, 0).
+{'EXIT',{timeout,{gen_server,call,[&lt;0.83.0&gt;,get_status,0]}}}
+</code></pre>
+        <p>It does not. Milestone 3's hand-rolled <code>call/2</code> returned <code>{error, timeout}</code> as an
+            ordinary value the caller could pattern-match on and keep going. <code>gen_server:call/2,3</code>
+            instead <strong>exits</strong> the calling process on timeout — an ordinary value from Milestone 3
+            becomes a crash here unless the caller explicitly wraps the call in <code>catch</code> or
+            <code>try</code>, which is a real, easy-to-miss behavioural difference between the two versions despite
+            the cmp box above describing them as "almost the identical syntax."</p>
+
+        <h4>Common mistakes in Milestone 5</h4>
+        <div class="warn">
+            <p><strong>Returning a bare tuple from <code>handle_call/3</code> instead of the required
+                    <code>{reply, Reply, NewState}</code> shape.</strong> <code>gen_server</code> does not
+                interpret <code>{Status, State}</code> as "reply with <code>Status</code>" — it is not a valid
+                return value at all, and the callback process crashes with <code>bad_return_value</code> the moment
+                it happens, taking down whichever caller was waiting on the reply along with it:</p>
+            <pre class="plain"><code>** exception exit: {bad_return_value,
+                        {alive,#{id => 1,status => alive,energy => 100}}}
+      in function  gen_server:handle_common_reply/8
+</code></pre>
+            <p>The <code>reply</code> atom is not decoration — it is how <code>gen_server</code> distinguishes "here
+                is the reply" from the other valid shapes a callback can return (<code>{noreply, State}</code>,
+                <code>{stop, Reason, Reply, State}</code>), and leaving it off is not a smaller version of a correct
+                answer, it is simply not one of the shapes <code>gen_server</code> recognises.</p>
+        </div>
 
         <h4>Checkpoint</h4>
         <ol>
@@ -239,6 +288,8 @@ init([]) -&gt;
     ChildSpec = #{id =&gt; mesh_node, start =&gt; {mesh_node, start_link, []}, restart =&gt; transient},
     {ok, {SupFlags, [ChildSpec]}}.
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p><strong><code>intensity =&gt; 3, period =&gt; 5</code></strong> means: tolerate at most 3 restarts in any
             rolling 5-second window; the moment a fourth would be needed within that window, the supervisor
@@ -334,6 +385,45 @@ false   %% the 4th crash inside the 5-second window: intensity exceeded
             </p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Repeat the verified transcript above — four crashes of the same node — but this time sleep 6 seconds
+            between each crash instead of sending them back to back. With <code>period =&gt; 5</code> unchanged,
+            predict whether the supervisor still goes down on the fourth crash.</p>
+        <pre class="plain"><code>1&gt; {ok, SupPid} = node_sup:start_link().
+{ok,&lt;0.79.0&gt;}
+2&gt; {ok, _} = node_sup:start_node(99).
+{ok,&lt;0.80.0&gt;}
+3&gt; [{_, P, _, _}] = supervisor:which_children(node_sup), mesh_node:crash(P), timer:sleep(6000).
+ok             %% repeat this line three more times, once per crash
+4&gt; is_process_alive(SupPid).
+true    %% still up after 4 crashes total, spaced 6s apart
+</code></pre>
+        <p>It stays up. <code>period</code> is a genuinely <em>rolling</em> five-second window, not a running total
+            of "crashes so far" — a restart six seconds after the previous one has already aged out of the window
+            the previous restart was counted in, so each of these four crashes is evaluated against a window
+            containing, at most, itself. The verified transcript earlier in this milestone and this Experiment use
+            the exact same crash count and the exact same <code>intensity</code>/<code>period</code> numbers; only
+            the timing between crashes differs, and that alone is the difference between "supervisor gives up" and
+            "supervisor absorbs every one of them indefinitely."</p>
+
+        <h4>Common mistakes in Milestone 6</h4>
+        <div class="warn">
+            <p><strong>Calling <code>supervisor:start_child/2</code> directly with the wrong extra-arguments
+                    list</strong>, bypassing <code>node_sup:start_node/1</code>'s own wrapper. A
+                <code>simple_one_for_one</code> child spec's <code>start</code> MFA gets its extra arguments list
+                appended at call time — <code>node_sup:start_node(Id)</code> always supplies
+                <code>[Id]</code>, but calling the underlying <code>supervisor:start_child/2</code> straight from
+                the shell with the wrong shape does not crash the supervisor, it fails the one child start cleanly:
+            </p>
+            <pre class="plain"><code>1&gt; supervisor:start_child(node_sup, []).
+{error,{'EXIT',{undef,[{mesh_node,start_link,[],[]}, ...]}}}
+</code></pre>
+            <p>Worth noticing precisely because it is the opposite lesson from most of this milestone: a supervisor
+                treats a child that <em>fails to start</em> as an ordinary, reportable error, not as a crash to
+                restart from — restart intensity and restart strategy only ever apply to a child that started
+                successfully and later died, not to one that never managed to start at all.</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>What does <code>intensity =&gt; 3, period =&gt; 5</code> actually bound, precisely?</li>
@@ -410,11 +500,27 @@ route(Id, Msg) -&gt;
     end.
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p>The monitor-and-clean-up pattern inside <code>register_node/2</code> is worth naming: a short-lived
             process, spawned for the sole purpose of watching one node and deleting its stale registry entry the
             moment it dies, is a completely ordinary Erlang idiom — processes are cheap enough (Milestone 3's
             measurement: microseconds to start, kilobytes to hold) that "spawn one to watch one thing" is not
             wasteful, it is simply how the language expects cleanup to be expressed.</p>
+
+        <div class="cmp">
+            <h5>A typical language vs. Erlang</h5>
+            <p>"Find a live worker by name" is usually reached for by way of an external piece of infrastructure —
+                Redis, ZooKeeper, Consul, etcd — because in-process shared state is not safe to touch from multiple
+                OS threads without a lock, and does not survive any one thread crashing anyway. That is a genuinely
+                reasonable choice in those languages: it trades a network round trip and an extra moving part for
+                safety a language runtime does not provide on its own. Erlang already provides "many processes can
+                read and write this table concurrently, safely, with no external service and no lock" as a
+                primitive, so a registry here is a handful of functions over a built-in table, not a client library
+                talking to something else. The honest limit is the flip side of that convenience:
+                <code>mesh_registry</code>'s table lives and dies with this one BEAM instance — Milestone 11's real
+                distribution is where that limitation stops being theoretical.</p>
+        </div>
 
         <h4>Verified: two thousand registered nodes, in milliseconds</h4>
 
@@ -427,6 +533,22 @@ routed lookup for id 500: alive
             milliseconds, roughly 2.8&nbsp;KB of memory each — the honest conclusion is that <strong>the process
                 model is nowhere near the limiting factor at this scale.</strong> Milestone 9's profiling looks for
             what actually is.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>ETS is worth naming honestly as an exception to the rest of this course, not just a feature: every
+                other module so far has avoided shared mutable state entirely, by design — <code>mesh_node_state</code>
+                is pure functions, <code>mesh_node</code>'s state lives privately inside one process. An ETS table
+                is genuinely mutable, genuinely shared, and genuinely accessible from any process without going
+                through a gatekeeper — the opposite of the message-passing discipline the rest of the language
+                encourages. It earns its place here specifically because a registry's job (many readers, frequent
+                writers, no single process should be a bottleneck for either) is exactly the shape mutable shared
+                memory is good at and message-passing is comparatively bad at; reimplementing the same registry as
+                a single <code>gen_server</code> guarding a map would serialise every lookup through one mailbox,
+                which is precisely the bottleneck Milestone 9's profiling later confirms ETS avoids. Reaching for
+                ETS by default, rather than when a measured bottleneck actually calls for it, would throw away the
+                isolation guarantees the rest of this course spent seven milestones establishing.</p>
+        </div>
 
         <div class="warn">
             <h5>A registry with no cleanup is a slow memory leak with an alibi</h5>
@@ -478,6 +600,41 @@ broadcast(Msg) ->
                 through one process's mailbox and is the shape Milestone 9 actually uses once counters are being
                 incremented thousands of times a second.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Change <code>route/2</code>'s drop threshold from <code>R =&lt; 0.02</code> to <code>R =&lt; 0.5</code>,
+            then route 1,000 messages to a single registered node and count how many come back <code>dropped</code>.
+            Predict the rough count before running it.</p>
+        <pre class="plain"><code>1&gt; {ok, Pid} = mesh_node:start_link(1), mesh_registry:register_node(1, Pid).
+ok
+2&gt; Results = [mesh_registry:route(1, ping) || _ &lt;- lists:seq(1, 1000)].
+[...]
+3&gt; length([x || dropped &lt;- Results]).
+512
+</code></pre>
+        <p>At the original 2% threshold, the same measurement returns almost exactly 20 dropped out of 1,000 — the
+            literal constant in <code>route/2</code> is not a description of behaviour, it <em>is</em> the
+            behaviour, and changing one number in one clause head changes the mesh's effective reliability
+            end to end, with nothing else in the registry, the nodes, or the chaos module aware anything changed.</p>
+
+        <h4>Common mistakes in Milestone 7</h4>
+        <div class="warn">
+            <p><strong>Calling <code>mesh_registry:start/0</code> more than once.</strong>
+                <code>ets:new/2</code> with <code>named_table</code> can only create a given name once per node —
+                a second call, from re-running setup in a fresh shell session pasted over an existing one, or from
+                a supervisor restarting whatever code happens to call <code>start/0</code>, crashes immediately:</p>
+            <pre class="plain"><code>1&gt; mesh_registry:start().
+ok
+2&gt; mesh_registry:start().
+** exception error: bad argument
+     in function  ets:new/2
+        called as ets:new(mesh_registry,[set,public,named_table])
+</code></pre>
+            <p>A registry meant to be started exactly once benefits from a guard against exactly this — checking
+                <code>ets:whereis(?MODULE)</code> first, or simply making sure <code>start/0</code> is only ever
+                called from one place (the application's own startup, in a real supervision tree) rather than from
+                ad-hoc shell sessions that might already have one running.</p>
+        </div>
 
         <h4>Checkpoint</h4>
         <ol>
@@ -532,11 +689,29 @@ attack(Id, CrashRate, SlowRate) -&gt;
     end.
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><code>rand:seed(exsplus, {Seed, Seed, Seed})</code> makes an entire chaos run reproducible from one
             integer — the same discipline Go's Milestone 8 built by hand as a precomputed
             <code>Schedule</code>, arrived at here almost for free because Erlang's <code>rand</code> module already
             supports seeding deterministically. A failing chaos run reported as "seed 8841" replays exactly, every
             time.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Writing a chaos module as ordinary code that sends ordinary messages — no special "fault injection"
+                API, no separate framework — works here because attacking a mesh node and legitimately using it look
+                identical from the outside: both are just messages arriving at a pid. Contrast this with injecting
+                faults into a system built on shared memory and threads, where safely simulating "this thread's
+                critical section takes unexpectedly long" or "this shared data structure is corrupted" usually needs
+                purpose-built tooling precisely because those failure modes are not otherwise reachable from
+                ordinary code without real bugs. The honest limit: <code>mesh_chaos</code> only reaches failures
+                <em>this language and this codebase can express</em> — a crashed process, a slow handler, an
+                unparseable message. It says nothing about a failing disk, a partitioned network switch, or a
+                misbehaving kernel scheduler, which is exactly why real production chaos engineering (Chaos Monkey
+                and its relatives) usually operates at the infrastructure layer, killing real VMs and cutting real
+                network links, rather than staying inside any one process's language runtime.</p>
+        </div>
 
         <div class="cmp">
             <h5>Perl vs. Erlang: two opposite answers to "what do you do with malformed input"</h5>
@@ -628,6 +803,43 @@ ok
                 deterministic as well as the chaos module's own random choices, and a caller-supplied, explicit id
                 is what actually guarantees that, not anything about the chaos module itself.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Put a node to sleep with <code>{suspend_for, 2000}</code>, the same attack <code>mesh_chaos</code> uses,
+            then compare a fire-and-forget send against that node with a real <code>gen_server:call</code> against
+            it, timed. Predict which one blocks.</p>
+        <pre class="plain"><code>1&gt; {ok, Pid} = mesh_node:start_link(1).
+{ok,&lt;0.90.0&gt;}
+2&gt; gen_server:cast(Pid, {suspend_for, 2000}).
+ok
+3&gt; timer:tc(fun() -&gt; Pid ! ping end).
+{17,ping}
+4&gt; timer:tc(fun() -&gt; mesh_node:get_status(Pid) end).
+{1989123,alive}
+</code></pre>
+        <p>The bare send returns in 17 microseconds — sending a message never waits for anything on the receiving
+            end, suspended or not. <code>get_status/1</code>, built on <code>gen_server:call</code>, takes just
+            under two full seconds: it genuinely queues behind the sleeping <code>handle_cast</code> callback and
+            only gets its answer once that callback returns. This is the warn box above made measurable rather than
+            just asserted: a slow handler degrades exactly the calls that need a reply from that one process, and
+            does nothing whatsoever to a fire-and-forget send aimed at the same pid.</p>
+
+        <h4>Common mistakes in Milestone 8</h4>
+        <div class="warn">
+            <p><strong>Calling <code>mesh_chaos:run/2</code> with an <code>Opts</code> map missing one of the
+                    required keys.</strong> <code>run/2</code> pattern-matches
+                <code>#{crash_rate := CrashRate, slow_rate := SlowRate} = Opts</code> — both keys are required, with
+                no default for either, so a caller who only cares about crashes and reasonably assumes
+                <code>slow_rate</code> is optional gets an immediate, unhelpful-looking crash instead of a chaos run
+                that just never goes slow:</p>
+            <pre class="plain"><code>1&gt; mesh_chaos:run(1, #{crash_rate =&gt; 0.1}).
+** exception error: no match of right hand side value #{crash_rate =&gt; 0.1}
+</code></pre>
+            <p>A map pattern with <code>:=</code> for every key it destructures is deliberately strict — it is the
+                same "fail loudly on the genuinely unexpected shape" instinct the rest of this course applies to
+                messages, applied here to an options map instead. The fix is supplying both keys, not loosening the
+                pattern to guess at a missing one.</p>
+        </div>
 
         <h4>Common mistakes in Milestones 5–8</h4>
         <div class="warn">

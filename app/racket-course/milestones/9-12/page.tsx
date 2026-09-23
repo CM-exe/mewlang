@@ -46,7 +46,13 @@ export default function Page() {
         </div>
         <h4>Registering the collection</h4>
         <pre className="plain"><code>{"finance/\n├── info.rkt          (define collection \"finance\")\n├── main.rkt\n└── lang/\n    └── reader.rkt\n\n$ raco pkg install --link -n finance ./finance\n===> ... --- compiling collections ---\n===> 5 making: <pkgs>/finance\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><code>--link</code> registers the directory itself as the collection's source, rather than copying it — genuinely the right choice while a language is still under active development, since edits to <code>main.rkt</code> take effect on the next run without reinstalling anything.</p>
+        <h4>Experiment</h4>
+        <p>Add a second <code>rule</code> to <code>budget.finance</code> — one whose condition is false, so it should actually fire — and predict what changes about the program's output before you run it.</p>
+        <pre className="plain"><code>{";; budget.finance, with a second rule added\n#lang finance\n(account checking checking 2400.00)\n(account savings savings 8000.00)\n(rule \"min-balance\" (> 2400.00 100) \"checking too low\")\n(rule \"min-savings\" (> 8000.00 10000) \"savings too low\")\n"}</code></pre>
+        <pre className="plain"><code>{"$ racket budget.finance\nrule min-savings: ALERT: savings too low\nsavings: $8000.0\nchecking: $2400.0\n"}</code></pre>
+        <p>The alert prints <em>before</em> either balance, not after — because <code>rule</code> expands into an ordinary <code>unless</code> check that runs as soon as the reader reaches that top-level form, in file order, while <code>display-accounts</code> only runs once, at the very end, because <code>my-module-begin</code> appends it after every other form. A failing rule is not collected and reported separately at the end; it is exactly as immediate as a <code>displayln</code> would be at that exact point in the file.</p>
         <div className="exercise">
           <h5>Exercise 9</h5>
           <ol>
@@ -76,11 +82,17 @@ export default function Page() {
         <p><strong><code>run-all</code> is built from <code>step</code>, via <code>foldl</code></strong> — the same reduce-a-list idiom Milestone 2 established — rather than <code>step</code> being a special case carved out of a monolithic <code>run-all</code>. This ordering is the entire design decision: a toolkit consumer who only wants "run the whole program" gets it for free by folding, and one who wants a stepper — a debugger, or Milestone 12's game DSL animating a robot's movement one frame at a time — has the primitive they actually need without <code>run-all</code> having to be refactored to expose it later.</p>
         <h4>Verified</h4>
         <pre className="plain"><code>{"> (define prog (list (forward-e 10) (turn-e 90) (forward-e 5)))\n> (run-all prog (robot-state 0 0 0))\n#(struct:robot-state 10.0 3.061616997868383e-16 90)\n"}</code></pre>
+        <h4>Explanation</h4>
         <p>The near-zero <code>y</code> after moving forward along heading 0 is ordinary floating-point noise from <code>cos</code>/<code>sin</code>, not a bug — worth flagging explicitly the first time a course result looks "almost but not quite" a clean number, since it will happen again and is not worth chasing.</p>
         <div className="cmp">
           <h5>A typical language vs. Racket</h5>
           <p>Building a steppable interpreter in most languages means restructuring around an explicit state machine or continuations from the start, because an ordinary recursive "run to completion" evaluator has no natural pause point. Here, the steppable interpreter <em>is</em> the natural one — folding a list of discrete state transitions was always the obvious shape once effects are represented as data rather than performed directly, and "run everything" turns out to be the special case, not the other way around.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Reorder <code>prog</code> so the robot turns first, then makes both forward moves, instead of move-turn-move — the same three commands, in a different order — and predict whether the final position changes before running it.</p>
+        <pre><code>{"(define prog2 (list (turn-e 90) (forward-e 10) (forward-e 5)))\n(define result (run-all prog2 (robot-state 0 0 0)))\n(printf \"x=~a y=~a heading=~a\\n\" (robot-state-x result) (robot-state-y result) (robot-state-heading result))\n"}</code></pre>
+        <pre className="plain"><code>{"$ racket robot-experiment.rkt\nx=9.18485099360515e-16 y=15.0 heading=90\n"}</code></pre>
+        <p>Both versions move the robot a total distance of 15 (10 plus 5) and end at the same heading, but turning <em>first</em> means both forward moves happen while already facing 90°, so the entire distance lands in <code>y</code> instead of being split between an initial <code>x</code>-only leg and a later <code>y</code>-only leg. <code>step</code> is not commutative — the order commands appear in a program genuinely changes the result, which is exactly what "state transition," not "independent effect," means.</p>
         <div className="exercise">
           <h5>Exercise 10</h5>
           <ol>
@@ -98,6 +110,12 @@ export default function Page() {
           <li>Why is <code>step</code> the primitive and <code>run-all</code> the derived function, rather than the reverse?</li>
           <li>What would need to change about this design to support "undo the last step"?</li>
         </ol>
+        <h4>Common mistakes in Milestone 10</h4>
+        <div className="warn">
+          <p><strong>Writing <code>step</code> with its arguments in accumulator-first order</strong> — <code>(define (step state cmd) ...)</code> instead of <code>(define (step cmd state) ...)</code> — because that reads more naturally as "the thing being changed, then the change." <code>foldl</code> always calls its procedure as <code>(proc element accumulator)</code>, so with the arguments swapped, <code>state</code> receives the command and <code>cmd</code> receives the state on every call, and <code>match</code> then fails outright:</p>
+          <pre className="plain"><code>{"match: no matching clause for (robot-state 0 0 0)\n  location...:\n   robot.rkt:11:2\n  context...:\n   robot.rkt:10:0: step\n   .../racket/private/list.rkt:248:4: foldl\n"}</code></pre>
+          <p>rather than silently producing a wrong answer — <code>match</code>'s own exhaustiveness check turns a swapped-argument mistake into an immediate, specific error instead of a confusing one, which is worth noticing as a real benefit of matching on struct shape rather than trusting positional arguments.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 11</span>Compiling instead of interpreting</h2>
         <h3>Goal</h3>
         <p>
@@ -106,15 +124,23 @@ export default function Page() {
         </p>
         <h3>Concepts</h3>
         <p>Macro-based compilation as the limit case of "code is data": a macro that does not merely check or transform syntax, but expands straight into the final, optimised form.</p>
+        <h3>Design</h3>
+        <p>Milestone 4's design built the AST as real, run-time data — <code>num-e</code>, <code>add-e</code>, and <code>mul-e</code> structs — and wrote <code>eval-expr</code> to walk that data every time the program ran. This milestone's design decision is the opposite: never build the AST as run-time data at all. <code>compile-expr</code> pattern-matches directly on the <em>syntax</em> it receives, using <code>my-add</code> and <code>my-mul</code> as <code>syntax-case</code> literals rather than as struct names, and calls itself recursively on each operand's own syntax — so what "walks the tree" is macro expansion itself, happening once, at compile time, rather than a function walking struct instances on every single run. The result of that walk is not a value but more syntax: ordinary <code>+</code> and <code>*</code> calls, which Racket's own compiler then optimises exactly as if a person had written them directly, because by the time the compiler sees them, that is indistinguishable from what a person wrote.</p>
         <h3>Implementation</h3>
         <pre><code>{";; interpreted (Milestone 4's shape): a runtime AST walk, every time\n(define (eval-expr e)\n  (cond\n    [(num-e? e) (num-e-val e)]\n    [(add-e? e) (+ (eval-expr (add-e-l e)) (eval-expr (add-e-r e)))]\n    [(mul-e? e) (* (eval-expr (mul-e-l e)) (eval-expr (mul-e-r e)))]))\n\n;; compiled: a macro expanding STRAIGHT into Racket arithmetic --\n;; nothing named num-e, add-e or mul-e exists at run time at all\n(define-syntax (compile-expr stx)\n  (syntax-case stx (my-add my-mul)\n    [(_ (my-add l r)) #'(+ (compile-expr l) (compile-expr r))]\n    [(_ (my-mul l r)) #'(* (compile-expr l) (compile-expr r))]\n    [(_ n) #'n]))\n"}</code></pre>
         <h4>Verified: the same computation, 5 million times, both ways</h4>
         <pre className="plain"><code>{"interpreted: 297.6 ms\ncompiled:    9.1 ms\nspeedup: 32.7x\n"}</code></pre>
+        <h4>Explanation</h4>
         <p>The interpreted version pays, on every single evaluation, for: a struct-predicate check per node, a function call per node, and — the part most people forget to count — walking back down through <code>eval-expr</code>'s own call stack for every nested sub-expression. The compiled version pays none of that at run time, because <code>(my-add (my-mul 2 3) (my-mul 4 5))</code> expanded, once, at compile time, into <code>(+ (* 2 3) (* 4 5))</code> — plain Racket arithmetic that Racket's own compiler then optimises exactly as if a person had written it that way from the start, because by the time the compiler sees it, that is indistinguishable from what a person wrote.</p>
         <div className="why">
           <h5>Why are we using this language here?</h5>
           <p>This is the sharpest version of this course's whole argument. An interpreter written in nearly any language can be fast or slow depending on how carefully it is written — Perl's course measured a 4× win from removing an unnecessary object allocation in its own hot path, real but modest. A 32× difference from choosing compilation over interpretation for the <em>identical</em> source language is only available because Racket's macro system can expand a DSL's syntax into genuinely different target code, chosen deliberately, rather than only ever building and later walking an intermediate representation. The honest cost, visible immediately in the code above: <code>compile-expr</code> only handles two operators and gives noticeably worse error messages than Milestone 6's <code>syntax-parse</code> version would for a malformed expression — real compilers spend enormous effort on exactly the error-quality work this minimal example skipped.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Swap the top-level operator in the compiled expression — <code>(my-add (my-mul 2 3) (my-mul 4 5))</code> becomes <code>(my-mul (my-add 2 3) (my-add 4 5))</code> — and predict the new result before running it. </p>
+        <pre><code>{"(printf \"~a\\n\" (compile-expr (my-mul (my-add 2 3) (my-add 4 5))))\n"}</code></pre>
+        <pre className="plain"><code>{"$ racket swapped.rkt\n45\n"}</code></pre>
+        <p><code>(2+3)*(4+5)</code> is 45, not the original 26 — unsurprising arithmetically, but worth confirming for what it demonstrates about the macro: nothing about <code>compile-expr</code>'s own definition changed, only the syntax handed to it did, and a completely different piece of Racket arithmetic came out the other end. That is what "expands straight into the final form" means concretely — there is no intermediate representation sitting between the DSL syntax and the compiled result that a change like this one has to pass through unchanged.</p>
         <div className="exercise">
           <h5>Exercise 11</h5>
           <ol>
@@ -133,20 +159,53 @@ export default function Page() {
           <li>Why is a macro-expanded DSL's error message quality a genuine, separate engineering cost from its runtime performance?</li>
           <li>Is compiling always the right choice over interpreting? What did Milestone 10's stepper need that a pure compilation strategy would make harder to build?</li>
         </ol>
+        <h4>Common mistakes in Milestone 11</h4>
+        <div className="warn">
+          <p><strong>Forgetting to recurse into <code>compile-expr</code> on an operand</strong> — writing <code>#'(+ l r)</code> instead of <code>#'(+ (compile-expr l) (compile-expr r))</code>. This looks harmless for a flat expression like <code>(my-add 2 3)</code>, where <code>l</code> and <code>r</code> are already plain numbers, and compiles fine. It breaks the moment an operand is itself a DSL expression, <code>(my-add (my-mul 2 3) (my-mul 4 5))</code>, because <code>my-mul</code> is never a real Racket function — it only means anything inside <code>compile-expr</code>'s own pattern matching, and without the recursive call, it is emitted verbatim into the output and evaluated as ordinary code:</p>
+          <pre className="plain"><code>{"compile-bug.rkt:8:34: my-mul: unbound identifier\n  in: my-mul\n"}</code></pre>
+          <p>the fix is one word — recursing into every sub-expression the same way <code>eval-expr</code> always did — but the error, coming from the <em>expanded</em> code rather than from <code>compile-expr</code> itself, is easy to misread as a typo in your own arithmetic rather than a missing recursive call in the macro.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 12</span>Tooling and the game DSL</h2>
         <h3>Goal</h3>
         <p>Add real tests, confirm the languages built across this course behave well with ordinary Racket tooling, package the toolkit properly, and build one final, capstone language — a simple game-description DSL — using every piece built across the last eleven milestones at once.</p>
         <h3>Concepts</h3>
         <p><code>rackunit</code> testing for macros specifically (not just ordinary functions), editor/tooling integration, and packaging via <code>info.rkt</code>.</p>
+        <h3>Design</h3>
+        <p>The capstone deliberately writes almost no new toolkit code of its own. Its AST — <code>move-e</code>, <code>say-e</code>, <code>wait-e</code> — is declared with Milestone 8's <code>define-ast-types</code> rather than three hand-written <code>struct</code> forms. Its interpreter, <code>game-step</code>, is one <code>match</code> over those node types folded over a script with <code>foldl</code> — exactly Milestone 10's step/<code>run-all</code> shape, renamed for a different domain. The only genuinely new piece of work is the domain itself: deciding what "move," "say," and "wait" mean for a game, not how to build an AST, an interpreter, or a fold over one — those questions were already answered, once, by Milestones 8 and 10. <code>wait-e</code> is declared in the AST but, in this minimal version, does nothing when stepped: it exists to mark where a real game engine's timing model would go, deliberately left as a stub rather than built out, so the capstone's own code stays under fifty lines and the emphasis stays on toolkit reuse rather than on building a complete game engine. Exercise 12, below, is where <code>wait-e</code> gets a real job.</p>
         <h3>Implementation</h3>
         <pre><code>{"#lang racket\n(require rackunit \"finance/main.rkt\")\n\n(test-case \"unknown account type is a compile-time error\"\n  (check-exn exn:fail:syntax?\n    (lambda () (expand #'(account bad bogus-type 100)))))\n"}</code></pre>
         <pre className="plain"><code>{"$ raco test tests/\n--------------------\nname:       unknown account type is a compile-time error\nlocation:   tests/finance-tests.rkt:5:2\n--------------------\n1 success(es) 0 failure(s) 0 error(s) 0 test(s) skipped\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong>Testing that a macro <em>rejects</em> bad input</strong> needs one genuinely new idiom: <code>expand</code>, called directly on a piece of quoted syntax, runs macro expansion without also running the resulting program — <code>check-exn</code> then asserts that expansion itself raised, which is the only way to test a compile-time failure using a normal, run-time test framework at all, since the failure you are testing for happens before the "test" as ordinarily understood would even begin.</p>
         <h4>The capstone: a minimal game DSL</h4>
         <pre><code>{"#lang racket\n(define-ast-types\n  (move-e (dx dy))\n  (say-e (text))\n  (wait-e (frames)))\n\n;; reuses Milestone 10's step/run-all shape directly -- a script is a\n;; sequence of effects, exactly like the robot DSL's was\n(struct game-state (x y log) #:transparent)\n\n(define (game-step cmd state)\n  (match cmd\n    [(move-e dx dy) (struct-copy game-state state\n                       [x (+ (game-state-x state) dx)]\n                       [y (+ (game-state-y state) dy)])]\n    [(say-e text) (struct-copy game-state state\n                     [log (cons text (game-state-log state))])]\n    [(wait-e _) state]))\n\n(define script (list (move-e 5 0) (say-e \"arrived\") (move-e 0 3)))\n(foldl game-step (game-state 0 0 '()) script)\n"}</code></pre>
         <h4>Verified</h4>
         <pre className="plain"><code>{"> (foldl game-step (game-state 0 0 '()) script)\n#(struct:game-state 5 3 (\"arrived\"))\n"}</code></pre>
+        <h4>Explanation</h4>
         <p>Notice what this capstone did <em>not</em> need to reinvent: <code>define-ast-types</code> from Milestone 8, the step/fold shape from Milestone 10, <code>match</code> from Section 2.4. A genuinely new small language, built in well under fifty lines, because the toolkit built across this course actually generalised — the entire point <code>langfac</code> existed to prove.</p>
+        <h4>Experiment</h4>
+        <p>Move the <code>(say-e "arrived")</code> call to the very front of <code>script</code>, before either <code>move-e</code>, and predict whether the final position or log changes.</p>
+        <pre><code>{"(define script2 (list (say-e \"arrived\") (move-e 5 0) (move-e 0 3)))\n(foldl game-step (game-state 0 0 '()) script2)\n"}</code></pre>
+        <pre className="plain"><code>{"> (foldl game-step (game-state 0 0 '()) script2)\n(game-state 5 3 '(\"arrived\"))\n"}</code></pre>
+        <p>Identical result. Unlike Milestone 10's robot, where reordering a <code>turn-e</code> against a <code>forward-e</code> changes the outcome because later commands read the state earlier ones wrote, <code>move-e</code> and <code>say-e</code> here touch completely disjoint fields of <code>game-state</code> — one only ever changes <code>x</code>/<code>y</code>, the other only ever changes <code>log</code> — so nothing in this particular script depends on their relative order. That independence is a property of <em>this</em> script's commands, not a guarantee <code>game-step</code> makes in general: a command that reads <code>x</code>/<code>y</code> to decide what to log would immediately reintroduce order-dependence, exactly as Exercise 12 below does on purpose.</p>
+        <div className="exercise">
+          <h5>Exercise 12</h5>
+          <ol>
+            <li>Give <code>wait-e</code> real behaviour: add a <code>frames-left</code> field to <code>game-state</code>, have <code>wait-e</code>'s step add its <code>frames</code> argument to it, and have <code>move-e</code>'s step do nothing while <code>frames-left</code> is greater than zero — a "wait" should genuinely block movement, not sit in the script unread the way it does above.</li>
+            <li>Write a <code>rackunit</code> <code>check-equal?</code> test, following this milestone's own testing idiom, confirming the block actually happens: run <code>(list (move-e 5 0) (wait-e 2) (move-e 0 3) (say-e "blocked?"))</code> through <code>game-step</code> and check that the second <code>move-e</code> left the position unchanged.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 12 — open after trying</summary>
+          <pre><code>{"(struct game-state (x y log frames-left) #:transparent)\n\n(define (game-step cmd state)\n  (match cmd\n    [(move-e dx dy)\n     (if (> (game-state-frames-left state) 0)\n         state\n         (struct-copy game-state state\n           [x (+ (game-state-x state) dx)]\n           [y (+ (game-state-y state) dy)]))]\n    [(say-e text) (struct-copy game-state state\n                     [log (cons text (game-state-log state))])]\n    [(wait-e frames)\n     (struct-copy game-state state\n       [frames-left (+ (game-state-frames-left state) frames)])]))\n\n(check-equal?\n  (foldl game-step (game-state 0 0 '() 0)\n         (list (move-e 5 0) (wait-e 2) (move-e 0 3) (say-e \"blocked?\")))\n  (game-state 5 0 '(\"blocked?\") 2))"}</code></pre>
+          <p>The test passes with <code>x</code> staying at <code>5</code> — the second <code>move-e</code> genuinely did nothing, because <code>frames-left</code> was still <code>2</code> when it ran. This is the same lesson Milestone 10's design section drew, one milestone later: representing <code>wait</code> as <em>data</em>, inspected by <code>game-step</code> before deciding what a later command does, is what makes "blocked" expressible at all. A version of <code>wait-e</code> that just called <code>(sleep frames)</code> directly would pause real time, but could never make a later <code>move-e</code> aware that a wait was still in effect — exactly the gap between "an effect" and "an effect represented as data" this course keeps returning to.</p>
+        </details>
+        <h4>Checkpoint</h4>
+        <ol>
+          <li>Which two pieces of prior toolkit machinery does the game DSL capstone reuse without writing any new toolkit code, and what is the one genuinely new piece of code this milestone contributes?</li>
+          <li>Before Exercise 12, what did <code>wait-e</code> actually do when stepped, and why was that a deliberate simplification rather than an oversight?</li>
+          <li>What does <code>expand</code>, called directly on quoted syntax, let you test that simply evaluating the same syntax would not distinguish clearly?</li>
+        </ol>
         <h4>Common mistakes in Milestones 9–12</h4>
         <div className="warn">
           <ul>

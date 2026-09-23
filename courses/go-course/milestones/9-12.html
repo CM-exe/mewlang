@@ -81,6 +81,21 @@
             and is useless in a hot path. The standard answer is bucketing, and there is a trick that makes it nearly
             free: use powers of two as bucket boundaries, and find the bucket with a single bit operation.</p>
 
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>Most stacks reach for a metrics client library immediately: import a Prometheus SDK, register each
+                metric with a global registry, and let the library own an HTTP handler you never read the internals
+                of. It is quick to start and gives you a lot for free — histograms with configurable buckets, a
+                battle-tested text encoder, client-side aggregation.</p>
+            <p>The idiomatic Go answer used here skips the dependency: a plain struct of atomic fields, a
+                hand-written <code>WriteProm</code> that <code>Fprintf</code>s the exposition format directly, and
+                pprof mounted by hand on a private mux. Zero third-party code, a metrics endpoint you can read start
+                to finish in one file, and no framework magic deciding what gets exposed. The honest cost: you
+                re-derive small things (percentile-bucket math, HELP-line formatting) that a mature client library
+                already got right and tested against real scrape edge cases, and if this project ever needed
+                histograms with configurable, non-power-of-two buckets, the library would save real time.</p>
+        </div>
+
         <h3>Implementation</h3>
 
         <h4>internal/metrics/metrics.go</h4>
@@ -98,6 +113,8 @@ type Gauge struct{ v atomic.Int64 }
 func (g *Gauge) Set(n int64)  { g.v.Store(n) }
 func (g *Gauge) Value() int64 { return g.v.Load() }
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p>Wrapping <code>atomic.Int64</code> in a named type with two methods looks like pointless ceremony until you
             notice what it prevents: nobody can accidentally read a counter with <code>=</code> instead of
@@ -472,6 +489,16 @@ func (h *SampledHistogram) Maybe(start time.Time) {
                 process that is otherwise unresponsive.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Remove the <code>ReadHeaderTimeout: 5 * time.Second</code> line from <code>serve</code>'s
+            <code>http.Server</code> and rebuild. Open a raw connection to the metrics port
+            (<code>nc 127.0.0.1 9090</code>, or a small Go program that dials and never writes) and leave it sitting
+            there; it stays open indefinitely, because the zero-value <code>http.Server</code> has no timeouts of any
+            kind. Open a few hundred of these in a loop and watch the process happily hold every one open forever.
+            Put the line back, repeat, and confirm each connection is dropped after five seconds. That single struct
+            field is the entire difference between a server that resists a slow-loris attack and one that does not.
+        </p>
+
         <h4>Common mistakes in Milestone 9</h4>
         <div class="warn">
             <ul>
@@ -499,6 +526,25 @@ func (h *SampledHistogram) Maybe(start time.Time) {
             <li>Why did adding a latency histogram show up as <code>time.Now</code> in the profile, and what would you
                 do about it?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>This milestone leans on three things the standard library gives you for nothing:
+                <code>sync/atomic</code> for counters that need no lock, <code>net/http/pprof</code> for a
+                production-grade profiler built into every binary, and a runtime that starts 1,500 goroutines in
+                milliseconds so instrumenting them barely shows up next to the cost of the workload itself. Attaching
+                a CPU profiler to a live process with two lines of wiring, no agent, no restart, no separate tool to
+                install, is a genuine and unusual convenience.</p>
+            <p>The honest counterweight: Go's atomics give you a counter and a gauge for free, but nothing richer. A
+                proper HDR histogram, client-side aggregation across processes, or exemplars linking a slow trace to
+                its exact metric bucket are things a mature client library (or a language with one, like Java's
+                Micrometer) hands you out of the box; here we built a deliberately approximate histogram by hand and
+                said so in the doc comment. And <code>pprof</code>'s profile format, while excellent for CPU and
+                heap, is Go-specific — you cannot point the same tool at a Python worker in the same fleet. For a
+                single Go binary this milestone is close to the best case for the standard library; for a polyglot
+                system you would reach for OpenTelemetry regardless of language and treat Go's native tools as a
+                local debugging aid rather than the whole observability story.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 10</span>A live picture, in the terminal and the browser
         </h2>
@@ -533,6 +579,19 @@ per request                 SSE handler        → JSON over HTTP
         <p>A second rule follows from the first: <strong>the viewer may never block the simulation</strong>. If a frame
             cannot be produced in time, the viewer skips it. A dropped frame is invisible to a human; a stalled colony
             is not.</p>
+
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>A typical "add a live view" implementation queries the primary data store directly, once per connected
+                client, at whatever resolution the client asked for — that is how most admin dashboards and BI tools
+                are built, and it works fine when the store is a database built to handle read concurrency.</p>
+            <p>Here the "store" is 50,000 goroutines mid-flight and a single owner goroutine that is also the
+                bottleneck of the entire simulation, so querying it per client at full resolution would make the
+                viewer the most expensive client the system has. The idiomatic move is to aggregate once, at the
+                source, into a small fixed-size <code>Frame</code>, and let every viewer — terminal, browser tab, or
+                a hundred browser tabs — share that same cheap snapshot. It is more code up front than "just query
+                it", and it is the only version that does not fall over the moment someone opens a second tab.</p>
+        </div>
 
         <h3>Implementation</h3>
 
@@ -702,6 +761,8 @@ func Terminal(ctx context.Context, w io.Writer, e *sim.Engine, cols int, every t
 }
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <ul>
             <li><strong>The SSE wire format</strong> is the whole protocol: <code>data: </code> then a payload then a
                 blank line. <code>json.Encoder.Encode</code> conveniently appends a newline, so the extra
@@ -779,6 +840,16 @@ func Terminal(ctx context.Context, w io.Writer, e *sim.Engine, cols int, every t
                 metrics will report an incident every time someone hits the button.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Comment out the <code>flusher.Flush()</code> call in <code>stream</code> and rebuild. Open the browser
+            view: the connection succeeds, <code>curl -N -i 127.0.0.1:8080/stream</code> even shows the right
+            <code>Content-Type: text/event-stream</code> header, but no frame ever arrives, because Go's
+            <code>net/http</code> buffers the response until either the buffer fills or the handler returns — and a
+            stream handler never returns. The canvas just sits black. Put <code>Flush()</code> back and watch frames
+            appear within the tick period. This is the single most common bug in a hand-rolled SSE handler, and it
+            produces no error anywhere: the connection is open, the headers are correct, and the browser is simply
+            waiting for bytes that Go is holding onto.</p>
+
         <h4>Common mistakes in Milestone 10</h4>
         <div class="warn">
             <ul>
@@ -805,6 +876,22 @@ func Terminal(ctx context.Context, w io.Writer, e *sim.Engine, cols int, every t
             <li>Why is <code>Render</code> a separate pure function?</li>
             <li>The viewer must never block the simulation. Where in the code is that policy expressed?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Two standard-library pieces carry this milestone: <code>net/http</code>'s <code>Flusher</code>
+                interface makes server-sent events a fifteen-line handler with no dependency, and goroutines make
+                "one goroutine renders ANSI, one goroutine streams SSE, neither ever touches the simulation's memory
+                directly" cheap enough not to think about. Shipping a live web view with zero JavaScript
+                dependencies and zero build step, embedded as a Go string constant, is the kind of thing that is
+                disproportionately easy in Go's specific combination of a capable stdlib and a static binary.</p>
+            <p>The honest cost: this whole milestone is essentially reimplementing a sliver of what an embedded
+                dashboard framework or a proper time-series database plus Grafana gives you for free — retention,
+                zooming, multiple metrics on one chart, alerting. For a single simulation you want to glance at,
+                hand-rolled ANSI and a canvas are the right amount of engineering. For anything you would show to
+                another team or keep historical data from, reach for the real tool; you would not want to grow this
+                <code>Frame</code>/SSE setup into a general-purpose monitoring stack by hand.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 11</span>Making it fast, guided by the profile</h2>
 
@@ -889,6 +976,22 @@ drop   → message → owner → reply      drop   → one-way message → shard
                 million requests a second were enough, and it is the one to write first in any new system.</p>
         </div>
 
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>Faced with a profile dominated by channel and lock contention, a common first instinct is to reach for
+                a general-purpose concurrent container — <code>sync.Map</code>, or a third-party lock-free hash map
+                — and swap it in without changing the surrounding design. That often helps a little and rarely helps
+                enough, because it treats the symptom (a data structure under contention) rather than the cause (a
+                single serialisation point every operation must pass through).</p>
+            <p>The idiomatic Go move, and the one this milestone takes, is to change who owns what: atomic loads for
+                the 99% of traffic that only reads, one-way messages for writes that need no answer, and sharding by
+                the access pattern that actually exists (rows, because ants move locally) rather than by a generic
+                hash. None of this needed a special data structure, only <code>atomic.Int64</code>, a channel, and a
+                decision about ownership. The cost is that it is bespoke to this workload — a <code>sync.Map</code>
+                would have taken five minutes to try, and this took an afternoon and a bug — and a workload without
+                spatial locality would get nothing from the sharding half of it.</p>
+        </div>
+
         <h3>Implementation</h3>
 
         <h4>The atomic grid, and the missing atomic float</h4>
@@ -930,6 +1033,8 @@ func (g *AtomicGrid) TakeOne(p Position) bool {
 	return true
 }
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p><strong>Go has no atomic float64</strong>, and the reason is that the atomic instructions operate on
             integers. The standard workaround is fixed point: store thousandths as an integer and divide on read. You
@@ -1158,6 +1263,16 @@ func (e *FastEngine) send(ctx context.Context, op writeOp) {
                     you distribute</strong>, which is precisely Milestone 12.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>The conservation test passes because every pickup is serialised through its shard's channel. Break that
+            deliberately: change the pickup path so an ant calls <code>e.food.TakeOne(pos)</code> directly instead
+            of sending <code>opPickUp</code> to the shard, and set a single food source with enough ants that several
+            routinely stand on the same cell. Run <code>go test -race</code>: clean, because every access is a
+            correctly-used atomic. Now run the conservation test by itself with <code>-count=50</code>: it fails
+            intermittently, with more food taken from the ground than was ever delivered or lost.
+            <code>TakeOne</code>'s load-then-add is not atomic as a sequence, and this is what "atomics prevent torn
+            reads and writes, not logical races" looks like when you trigger it instead of taking it on faith.</p>
+
         <h4>Common mistakes in Milestone 11</h4>
         <div class="warn">
             <ul>
@@ -1186,6 +1301,25 @@ func (e *FastEngine) send(ctx context.Context, op writeOp) {
             <li>When is closing a channel the right shutdown signal, and when is it a panic?</li>
             <li>The speedup grew with ant count. What does that tell you about what was removed?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>This is the milestone where Go's memory model and its atomics package earn their keep directly:
+                <code>atomic.Int64</code> gives every ant a race-free read of world state with no message, no lock,
+                and a cost the profiler put at 29 nanoseconds. Go's happens-before guarantees around channel
+                operations are also what let the shutdown fix (<code>antWG.Wait()</code> before closing the shard
+                channels) be provably correct rather than merely untested. Few mainstream languages make "safe
+                concurrent reads with no synchronisation primitive visible at the call site" this cheap and this
+                explicit at once.</p>
+            <p>The honest cost sits right next to the win: Go has no atomic float64, which is why pheromone is
+                stored as scaled integers, a workaround with real precision loss that a language with atomic floats
+                (or one where you would reach for a different concurrency model entirely, like Erlang's isolated
+                processes and message copying) would not force on you. And the conservation-test bug is a reminder
+                that none of this machinery — not the race detector, not <code>go vet</code>, not the type system —
+                checks the actual invariant you care about. Go gave us fast, correctly-synchronised primitives; it
+                did not give us a correct program, and mistaking the first for the second is exactly how this bug
+                shipped.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 12</span>The world moves to another process</h2>
 
@@ -1219,6 +1353,22 @@ type WorldService interface {
                 seam work</strong>: had <code>Sense</code> returned only a <code>Sense</code>, the remote version could
             not have reported a broken connection without panicking or lying.</p>
 
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>A typical way to split this into two processes is HTTP plus JSON: a request per
+                <code>Sense</code>/<code>Act</code> call, a REST-shaped handler, and libraries in every language that
+                can speak to it immediately. It is the safe default for interoperability, and it is not free — a new
+                TCP connection or HTTP/1.1 round trip per call (or connection pooling to avoid that), JSON encoding
+                overhead, and a text format for what is fundamentally a few numbers.</p>
+            <p>The idiomatic Go version here is a raw <code>net.Conn</code> per ant carrying
+                <code>encoding/gob</code>, which needs no schema, no code generation and no library, and sends
+                compact binary values once the connection's type descriptions are established. The cost is exactly
+                what the client's doc comment admits: this protocol cannot be spoken by anything that is not Go,
+                there is no multiplexing, and production systems reach for gRPC (protobuf over HTTP/2) to get
+                language-agnostic interoperability, streaming, and flow control that this hand-rolled version does
+                not have.</p>
+        </div>
+
         <pre class="plain"><code>  process A: ants                        process B: the world
   ───────────────                        ────────────────────
   ant goroutine ─► netsim.Client ──TCP──► netsim.Server ─► FastEngine
@@ -1250,6 +1400,8 @@ type Resp struct {
 	Err   string // errors do not survive gob; send the text
 }
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p><code>encoding/gob</code> is Go's native binary serialisation: self-describing, type-safe between Go
             programs, and requiring no schema file or code generation. It is a good fit here and a poor fit for anything
@@ -1592,6 +1744,15 @@ func (c *MuxClient) readLoop() {
                 multiplexed RPC protocol does. That is the right way to understand those systems: not as magic, but as
                 this, plus flow control, plus TLS, plus a schema.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Reuse one plain <code>Client</code> (not the multiplexing <code>MuxClient</code> from the exercise) across
+            two ant goroutines with no synchronisation at all, and run <code>go test -race ./internal/netsim/</code>.
+            It fails immediately and reliably, pointing at concurrent writes through the same
+            <code>gob.Encoder</code> — this is a case where the race detector is exactly the right tool, unlike
+            Milestone 11's shard bug. Fix it the crude way, by wrapping the whole <code>roundTrip</code> call in a
+            mutex, and the race disappears; but now watch throughput with two ants sharing one connection instead of
+            two. Serialising away a race is easy. Getting the throughput back is the rest of Exercise 12.</p>
 
         <h4>Common mistakes in Milestone 12</h4>
         <div class="warn">

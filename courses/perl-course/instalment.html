@@ -299,6 +299,49 @@ perlbrew switch perl-5.38.2
 # or plenv, if you liked rbenv
 </code></pre>
 
+        <h3>Editor and tooling</h3>
+
+        <p>Perl's tooling is not as unified as a single-vendor language's, but two language-server projects cover
+            most editors well enough to set up before Part 2, plus a static analyser and a formatter worth knowing
+            about even before you wire either into anything.</p>
+
+        <h5>VS Code</h5>
+        <pre class="plain"><code># either one, from the Extensions panel or the command line:
+code --install-extension bscan.perlnavigator     # PerlNavigator: lighter, installs in seconds
+code --install-extension richterger.perl         # Perl::LanguageServer: deeper, needs a C toolchain
+</code></pre>
+        <p><strong>PerlNavigator</strong> is a TypeScript language server that shells out to <code>perl -c</code> and
+            <code>perlcritic</code> for you, giving syntax checking, outlining and completion with almost no setup.
+            <strong>Perl::LanguageServer</strong> goes further — real go-to-definition, variable inspection, a
+            working debugger — because its backend is itself a Perl module, an XS one, which means it needs
+            <code>cpan Perl::LanguageServer</code> to succeed on your machine before the extension works at all, and
+            an XS build occasionally means fighting a missing compiler or a stale header before it does. Start with
+            PerlNavigator; reach for Perl::LanguageServer only once you miss real navigation.</p>
+
+        <h5>Vim, Neovim, Emacs</h5>
+        <p>Neovim's built-in LSP client (via <code>nvim-lspconfig</code>) can drive either server above directly, the
+            same way it would for any other language server. Plain Vim's long-standing option is
+            <code>perl-support.vim</code>, for syntax, skeletons and running the current file, without full
+            language-server intelligence. Emacs ships <code>cperl-mode</code>, the conventional choice over the older
+            bundled <code>perl-mode</code>: it indents heredocs and POD correctly, which the older mode does not, and
+            <code>eglot</code> or <code>lsp-mode</code> can point it at either server above for full completion.</p>
+
+        <h5><code>perlcritic</code> and <code>perltidy</code>: the closest thing Perl has to a linter and a
+            formatter</h5>
+        <pre class="plain"><code>cpanm Perl::Critic Perl::Tidy
+perlcritic bin/strata                # static analysis, default severity
+perlcritic --brutal bin/strata       # same file, strictest severity level
+perltidy -b lib/Strata/Record.pm     # reformat in place; -b keeps a .bak
+</code></pre>
+        <p><code>perlcritic</code> checks code against configurable rules drawn largely from Damian Conway's
+            <em>Perl Best Practices</em>, at five severity levels from <code>--gentle</code> (only the most serious
+            issues) to <code>--brutal</code> (everything); a project settles on a level and a
+            <code>.perlcriticrc</code> once, rather than treating every possible warning as mandatory from day one.
+            <code>perltidy</code> reformats to a configurable style the way <code>gofmt</code> does for Go, except it
+            is not bundled with the interpreter and not run on every commit by default the way <code>gofmt</code>
+            effectively is — both are a five-minute <code>cpanm</code> install away, and neither is the default a
+            newer language's tooling would make it.</p>
+
         <h3>CPAN, cpanm, and not using sudo</h3>
 
         <p>CPAN is Perl's module archive, and at around 220,000 modules it is one of the oldest and deepest package
@@ -333,6 +376,28 @@ on 'test' =&gt; sub {
         <p>Then <code>cpanm --installdeps .</code> installs them. If you want a lockfile and a bundled dependency tree
             (Bundler's role), that is <strong>Carton</strong>: <code>carton install</code> writes
             <code>cpanfile.snapshot</code> and <code>carton exec</code> runs with exactly those versions.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>CPAN is the strongest argument for doing forensic text work in Perl at all: at roughly 220,000 modules
+                covering three decades of "someone already hit this exact format and fixed it", the odds that
+                today's undocumented log shape already has a parser somewhere are good. That is not spin —
+                <code>Text::CSV</code> and <code>XML::LibXML</code>, which this project leans on from Milestone 6
+                onward, are mature, heavily-used modules, not toy packages someone abandoned in 2009.</p>
+            <p>Two honest costs sit right next to that strength. First, a real fraction of CPAN's best modules —
+                <code>XML::LibXML</code> among them — are XS: Perl wrapped around C, which means installing one
+                sometimes means having a working compiler and system headers rather than just downloading a file,
+                and it is the single most common reason a <code>cpanm</code> install fails on a machine that "should"
+                work. Second, <code>cpanm --installdeps .</code> alone gives you no lockfile: two checkouts on two
+                machines can silently resolve a <code>cpanfile</code>'s version ranges to two different sets of
+                module versions unless you additionally reach for Carton, which is opt-in rather than the default
+                the way <code>Gemfile.lock</code> or <code>package-lock.json</code> are. And <code>perlbrew</code>,
+                while it works, compiles an entire Perl interpreter from source for every version you install — it
+                is closer in spirit to <code>pyenv</code> or <code>rbenv</code> than to a version manager that
+                downloads a prebuilt binary, so "just try 5.38" costs several minutes the first time, not seconds.
+                None of this is disqualifying; all of it is worth knowing before the first <code>cpanm</code>
+                command mysteriously fails on someone else's laptop.</p>
+        </div>
 
         <h3>Documentation: the best thing about Perl</h3>
 
@@ -847,6 +912,31 @@ autovivified: paper1,paper2
             structure you thought was there: merely <em>checking</em> <code>if ($index{missing}{deep})</code> creates
             <code>$index{missing}</code> as an empty hash. Use <code>exists</code> for tests, and remember it when a
             data structure grows keys nobody added.</p>
+
+        <div class="cmp">
+            <h5>References vs C++ pointers</h5>
+            <pre class="plain"><code>C++ (raw pointer)                         Perl (reference)
+──────────────────                         ─────────────────
+int arr[] = {1,2,3};                      my @list = (1,2,3);
+int *p = arr;                             my $aref = \@list;
+p++;                     // legal,        $aref++;   // does NOT walk the
+                         // now aliases   # array -- it is not a memory
+                         // arr[1]        # address you can walk
+delete p;   // your job, and forgetting   # freed automatically once the
+            // it or doing it twice       # last reference to @list is
+            // corrupts the heap          # gone -- no delete, ever
+</code></pre>
+            <p>A Perl reference is not a memory address you can walk with arithmetic; <code>$aref++</code> just
+                increments a number that has lost its "this is a reference" tag, which is a bug, not a way to
+                advance to the next element. In that sense a Perl reference behaves less like a raw C++ pointer and
+                more like a <code>std::shared_ptr</code>: it is reference-counted, the thing it points to is freed
+                automatically the moment the last reference to it disappears, and there is no <code>delete</code> to
+                forget and no double-free to cause. The cost of that safety is the same cost <code>shared_ptr</code>
+                pays: a cycle — two structures each holding a reference to the other — is never collected by
+                reference counting alone, and Perl leaks it silently unless you reach for
+                <code>Scalar::Util::weaken</code> on one side, exactly the way C++ code reaches for
+                <code>std::weak_ptr</code> for the same reason.</p>
+        </div>
 
         <p><code>Data::Dumper</code> is how you see what you have built:</p>
 

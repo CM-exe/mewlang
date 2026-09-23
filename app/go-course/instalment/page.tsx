@@ -74,7 +74,7 @@ export default function Page() {
           </tbody>
         </table>
         <h3>Architecture we are building toward</h3>
-        <pre className="plain"><code>{"                          ┌──────────────────────────┐\n                          │        cmd/antfarm     │  flags, config, wiring\n                          └────────────┬─────────────┘\n                                      │\n        ┌────────────────────────────────┼──────────────────────────────┐\n        │                             │                          │\n┌────────▼────────┐            ┌────────▼─────────┐          ┌─────────▼────────┐\n│   sim engine   │            │   observability  │          │      viewer      │\n│                │            │                  │          │                  │\n│  world owner   │◄─ queries ─┤  metrics, pprof, │          │  terminal / web  │\n│   goroutine    │            │  event log       │          │   (read-only)    │\n└───┬────────┬───┘            └──────────────────┘          └─────────▲────────┘\n    │        │                                                       │\n    │        └───────────── snapshots (channel, buffered) ───────────┘\n    │\n    │  requests: Move, Sense, PickUp, Drop, Deposit\n    │  replies:  per-request reply channel\n    │\n┌───▼──────────────────────────────────────────────────────────┐\n│   ant goroutines  (N = 1..50,000)                            │\n│                                                              │\n│   ant 1 ──┐                                                  │\n│   ant 2 ──┤                                                  │\n│    ...    ├──► requests channel ──► world owner ──► replies  │\n│   ant N ──┘                                                  │\n└───┬──────────────────────────────────────────────────────────┘\n    │\n┌───▼───────────┐     ┌────────────────┐     ┌──────────────────┐\n│  supervisor   │     │  pheromone     │     │  chaos injector  │\n│  (restarts    │     │  evaporator    │     │  (crash, drop,   │\n│   dead ants)  │     │  (ticker)      │     │   delay)         │\n└───────────────┘     └────────────────┘     └──────────────────┘\n"}</code></pre>
+        <pre className="plain"><code>{"                          ┌──────────────────────────┐\n                          │        cmd/antfarm       │  flags, config, wiring\n                          └────────────┬─────────────┘\n                                       │\n        ┌──────────────────────────────┼──────────────────────────────┐\n        │                              │                              │\n┌───────▼────────┐            ┌────────▼─────────┐          ┌─────────▼────────┐\n│   sim engine   │            │   observability  │          │      viewer      │\n│                │            │                  │          │                  │\n│  world owner   │◄─ queries ─┤  metrics, pprof, │          │  terminal / web  │\n│   goroutine    │            │  event log       │          │   (read-only)    │\n└───┬────────┬───┘            └──────────────────┘          └─────────▲────────┘\n    │        │                                                       │\n    │        └───────────── snapshots (channel, buffered) ───────────┘\n    │\n    │  requests: Move, Sense, PickUp, Drop, Deposit\n    │  replies:  per-request reply channel\n    │\n┌───▼──────────────────────────────────────────────────────────┐\n│   ant goroutines  (N = 1..50,000)                            │\n│                                                              │\n│   ant 1 ──┐                                                  │\n│   ant 2 ──┤                                                  │\n│    ...    ├──► requests channel ──► world owner ──► replies  │\n│   ant N ──┘                                                  │\n└───┬──────────────────────────────────────────────────────────┘\n    │\n┌───▼───────────┐     ┌────────────────┐     ┌──────────────────┐\n│  supervisor   │     │  pheromone     │     │  chaos injector  │\n│  (restarts    │     │  evaporator    │     │  (crash, drop,   │\n│   dead ants)  │     │  (ticker)      │     │   delay)         │\n└───────────────┘     └────────────────┘     └──────────────────┘\n"}</code></pre>
         <p>Do not worry about understanding this yet. It is here so that when Milestone 5 introduces "the world owner goroutine" you can see where it fits. The important structural idea, which you will earn rather than be told, is that <em>exactly one goroutine owns the world state</em>, and everyone else asks it questions.</p>
         <h3>What you will know afterwards</h3>
         <p>You will be able to explain, from having done it: why a mutex-per-cell design deadlocks and a single-owner design does not; what the race detector actually detects and what it misses; why an unbuffered channel send is a synchronisation point; how to cancel 50,000 goroutines in under a millisecond; how to tell an allocation problem from a contention problem in a profile; and what "backpressure" means in code rather than in a blog post.</p>
@@ -258,6 +258,15 @@ export default function Page() {
             <li>Mixing numeric types. Go does not implicitly convert. <code>var a int = 1; var b int64 = a</code> is an error; you must write <code>int64(a)</code>.</li>
           </ul>
         </div>
+        <div className="exercise">
+          <h5>Exercise 2.1</h5>
+          <p>Write a function <code>zeroReport() string</code> that declares four local variables — <code>int</code>, <code>string</code>, <code>bool</code>, and <code>[]int</code> — without assigning any of them a value, and returns one formatted string showing all four zero values. Then explain why the slice's zero value prints as <code>[]</code> rather than crashing the program the way an uninitialised pointer would in C.</p>
+        </div>
+        <details>
+          <summary>Solution 2.1 — open after trying</summary>
+          <pre><code>{"func zeroReport() string {\n\tvar n int\n\tvar s string\n\tvar b bool\n\tvar xs []int\n\treturn fmt.Sprintf(\"%d %q %v %v\", n, s, b, xs)\n}\n// \"0 \\\"\\\" false []\"\n"}</code></pre>
+          <p>A nil slice is a valid, usable value: <code>len(xs)</code> is <code>0</code>, ranging over it does nothing, and <code>%v</code> prints it as <code>[]</code>, exactly like an empty slice. There is no separate "uninitialised" state to crash on, because a slice's zero value is a real three-word struct (pointer, length, capacity) with the pointer set to <code>nil</code> and the other two fields <code>0</code> — reading it is always safe, only writing through it would panic, and <code>xs</code> here is never written to.</p>
+        </details>
         <h3>2.2 Functions, multiple returns, and defer</h3>
         <h5>The idea</h5>
         <p>Functions can return more than one value, and this is how Go handles errors: a function returns its result and an error side by side. <code>defer</code> schedules a call to run when the surrounding function returns, no matter how it returns.</p>
@@ -277,6 +286,15 @@ export default function Page() {
             <li>Ignoring the error return. <code>value, _ := divide(1, 0)</code> compiles happily and gives you nonsense. <code>errcheck</code> and most linters flag this.</li>
           </ul>
         </div>
+        <div className="exercise">
+          <h5>Exercise 2.2</h5>
+          <p>Write <code>firstAndRest(xs []int) (first int, rest []int, ok bool)</code> that reports the first element and a slice of the remaining ones, with <code>ok</code> false and the other two results left at their zero values for an empty slice. Then write <code>logged(name string, f func())</code> that prints <code>"start: "+name</code>, calls <code>f</code>, and is guaranteed to print <code>"done: "+name</code> afterwards — using <code>defer</code>, not a plain call written after <code>f()</code>.</p>
+        </div>
+        <details>
+          <summary>Solution 2.2 — open after trying</summary>
+          <pre><code>{"func firstAndRest(xs []int) (first int, rest []int, ok bool) {\n\tif len(xs) == 0 {\n\t\treturn 0, nil, false\n\t}\n\treturn xs[0], xs[1:], true\n}\n\nfunc logged(name string, f func()) {\n\tdefer fmt.Println(\"done:\", name)\n\tfmt.Println(\"start:\", name)\n\tf()\n}\n"}</code></pre>
+          <p>Writing <code>fmt.Println("done:", name)</code> as a plain statement after <code>f()</code> looks identical when <code>f</code> behaves. It stops being identical the moment <code>f</code> panics: a plain statement after <code>f()</code> never runs, because the panic skips straight past it, while the deferred call still fires during the unwind. "Runs no matter how the function returns" includes the paths you did not write a test for.</p>
+        </details>
         <h3>2.3 Control flow: if, for, switch</h3>
         <h5>The idea</h5>
         <p>Go has one loop keyword, <code>for</code>, which covers every loop shape. <code>if</code> can declare a variable scoped to the statement. <code>switch</code> does not fall through by default.</p>
@@ -340,6 +358,15 @@ export default function Page() {
           <li>Keys must be comparable: numbers, strings, booleans, pointers, channels, interfaces, and structs or arrays of those. Slices, maps and functions cannot be keys.</li>
           <li>Maps are not safe for concurrent use. Concurrent reads are fine; a concurrent write with anything else causes the runtime to deliberately crash with <code>fatal error: concurrent map writes</code>. That crash is a feature, and you will meet it.</li>
         </ul>
+        <div className="exercise">
+          <h5>Exercise 2.5</h5>
+          <p>Write <code>countByFirstLetter(words []string) map[byte]int</code> that counts how many words start with each byte, skipping empty strings. Then print the result in a stable order — maps do not range in a stable order, so collect the keys into a slice and sort it first.</p>
+        </div>
+        <details>
+          <summary>Solution 2.5 — open after trying</summary>
+          <pre><code>{"func countByFirstLetter(words []string) map[byte]int {\n\tcounts := make(map[byte]int)\n\tfor _, w := range words {\n\t\tif len(w) == 0 {\n\t\t\tcontinue\n\t\t}\n\t\tcounts[w[0]]++\n\t}\n\treturn counts\n}\n\nfunc printSorted(counts map[byte]int) {\n\tkeys := make([]byte, 0, len(counts))\n\tfor k := range counts {\n\t\tkeys = append(keys, k)\n\t}\n\tsort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })\n\tfor _, k := range keys {\n\t\tfmt.Printf(\"%c: %d\\n\", k, counts[k])\n\t}\n}\n"}</code></pre>
+          <p><code>counts[w[0]]++</code> works with no prior check, because reading a missing key returns the zero value and <code>++</code> then writes <code>1</code>. Sorting the keys before printing is not paranoia: <code>for k := range counts</code> is deliberately randomised by the runtime specifically so that code cannot come to depend on an order that was never promised.</p>
+        </details>
         <h3>2.6 Structs, pointers, and methods</h3>
         <h5>The idea</h5>
         <p>A struct is a fixed collection of named fields. A pointer holds the address of a value. A method is a function with a receiver, which is the value it is attached to. Go has no classes and no inheritance.</p>
@@ -420,6 +447,15 @@ export default function Page() {
           <pre className="plain"><code>{"Traditional threads                 Goroutines\n───────────────────                 ──────────\n~1-8 MB stack reserved each         ~2 KB stack, grows on demand\ncreated by the OS, expensive        created by the runtime, ~1µs\nscheduled by the OS kernel          scheduled by the Go runtime onto\n                                      GOMAXPROCS OS threads\nblocking syscall blocks a thread    runtime moves other goroutines to\n                                      another thread automatically\n10,000 is a lot                     1,000,000 is fine\nyou coordinate with locks           you coordinate with channels\n                                      (locks also available)"}</code></pre>
           <p>This is why "one goroutine per ant" is a sane architecture and "one thread per ant" is not. It is also why Go can afford a blocking programming style: a goroutine waiting on a channel or a network read costs almost nothing, so you write straight-line code instead of callbacks or async/await colouring.</p>
         </div>
+        <div className="exercise">
+          <h5>Exercise 2.9</h5>
+          <p>Launch 10 goroutines that each increment a shared <code>atomic.Int64</code> 1,000 times, wait for all of them with a <code>WaitGroup</code>, and print the final total. Run it several times and confirm it is exactly 10,000 every time. Then explain why a plain <code>var counter int</code> with <code>counter++</code> in the same loop would not reliably give you 10,000.</p>
+        </div>
+        <details>
+          <summary>Solution 2.9 — open after trying</summary>
+          <pre><code>{"var counter atomic.Int64\nvar wg sync.WaitGroup\n\nfor i := 0; i < 10; i++ {\n\twg.Add(1)\n\tgo func() {\n\t\tdefer wg.Done()\n\t\tfor j := 0; j < 1000; j++ {\n\t\t\tcounter.Add(1)\n\t\t}\n\t}()\n}\n\nwg.Wait()\nfmt.Println(counter.Load())   // always 10000\n"}</code></pre>
+          <p><code>counter.Add(1)</code> is a single indivisible hardware operation, so 10,000 of them from however many goroutines always land exactly once each. <code>counter++</code> on a plain <code>int</code> is not one operation; it is read, increment, write, and two goroutines can both read the same value before either writes back, so one increment is silently lost. The bug does not show up every run — it depends on the scheduler interleaving two increments at exactly the wrong moment — which is what makes unsynchronised counters so easy to ship and so hard to diagnose from a bug report that says "the number is sometimes wrong".</p>
+        </details>
         <h3>2.10 Channels</h3>
         <h5>The idea</h5>
         <p>A channel is a typed pipe that also synchronises. One goroutine sends, another receives, and the channel handles the handover safely. The slogan is: <em>do not communicate by sharing memory; share memory by communicating.</em></p>
@@ -460,6 +496,15 @@ export default function Page() {
           <li><strong>Only the sender closes</strong>, and only when there is exactly one sender, otherwise you risk the "send on closed channel" panic. With multiple senders, use a separate done channel or a <code>WaitGroup</code>. </li>
           <li>Channel direction can be part of a type: <code>func consume(in {'<'}-chan int)</code> accepts a receive-only channel and <code>func produce(out chan{'<'}- int)</code> a send-only one. The arrow points the way data flows. Use these in signatures; they document intent and the compiler enforces it.</li>
         </ul>
+        <div className="exercise">
+          <h5>Exercise 2.10</h5>
+          <p>Write <code>sum(nums []int) int</code> that splits <code>nums</code> into chunks of 4, launches one goroutine per chunk to add up its slice and send the partial sum on a shared buffered channel, then receives exactly as many values as there are chunks and adds them up. Do not use a <code>WaitGroup</code>. Explain why counting channel receives is enough to know you are done.</p>
+        </div>
+        <details>
+          <summary>Solution 2.10 — open after trying</summary>
+          <pre><code>{"func sum(nums []int) int {\n\tconst chunkSize = 4\n\tpartial := make(chan int, (len(nums)+chunkSize-1)/chunkSize)\n\n\tchunks := 0\n\tfor i := 0; i < len(nums); i += chunkSize {\n\t\tend := min(i+chunkSize, len(nums))\n\t\tchunks++\n\t\tgo func(chunk []int) {\n\t\t\ts := 0\n\t\t\tfor _, v := range chunk {\n\t\t\t\ts += v\n\t\t\t}\n\t\t\tpartial <- s\n\t\t}(nums[i:end])\n\t}\n\n\ttotal := 0\n\tfor i := 0; i < chunks; i++ {\n\t\ttotal += <-partial\n\t}\n\treturn total\n}\n"}</code></pre>
+          <p>A <code>WaitGroup</code> answers "have all the goroutines finished?"; here the question is narrower — "have I received one value from each of them?" — and a channel already answers that on its own: each goroutine sends exactly one value, so receiving <code>chunks</code> times is receiving every value that will ever be sent, no more bookkeeping required. A <code>WaitGroup</code> earns its place when goroutines do work you care about after their last send, or send zero or multiple values; when "one value per goroutine" is the whole contract, counting receives is simpler and just as correct.</p>
+        </details>
         <h3>2.11 select</h3>
         <h5>The idea</h5>
         <p><code>select</code> waits on several channel operations at once and proceeds with whichever is ready. It is the control structure that makes channels composable.</p>
@@ -472,6 +517,15 @@ export default function Page() {
           <li><code>time.After(d)</code> returns a channel that delivers a value after <code>d</code>. Convenient, but it allocates a timer each time through a hot loop, so in performance-sensitive loops use <code>time.NewTimer</code> and reset it. </li>
           <li>A <code>nil</code> channel in a <code>select</code> case blocks forever, so setting a channel variable to <code>nil</code> is how you dynamically disable a case. This trick appears in Milestone 11.</li>
         </ul>
+        <div className="exercise">
+          <h5>Exercise 2.11</h5>
+          <p>Write <code>firstOf(a, b {'<'}-chan int) int</code> that returns whichever of two channels produces a value first. Use <code>select</code> with no <code>default</code>. Then explain what would go wrong if you added a <code>default</code> case to that <code>select</code>.</p>
+        </div>
+        <details>
+          <summary>Solution 2.11 — open after trying</summary>
+          <pre><code>{"func firstOf(a, b <-chan int) int {\n\tselect {\n\tcase v := <-a:\n\t\treturn v\n\tcase v := <-b:\n\t\treturn v\n\t}\n}\n"}</code></pre>
+          <p>With no <code>default</code>, <code>select</code> blocks until <code>a</code> or <code>b</code> has a value, which is exactly "whichever comes first". Adding <code>default</code> turns this into a non-blocking poll: if neither channel happens to be ready on this exact pass, the <code>default</code> case runs immediately and <code>firstOf</code> has nothing to return, breaking the function's contract entirely. <code>default</code> is for "check right now and move on", not for "wait for the first of several things", and mixing the two up is a common source of code that seems to work in testing and then returns garbage the moment either channel is even a microsecond slower to produce a value.</p>
+        </details>
         <h3>2.12 Mutexes and atomics</h3>
         <h5>The idea</h5>
         <p>Channels are not always the right answer. When several goroutines genuinely need to read and write one piece of shared state, a mutex is simpler and faster. Go provides both and expects you to choose.</p>
@@ -488,6 +542,15 @@ export default function Page() {
           <h5>Channels or mutexes?</h5>
           <p>The Go community's rule of thumb, from the standard library's own comments: use channels for passing ownership of data and coordinating the flow of work; use mutexes for protecting shared state with simple invariants, especially caches and counters. A mutex around a counter is clear and fast. A channel used as a lock is clever and slow. Our project uses channels for ant-to-world communication (ownership handover) and mutexes and atomics for the metrics package (shared counters). Both, deliberately.</p>
         </div>
+        <div className="exercise">
+          <h5>Exercise 2.12</h5>
+          <p>Add an <code>Errors int</code> field to <code>Counters</code>, protected by the same mutex, and a method <code>IncError()</code> that increments it. Then write a second version of <code>Record</code>, called <code>RecordUnsafe</code>, that locks and unlocks manually — <code>c.mu.Lock()</code>, the two increments, <code>c.mu.Unlock()</code> — with no <code>defer</code> at all. Explain the one situation in which <code>RecordUnsafe</code> is a real bug that the <code>defer</code> version would not have been.</p>
+        </div>
+        <details>
+          <summary>Solution 2.12 — open after trying</summary>
+          <pre><code>{"type Counters struct {\n\tmu        sync.Mutex\n\tdelivered int\n\tbyAnt     map[int]int\n\tErrors    int\n}\n\nfunc (c *Counters) IncError() {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.Errors++\n}\n\nfunc (c *Counters) RecordUnsafe(antID int) {\n\tc.mu.Lock()\n\tc.delivered++\n\tc.byAnt[antID]++\n\tc.mu.Unlock()\n}\n"}</code></pre>
+          <p>As written, <code>RecordUnsafe</code> behaves identically to <code>Record</code>. The difference appears the moment something between <code>Lock</code> and the manual <code>Unlock</code> panics — <code>c.byAnt[antID]++</code> on a nil map, say, if the caller forgot to initialise <code>byAnt</code>. The panic skips straight past the manual <code>c.mu.Unlock()</code>, the mutex stays locked forever, and every future caller of any method that locks <code>c.mu</code> blocks permanently — a single panic anywhere in the critical section turns into a total, silent deadlock of the whole <code>Counters</code>. <code>defer c.mu.Unlock()</code> runs during the panic's unwind regardless, so the mutex is released even though the program still crashes. This is exactly why "lock, defer unlock" as the very next line is the standing rule rather than a style preference.</p>
+        </details>
         <h3>2.13 context</h3>
         <h5>The idea</h5>
         <p><code>context.Context</code> carries a cancellation signal and a deadline down through a call tree. Every long-running operation in modern Go accepts one as its first parameter. It is the standard answer to "how do I stop 50,000 goroutines at once".</p>
@@ -501,6 +564,15 @@ export default function Page() {
           <li>Pass context as the first argument, named <code>ctx</code>. Do not store it in a struct. Do not pass <code>nil</code>. </li>
           <li>Cancellation is <strong>cooperative</strong>. A goroutine in a tight computational loop that never checks <code>ctx.Done()</code> will not stop. Go cannot kill a goroutine, and there is no equivalent of Erlang's <code>exit(Pid, kill)</code>. This limitation shapes Milestone 8.</li>
         </ul>
+        <div className="exercise">
+          <h5>Exercise 2.13</h5>
+          <p>Write <code>afterN(ctx context.Context, n int, work func()) error</code> that calls <code>work()</code> up to <code>n</code> times, sleeping 10 ms between calls, and returns <code>ctx.Err()</code> the moment <code>ctx</code> is cancelled instead of making the remaining calls. It returns <code>nil</code> if all <code>n</code> calls complete first. Call it with a context that times out after 25 ms and <code>n</code> set to 10, and confirm <code>work</code> runs only two or three times, not ten.</p>
+        </div>
+        <details>
+          <summary>Solution 2.13 — open after trying</summary>
+          <pre><code>{"func afterN(ctx context.Context, n int, work func()) error {\n\tfor i := 0; i < n; i++ {\n\t\tselect {\n\t\tcase <-ctx.Done():\n\t\t\treturn ctx.Err()\n\t\tdefault:\n\t\t}\n\t\twork()\n\t\tif i < n-1 {\n\t\t\tselect {\n\t\t\tcase <-ctx.Done():\n\t\t\t\treturn ctx.Err()\n\t\t\tcase <-time.After(10 * time.Millisecond):\n\t\t\t}\n\t\t}\n\t}\n\treturn nil\n}\n"}</code></pre>
+          <p>With a 25 ms timeout and a 10 ms gap between calls, <code>work</code> fires immediately (0 ms), again at 10 ms, again at 20 ms, and the wait before a fourth call would land at 30 ms — past the deadline — so the <code>select</code> on <code>ctx.Done()</code> wins instead and <code>afterN</code> returns <code>context.DeadlineExceeded</code> having called <code>work</code> two or three times depending on exact scheduling, never all ten. The check at the top of the loop matters too: without it, a context already cancelled before the first call would still let one call through, which is usually not what "cancelled" is supposed to mean.</p>
+        </details>
         <h3>2.14 Testing</h3>
         <h5>The idea</h5>
         <p>Testing is in the standard library and requires no dependencies. A test is a function named <code>TestXxx</code> taking <code>*testing.T</code>, in a file ending <code>_test.go</code>, in the same package as the code. </p>

@@ -195,6 +195,8 @@ end
             checks the pipeline is well-formed without running a thing, which is only possible because building produces
             data.</p>
 
+        <h4>Common mistakes in Milestone 9</h4>
+
         <div class="warn">
             <h5><img src="../../assets/expressions/right_to_left/blink.png" alt="The Mewlang cat, winking playfully" width="120" class="mascot-right">The shadowing bug, a second time, in my own test</h5>
             <p>My first version of the first test read:</p>
@@ -362,6 +364,14 @@ end
             </ul>
         </details>
 
+        <h4>Experiment</h4>
+        <p>In <code>test_retry_behaviour_is_testable_without_waiting</code>, change the stub so it needs six attempts
+            before it succeeds (<code>raise IOError, "nope" if attempts &lt; 6</code>) but leave <code>times: 5</code>
+            unchanged. Run the test: it now fails with the original <code>IOError</code> instead of returning
+            <code>"ok after 6"</code>, because <code>times: 5</code> permits exactly five attempts and the middleware
+            re-raises once <code>attempt &gt;= policy.times</code>. That boundary is exactly what
+            <code>assert_run_failed</code> exists to catch.</p>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why does the gem ship testing helpers rather than keeping them in its own test directory?</li>
@@ -381,6 +391,42 @@ end
         <h3>Concepts</h3>
         <p>Reflection over your own data structures, generating diagrams as text, and value equality doing the work of a
             diff algorithm.</p>
+
+        <h3>Design</h3>
+
+        <p>All three functions in this milestone take the same shape: read an <code>AST::PipelineNode</code>, produce a
+            string or a value, and touch nothing else. No new state, no new classes stored anywhere, no changes to how a
+            pipeline is built or run. That restriction is the design.</p>
+
+        <table class="grid">
+            <tr>
+                <th>Function</th>
+                <th>Reads</th>
+                <th>Produces</th>
+            </tr>
+            <tr>
+                <td><code>explain</code></td>
+                <td>steps, handlers, the registry's own docs</td>
+                <td>a human-readable report</td>
+            </tr>
+            <tr>
+                <td><code>to_mermaid</code></td>
+                <td>steps only</td>
+                <td>Mermaid flowchart text</td>
+            </tr>
+            <tr>
+                <td><code>diff</code></td>
+                <td>two pipelines' steps</td>
+                <td>an added/removed/changed summary</td>
+            </tr>
+        </table>
+
+        <p>Keeping them as free functions over the AST, rather than methods that reach back into the registry, the
+            runner or the filesystem, is what makes them trustworthy: <code>explain</code> cannot run a step by
+            accident, and <code>diff</code> cannot be fooled by something that happened between building the two
+            pipelines. The cost is that each function has to be told everything it needs (<code>explain</code> takes
+            <code>registry:</code> explicitly, because it is the one function here that reports on more than the AST
+            alone) rather than reaching for a convenient global.</p>
 
         <h3>Implementation</h3>
 
@@ -537,6 +583,33 @@ research (research.rb:5)
                 <code>retry_on</code>, which is the kind of rule that is impossible to enforce with a YAML file and
                 trivial with an inspectable AST.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>In <code>to_mermaid</code>, delete the <code>*step.options.map { |k, v| "#{k}=#{v}" }</code> part of the
+            label so each box shows only the step name. Regenerate the diagram for <code>examples/research.rb</code>:
+            every node now reads <code>fetch</code>, <code>filter</code>, <code>summarize</code>, <code>save_to</code>
+            with nothing inside, which is enough to see the shape of a pipeline but not enough to tell which endpoint
+            or field it touches — the reason the label includes options in the first place.</p>
+
+        <h4>Common mistakes in Milestone 10</h4>
+        <div class="warn">
+            <ul>
+                <li><strong>Building the Mermaid label with a naive string join and forgetting to escape
+                        <code>"</code>.</strong> An option value containing a quote (<code>matching: 'AI "labs"'</code>)
+                    closes the node's quoted label early:
+                    <code>s0["filter&lt;br/&gt;matching=AI "labs""]</code> is not valid Mermaid, and the diagram
+                    silently fails to render with no error from this Ruby code at all. The fix is
+                    <code>v.to_s.gsub('"', "&amp;quot;")</code> before interpolating, the same escaping discipline the
+                    migration script for this very site uses on JSX-significant characters.</li>
+                <li><strong>Calling <code>explain</code> with the wrong registry.</strong> The default argument is
+                    <code>registry: Automation.registry</code>, the global one; pass a <code>test_registry</code> from
+                    Milestone 9 and every step reports <code>UNKNOWN STEP</code>, because <code>explain</code> only
+                    knows what the registry you gave it knows.</li>
+                <li><strong>Assuming <code>diff</code> is a real diff.</strong> It matches by name, so a pipeline with
+                    two <code>fetch</code> steps produces a nonsense comparison. Read Solution 10.1 before relying on
+                    it for anything with duplicate step names.</li>
+            </ul>
+        </div>
 
         <h4>Checkpoint</h4>
         <ol>
@@ -795,6 +868,15 @@ end
                     way is five lines.</strong></p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Lower <code>Rewrite::MAX_STEPS</code> to <code>3</code> and re-run the <code>deduplicate</code> rewrite
+            shown earlier, which turns the four-step <code>research</code> pipeline into five. <code>apply</code> now
+            raises <code>Error, "rewrite produced 5 steps, over the limit of 3"</code> instead of returning a new
+            pipeline. Then set the limit back, write a policy with no idempotence check that appends a step every time
+            it runs, and call <code>Automation.define</code> on the same pipeline name three times in a row: instead of
+            the step count growing without bound, it stops dead at the same <code>MAX_STEPS</code> error, which is the
+            crash-rather-than-an-answer failure mode the Design section above warns about.</p>
+
         <h4>Common mistakes in Milestone 11</h4>
         <div class="warn">
             <ul>
@@ -810,6 +892,18 @@ end
             </ul>
         </div>
 
+        <h4>Checkpoint</h4>
+        <ol>
+            <li>Why does <code>Rewrite</code> collect operations and apply them at the end, rather than mutating the
+                pipeline as each one is declared?</li>
+            <li>Why is producing a successor pipeline preferable to mutating the one that is currently running?</li>
+            <li>What does <code>MAX_STEPS</code> protect against, and why is a crash an acceptable failure mode there?
+            </li>
+            <li>Why must a policy be idempotent, and what does <code>after == pipeline</code> rely on to detect that?
+            </li>
+            <li>Why is opting out of a policy a design decision rather than a feature you can add unthinkingly?</li>
+        </ol>
+
         <h2 class="milestone-head"><span class="num">Milestone 12</span>Shipping it</h2>
 
         <h3>Goal</h3>
@@ -821,7 +915,44 @@ end
         <p>Gem packaging, <code>OptionParser</code>, exit codes as an interface, and keeping a CLI thin enough that the
             library remains the product.</p>
 
-        <h3>The gemspec</h3>
+        <h3>Design</h3>
+
+        <p>Shipping a DSL gem is three separate promises to three separate audiences, and this milestone keeps them
+            separate rather than folding them into one file.</p>
+
+        <table class="grid">
+            <tr>
+                <th>Promise</th>
+                <th>To whom</th>
+                <th>Where it lives</th>
+            </tr>
+            <tr>
+                <td>What this gem depends on, and which Ruby it needs</td>
+                <td>Whoever runs <code>gem install</code></td>
+                <td>The gemspec</td>
+            </tr>
+            <tr>
+                <td>How to run a pipeline from a shell, with codes scripts can rely on</td>
+                <td>CI jobs, cron, a human at a terminal</td>
+                <td>The CLI</td>
+            </tr>
+            <tr>
+                <td>Which files are safe to run and which are safe to merely read</td>
+                <td>Anyone integrating untrusted pipeline definitions</td>
+                <td><code>load_file</code> / <code>load_data</code></td>
+            </tr>
+        </table>
+
+        <p>The CLI in particular is deliberately thin: it parses arguments, calls straight into the library
+            (<code>Automation.run</code>, <code>Automation::Inspector.explain</code>, the loaders), and formats the
+            result. <strong>None of the three subsections below contain logic that is not already in the library from
+                an earlier milestone.</strong> A CLI that accumulates its own business logic stops being testable the
+            way <code>CLITest</code> below is testable, and becomes the one part of your gem nobody can exercise
+            without shelling out.</p>
+
+        <h3>Implementation</h3>
+
+        <h4>The gemspec</h4>
 
         <pre><code>Gem::Specification.new do |spec|
   spec.name = "automation"
@@ -858,7 +989,7 @@ end
                 option parsing, spell-checking and a test framework, and Ruby's standard library has all of them.</li>
         </ul>
 
-        <h3>The CLI</h3>
+        <h4>The CLI</h4>
 
         <pre><code>  class CLI
     COMMANDS = {
@@ -919,7 +1050,7 @@ end
                     about the design</strong>, not an inconvenience to route around.</p>
         </div>
 
-        <h3>The trust boundary, made concrete</h3>
+        <h4>The trust boundary, made concrete</h4>
 
         <pre><code>  # Load a pipeline file. Ordinary Ruby, so it can do anything Ruby can do:
   # only run files you trust. Use load_data for anything else.
@@ -1055,6 +1186,39 @@ end
                 the format is an API. Nothing is more annoying than a tool that reorders its JSON keys between patch
                 versions.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Edit <code>automation.gemspec</code> so <code>required_ruby_version</code> reads <code>"&gt;= 3.4.0"</code>,
+            then run <code>gem build automation.gemspec &amp;&amp; gem install ./automation-0.1.0.gem</code> on a
+            machine running an older Ruby. Installation refuses outright:</p>
+        <pre class="plain"><code>ERROR:  Error installing ./automation-0.1.0.gem:
+	automation-0.1.0 requires Ruby version &gt;= 3.4.0. The current ruby version is 3.3.8.
+</code></pre>
+        <p>Nothing about your code ran; RubyGems checked the declared floor before extracting a single file. Put the
+            version back to <code>"&gt;= 3.2.0"</code> and the same install succeeds, which is the whole reason this
+            field exists: a clear refusal at install time beats a syntax error the first time someone loads
+            <code>lib/automation/ast.rb</code> and hits <code>Data.define</code> on a Ruby that predates it.</p>
+
+        <h4>Common mistakes in Milestone 12</h4>
+        <div class="warn">
+            <ul>
+                <li><strong>Two methods with the same name in one class.</strong> Ruby redefines silently; see the bug
+                    above. A dispatch table with distinct <code>cmd_</code> method names avoids the collision by
+                    construction.</li>
+                <li><strong>Forgetting <code>required_ruby_version</code>.</strong> Without it, an unsupported Ruby
+                    fails with a raw syntax error deep in your library instead of a clear refusal from
+                    <code>gem install</code>.</li>
+                <li><strong>Writing results and errors to the same stream.</strong> Send results to
+                    <code>$stdout</code> and errors to <code>$stderr</code> via <code>warn</code>, or
+                    <code>automation explain x.rb | less</code> mixes the two.</li>
+                <li><strong>Calling <code>exit</code> from inside library or command methods.</strong> It makes the CLI
+                    untestable in-process; return an integer instead and let one line at the bottom of the executable
+                    call <code>exit</code>.</li>
+                <li><strong>Treating <code>load_file</code> and <code>load_data</code> as interchangeable.</strong>
+                    Only the JSON path is safe for input you did not write yourself; a <code>--safe</code> flag that
+                    quietly falls back to <code>Kernel.load</code> defeats the entire trust boundary.</li>
+            </ul>
+        </div>
 
         <h4>Checkpoint</h4>
         <ol>

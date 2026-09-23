@@ -90,6 +90,7 @@
   end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>def self.start</code> inside a <code>Data.define</code> block is a class method on the generated
                 class. The block is a class body, so <code>def self.x</code> works exactly as it would anywhere else.
@@ -199,6 +200,7 @@
     end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>Process.clock_gettime(Process::CLOCK_MONOTONIC)</code> rather than <code>Time.now</code>. A
                 monotonic clock cannot go backwards when NTP adjusts the system time, which is the correct tool for
@@ -382,6 +384,22 @@ end
             <li>Why is the context immutable, given that we reassign it in the loop anyway?</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Building <code>Middleware.build</code> as a four-line fold, and a <code>Context</code> that carries its
+                own <code>advance</code>/<code>set</code> methods through a <code>Data.define</code> block, needed no
+                framework, no code generation, and no macro. That is genuinely pleasant, but it is not a capability
+                unique to Ruby: Rack, Rails' own middleware stack, Plug and Express all build the identical fold, in
+                whatever language they happen to be written in. What Ruby buys here is brevity, not power nothing else
+                has.</p>
+            <p>The honest cost is that nothing here is checked until it runs. A middleware lambda declared with the
+                wrong arity fails on its first call, not before, and the only reason this milestone catches it quickly
+                is that the test suite exercises new code within seconds of it being written. A statically typed
+                middleware chain (a Go <code>http.Handler</code> chain, for instance) would refuse to compile with a
+                mismatched signature at all. Fast to write, wrong caught later rather than never, and caught cheaply
+                because the language makes testing this cheap too — that is the trade, not a one-sided win.</p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 6</span>Failure as a design, not a rescue</h2>
 
         <h3>Goal</h3>
@@ -423,6 +441,7 @@ end
   end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>klass &lt;= Exception</code> uses <code>Module#&lt;=</code>, which answers "is this class the same
                 as or a subclass of". It is the correct way to ask, and it catches the common mistake of writing
@@ -634,6 +653,35 @@ Automation::StepFailed
                 <code>Net::HTTP</code>, where the library knows which points are safe.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>In <code>handle_failure</code>, delete the <code>rescue StandardError =&gt; e</code> guard and give a
+            <code>when_failed</code> handler a bug (<code>raise NameError, "notifier exploded"</code>). Run a pipeline
+            that fails: instead of a logged <code>"when_failed handler itself raised..."</code> line and a normal
+            <code>RunResult</code> with <code>ok: false</code>, the whole process now crashes with the notifier's own
+            <code>NameError</code>, and the actual step failure that triggered the handler is nowhere in the output.
+            That is the "single most annoying bug class" named above, reproduced on purpose. Put the rescue back and it
+            disappears.</p>
+
+        <h4>Common mistakes in Milestone 6</h4>
+        <div class="warn">
+            <ul>
+                <li><strong>A bare-word verb shadowed by a local variable of the same name.</strong> Bug 1 above.
+                    Rename the variable, or call the verb with explicit parentheses.</li>
+                <li><strong>Expecting <code>cause</code> to be set on a constructed-but-not-raised exception.</strong>
+                    Bug 2 above. Ruby only fills in <code>cause</code> when you <code>raise</code> inside a
+                    <code>rescue</code>; store the original yourself if you build the wrapper instead.</li>
+                <li><strong>Letting a <code>when_failed</code> or <code>always</code> handler's own exception escape
+                        unguarded.</strong> It replaces the real failure with the notifier's failure. Always rescue
+                    around user-supplied handlers.</li>
+                <li><strong>Forgetting that <code>retry</code> restarts the <code>begin</code> block, not the
+                        method.</strong> Any state set up before the <code>begin</code> (rather than inside it) is not
+                    re-initialised on a retried attempt.</li>
+                <li><strong>Hard-coding <code>sleep</code> durations in a retry test.</strong> Use
+                    <code>backoff: :none</code> or a small <code>base_delay</code>, or the suite gets slow enough that
+                    people stop running it.</li>
+            </ul>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why is the retry policy a <code>Data</code> object rather than three keyword arguments to the runner?
@@ -644,6 +692,22 @@ Automation::StepFailed
             <li>Explain the zero-step pipeline bug in one sentence.</li>
             <li>Why is <code>Timeout.timeout</code> a last resort?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p><code>rescue *policy.errors</code> and <code>retry</code> are the pull of this milestone: an array of
+                exception classes decided at run time, spliced straight into a <code>rescue</code> clause, and a
+                keyword that restarts a <code>begin</code> block with no hand-written loop. A language that fixes its
+                set of caught exceptions at compile time (Go's typed error values, Java's checked exceptions) cannot
+                express "catch whatever this policy value says" without a switch over the type, and none of them has a
+                built-in "try this block again."</p>
+            <p>The honest cost sits right next to it, in Bug 2. <code>cause</code> is a convenience Ruby gives you for
+                free on exactly one path (raising inside a rescue) and gives you nothing on the other (constructing an
+                exception without raising it), and nothing in the language warns you which path you are on. A
+                statically checked error type would force you to carry the original value explicitly from the start,
+                because there would be no implicit mechanism to lean on and then discover has a gap. Ruby's dynamism
+                bought the retry policy's flexibility and cost this milestone one of its two bugs.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 7</span>Plugins, and preferring real methods to ghosts
         </h2>
@@ -728,6 +792,7 @@ p Summarize.instance_methods(false).sort          # =&gt; [:call, :max_words, :s
         <p>The readers really exist. They are not ghosts, they appear in <code>instance_methods</code>, and an editor or
             documentation tool can see them.</p>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>class &lt;&lt; self</code> opens the singleton class, so everything inside defines class methods.
                 It is the idiomatic way to write several of them together.</li>
@@ -982,6 +1047,34 @@ Summarize.singleton_class.prepend(CountCalls)
                 Milestone 4.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>In <code>builder_class_for</code>, remove the <code>cached[:generation] == registry.generation</code>
+            check so a cached builder class is returned unconditionally. Build one pipeline (which populates the
+            cache), register a brand-new plugin on the same registry, and try to use its verb in a second pipeline:
+            you get <code>NoMethodError: undefined method '&lt;verb&gt;'</code> instead of a new step, because the
+            stale class from before the registration is still being handed out. Put the generation check back and the
+            second pipeline builds correctly. This is the caching half of the <code>object_id</code> lesson from
+            Milestone 9, one milestone early.</p>
+
+        <h4>Common mistakes in Milestone 7</h4>
+        <div class="warn">
+            <ul>
+                <li><strong>Forgetting <code>super</code> in <code>inherited</code>.</strong> Silently breaks any other
+                    library's own <code>inherited</code> hook further down the chain.</li>
+                <li><strong>Caching a generated builder class without invalidating it.</strong> See the Experiment
+                    above; a registry that can gain new verbs needs the cache keyed on more than identity.</li>
+                <li><strong>Reaching for <code>self.class</code> inside a method prepended to a singleton
+                        class.</strong> <code>self</code> is already the class there, so <code>self.class</code> is
+                    <code>Class</code>, not your plugin. The third bug above.</li>
+                <li><strong>Never checking a <code>RunResult</code>.</strong> Returning results instead of raising is
+                    the right design, and it means an ignored result is an ignored failure, exactly as it was for the
+                    silent failed run above.</li>
+                <li><strong>Writing <code>option</code> definitions with mutable default values shared across
+                        instances.</strong> A <code>default: []</code> that every plugin instance then appends to is
+                    the same aliasing bug as any other language's mutable-default-argument trap.</li>
+            </ul>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>What two things does the <code>option</code> class macro do, and why both?</li>
@@ -1044,6 +1137,7 @@ Summarize.singleton_class.prepend(CountCalls)
     end
 </code></pre>
 
+        <h4>Explanation</h4>
         <p>Net::HTTP can raise at least a dozen different exceptions from unrelated hierarchies:
             <code>Errno::ECONNREFUSED</code>, <code>SocketError</code>, <code>Net::OpenTimeout</code>,
             <code>OpenSSL::SSL::SSLError</code> and more. Asking your users to write
@@ -1346,6 +1440,14 @@ end
                 <code>JSON.parse(..., symbolize_names: true)</code>) rather than letting each store do what is
                 convenient. Discovering that disagreement before your users do is the entire point.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Set <code>AUTOMATION_HTTP_TIMEOUT=abc</code> in the environment and call <code>Config.from_env</code>:
+            <code>Float()</code> raises <code>ArgumentError: invalid value for Float(): "abc"</code> immediately, at
+            configuration time. Now temporarily replace that <code>Float(...)</code> call with a bare
+            <code>.to_i</code> and repeat: it returns <code>0</code> with no error at all, and the next
+            <code>fetch</code> step gets a zero-second timeout instead of a clear configuration failure. Put
+            <code>Float()</code> back and the loud, early error returns.</p>
 
         <h4>Common mistakes in Milestone 8</h4>
         <div class="warn">

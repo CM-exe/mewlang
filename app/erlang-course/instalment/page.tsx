@@ -158,6 +158,15 @@ export default function Page() {
         <pre className="plain"><code>{"$ erl\n1> h(lists, map).\n...\n2> lists:map(fun(X) -> X * 2 end, [1,2,3]).\n[2,4,6]\n"}</code></pre>
         <pre className="plain"><code>{"$ erl -man gen_server        # the full behaviour reference, as a man page\n$ open https://www.erlang.org/doc/                # the official docs, browsable\n"}</code></pre>
         <p><code>h/2</code> inside the shell prints a function's documentation without leaving your session — the closest thing here to Perl's <code>perldoc -f</code> or Go's <code>go doc</code>. The official docs at erlang.org are unusually good and unusually stable: OTP's standard library has unusually few breaking changes release to release, so documentation from three OTP releases ago is still mostly correct today. </p>
+        <h3>Editor setup and formatting</h3>
+        <p>Erlang's editor story is smaller than Go's "every editor has first-class <code>gopls</code> support out of the box," but it is genuinely solid once set up. Two real options, either of which is enough for this course:</p>
+        <ul>
+          <li><strong>VS Code</strong>: the <code>erlang_ls</code> extension (marketplace id <code>erlang-ls.erlang-ls</code>) wraps the Erlang Language Server — inline compile errors as you type, go-to-definition, autocomplete over both the standard library and your own project's modules. WhatsApp's newer <strong>ELP</strong> (Erlang Language Platform) targets the same job and scales better to very large codebases; for a project this size either works, and <code>erlang_ls</code> is the more widely documented default.</li>
+          <li><strong>Emacs</strong>: <code>erlang-mode</code> ships inside the Erlang/OTP source distribution itself (<code>lib/tools/emacs/erlang.el</code>), not as a separate package to track — install Erlang from your package manager as shown above and it is usually already on disk somewhere under the installation, just needing to be added to Emacs's load path. It predates every other option here by decades and much of the wider Erlang community's own tooling still assumes it as the baseline.</li>
+        </ul>
+        <p>Both integrate with <code>rebar3</code> directly: point either one at a project with a <code>rebar.config</code> already in place (Milestone 1 has you create one) and it finds the project's own dependencies and include paths without further configuration.</p>
+        <pre className="plain"><code>{"$ cat rebar.config\n{erl_opts, [debug_info]}.\n{plugins, [rebar3_format]}.    %% or: {plugins, [erlfmt]}.\n\n$ rebar3 format          # rebar3_format: reformats in place, project-wide\n$ rebar3 fmt -w src/*.erl   # erlfmt: reformats the given files in place\n$ rebar3 fmt --check       # erlfmt: reports files that need formatting, changes nothing\n"}</code></pre>
+        <p>Neither formatter ships with <code>rebar3</code> itself — both are plugins, added once to <code>rebar.config</code> the same way <code>rebar3_proper</code> is added in Milestone 12. They disagree on some stylistic choices (<code>rebar3_format</code>, for instance, tends to keep small map literals on one line where <code>erlfmt</code> more often expands them), so pick one for a given project rather than running both — mixing them means every commit reformats whatever the previous commit's tool did not agree with.</p>
         <h3>Testing, from the first day</h3>
         <p>OTP ships <strong>EUnit</strong>, a lightweight unit-testing framework, in the standard library — no dependency to add, the same way Go ships <code>testing</code>.</p>
         <pre><code>{"%% src/basics.erl\n-module(basics).\n-export([classify/1]).\n\nclassify(N) when N < 0 -> negative;\nclassify(0) -> zero;\nclassify(N) when N rem 2 =:= 0 -> even;\nclassify(_) -> odd.\n"}</code></pre>
@@ -197,6 +206,21 @@ export default function Page() {
         <p>Matching directly against the shape you expect is the idiomatic way to consume this:</p>
         <pre><code>{"{ok, Contents} = file:read_file(Path),\n%% ... use Contents; if the read failed, the match fails and the\n%% process crashes here, with a clear reason, which is correct —\n%% see the \"let it crash\" section above.\n"}</code></pre>
         <p><code>{'<'}{'<'}"my-machine\n"{'>'}{'>'}</code> is a <strong>binary</strong>, Erlang's efficient representation for raw byte data — the type file contents, network payloads and, later in this course, malformed chaos-test messages arrive as.</p>
+        <div className="warn">
+          <h5>An <code>{'{'}error, Reason{'}'}</code> tuple is not raised — it just sits there until you match on it</h5>
+          <p>Coming from a language where a failed file read throws by default, it is easy to assume <code>file:read_file/1</code> announces failure the same way. It does not — <code>{'{'}error, enoent{'}'}</code> is an entirely ordinary value, returned exactly like a success would be, and code that does not explicitly check for it will happily keep going with an error tuple sitting where real data was expected:</p>
+          <pre className="plain"><code>{"1> R = file:read_file(\"does_not_exist.txt\").\n{error,enoent}\n2> {ok, Bin} = R.\n** exception error: no match of right hand side value {error,enoent}\n"}</code></pre>
+          <p>The crash above is the <em>correct</em> outcome, and it is the pattern match — <code>{'{'}ok, Bin{'}'} = R</code> — doing the work of announcing the failure, not the original call. Skip the match (bind <code>Data = file:read_file(Path)</code> and use <code>Data</code> directly, unmatched) and the error tuple flows silently into whatever uses it next, surfacing as a confusing failure far away from where it actually originated.</p>
+        </div>
+        <h4>Exercise 2.2</h4>
+        <div className="exercise">
+          <p>Write <code>describe_result/1</code>, taking a value shaped like <code>{'{'}ok, Value{'}'}</code> or <code>{'{'}error, Reason{'}'}</code> and returning <code>{'{'}success, Value{'}'}</code> or <code>{'{'}failure, Reason{'}'}</code> respectively — using pattern matching in the function head, not a guard or an <code>if</code>.</p>
+          <details>
+            <summary>Solution</summary>
+            <pre><code>{"describe_result({ok, Value}) -> {success, Value};\ndescribe_result({error, Reason}) -> {failure, Reason}.\n"}</code></pre>
+            <p>Verified: <code>describe_result({'{'}ok, 42{'}'})</code> gives <code>{'{'}success,42{'}'}</code>; <code>describe_result({'{'}error, not_found{'}'})</code> gives <code>{'{'}failure,not_found{'}'}</code>. Two clauses, no branching logic written by hand — exactly Section 2.5's "multiple clauses instead of <code>if</code>" idiom, one section early.</p>
+          </details>
+        </div>
         <h3>2.3 Lists, recursion, and tail calls</h3>
         <p>Erlang has no loop construct at all — no <code>for</code>, no <code>while</code>. Repetition is always recursion, which sounds alarming until you meet the guarantee that makes it practical: a <strong>tail call</strong> — a recursive call in the last position of a function clause, with nothing left to do after it returns — is compiled to a jump, not a new stack frame, so a correctly-written recursive loop runs in constant stack space no matter how many times it recurses.</p>
         <pre><code>{"%% NOT tail-recursive: the multiplication happens *after* the\n%% recursive call returns, so a stack frame must be kept for it\nfact(0) -> 1;\nfact(N) -> N * fact(N - 1).\n\n%% tail-recursive: the recursive call is the very last thing this\n%% clause does — there is nothing left to do with its result except\n%% return it, so no frame needs to be kept\nfact_tail(N) -> fact_tail(N, 1).\nfact_tail(0, Acc) -> Acc;\nfact_tail(N, Acc) -> fact_tail(N - 1, N * Acc).\n"}</code></pre>
@@ -218,14 +242,54 @@ export default function Page() {
         <p>A map is Erlang's key-value structure, added relatively recently (OTP 17, 2015) as a friendlier alternative to the older, more rigid <code>record</code> and property-list idioms for "a bag of named fields" — the shape this course's per-node state will mostly take.</p>
         <pre><code>{"1> Node = #{id => 42, status => alive, energy => 100}.\n#{id => 42,status => alive,energy => 100}\n2> #{id := Id, status := Status} = Node.\n#{energy => 100,id => 42,status => alive}\n3> Id.\n42\n4> Node2 = Node#{status := crashed}.\n#{id => 42,status => crashed,energy => 100}\n"}</code></pre>
         <p><code>={'>'}</code> is used when constructing or when a key may or may not already be present; <code>:=</code> is used when matching or updating a key that <em>must</em> already exist — updating a genuinely new key with <code>:=</code> is a runtime error, which is a real, useful guard against typos in a field name silently creating a new field instead of updating the one you meant. <code>Node#{'{'}status := crashed{'}'}</code> produces a <em>new</em> map, leaving <code>Node</code> itself untouched — maps, like everything else bound to a variable, are immutable once created.</p>
+        <h4>Exercise 2.4</h4>
+        <div className="exercise">
+          <p>Starting from <code>Node = #{'{'}id ={'>'} 1, status ={'>'} alive, energy ={'>'} 100{'}'}</code>, write an expression that produces a new map with <code>energy</code> set to <code>80</code>, using <code>:=</code>. Then predict, and verify, what happens if you try the same update against the key <code>score</code>, which does not exist in <code>Node</code>.</p>
+          <details>
+            <summary>Solution</summary>
+            <pre><code>{"1> Node = #{id => 1, status => alive, energy => 100}.\n#{id => 1,status => alive,energy => 100}\n2> Node#{energy := 80}.\n#{id => 1,status => alive,energy => 80}\n3> Node#{score := 0}.\n** exception error: bad key: score\n     in function  maps:update/3\n"}</code></pre>
+            <p>The third line is the point of the exercise: <code>:=</code> against a key that is not already present is a runtime error, not a silent insert — the guard against a typo'd field name creating a brand-new field instead of updating the one you meant, exactly as Section 2.4 describes. Constructing <code>Node#{'{'}score ={'>'} 0{'}'}</code> with <code>={'>'}</code> instead would succeed and genuinely add the key, which is the tell for which operator you actually meant to use.</p>
+          </details>
+        </div>
         <h3>2.5 Functions: multiple clauses and guards</h3>
         <p>You saw this shape already in <code>classify/1</code> above: a function can be defined as several clauses, each with its own pattern for the arguments, tried top to bottom until one matches. A <strong>guard</strong> — the <code>when</code> clause — adds a further condition that must also hold, drawn from a restricted set of side-effect-free, always-fast operations (comparisons, arithmetic, type tests) precisely so that a guard can never itself crash or hang while the runtime is deciding which clause to run.</p>
         <pre><code>{"describe(N) when is_integer(N), N > 0 -> positive_integer;\ndescribe(N) when is_integer(N) -> non_positive_integer;\ndescribe(N) when is_float(N) -> float_value;\ndescribe(N) when is_atom(N) -> atom_value;\ndescribe(_) -> something_else.\n"}</code></pre>
         <p>This is Erlang's real substitute for both function overloading and a chain of <code>if</code>/ <code>else if</code> — and it is genuinely the idiomatic way to branch, not merely an alternative to it. Milestone 3 onward, nearly every message a node handles is dispatched this way: one function clause per message shape.</p>
+        <div className="warn">
+          <h5>A guard cannot call your own functions — the compiler rejects it, it does not just misbehave</h5>
+          <p>The restricted set of operations a guard is allowed to use is enforced at compile time, not left as a style convention to remember: calling an ordinary function you wrote, however small and however obviously side-effect-free, inside a <code>when</code> clause is a compile error, not a warning:</p>
+          <pre className="plain"><code>{"helper(N) -> N > 0.\ncheck(N) when helper(N) -> yes;\ncheck(_) -> no.\n\n$ erlc badguard.erl\nbadguard.erl:2: call to local/imported function helper/1 is illegal in guard\n"}</code></pre>
+          <p>The fix is either inlining the check directly as a guard expression (<code>N {'>'} 0</code>, which <em>is</em> guard-legal), or moving the logic into the function body and checking it there with an <code>if</code> or a nested <code>case</code> — a guard's restriction to a fixed, safe operation set is not negotiable by writing a "safe-looking" helper function around it.</p>
+        </div>
+        <h4>Exercise 2.5</h4>
+        <div className="exercise">
+          <p>Write <code>is_valid_energy/1</code>, returning <code>true</code> only for integers in the inclusive range 0 to 100, using a guard — no <code>if</code>, no function body logic.</p>
+          <details>
+            <summary>Solution</summary>
+            <pre><code>{"is_valid_energy(N) when is_integer(N), N >= 0, N =< 100 -> true;\nis_valid_energy(_) -> false.\n"}</code></pre>
+            <p>Verified: <code>true</code> for <code>50</code>, <code>false</code> for both <code>150</code> and <code>-1</code> — three guard conditions joined by commas, all of which must hold, is ordinary boolean "and" inside a guard; a comma-separated guard sequence never short-circuits in a way that matters here because every condition used is cheap and side-effect-free by construction, which is precisely what guards are restricted to in the first place.</p>
+          </details>
+        </div>
         <h3>2.6 Modules and exports</h3>
         <p>You have already seen the whole mechanism: <code>-module(name)</code> must match the filename, and <code>-export([f/1, g/2])</code> lists exactly which <code>name/arity</code> pairs are callable from outside. Two more attributes worth knowing now:</p>
         <pre><code>{"-module(mesh_node).\n-behaviour(gen_server).       %% declares intent; checked at compile time\n                               %% once the callbacks below exist — Milestone 5\n\n-export([start_link/1, stop/1]).   %% the public API\n-export([init/1, handle_call/3]).  %% gen_server callbacks — technically\n                                    %% exported so OTP's machinery can call\n                                    %% them, not meant for other modules to\n                                    %% call directly; the underscore-free\n                                    %% naming convention signals that\n"}</code></pre>
         <p><code>-behaviour(gen_server)</code> does not exist yet in code you will write until Milestone 5, but it is worth previewing the shape now: a behaviour is a contract — a fixed set of callback functions a module promises to implement — and the compiler warns you at compile time if you declare one and forget a required callback. This is the closest thing in Erlang to Go's interfaces, with one inversion worth noting: a Go interface is satisfied implicitly, by having the right methods; an Erlang behaviour is declared explicitly, and the compiler checks the declaration against the module's actual exports.</p>
+        <div className="warn">
+          <h5>The filename and the <code>-module</code> name must match exactly, or nothing compiles</h5>
+          <p>This is one of the first errors most newcomers to Erlang hit, and it looks nothing like the mistake that caused it: save a module declared <code>-module(actualname)</code> in a file named <code>wrongname.erl</code> and the compiler refuses outright, before checking anything else about the code:</p>
+          <pre className="plain"><code>{"$ erlc wrongname.erl\nwrongname.beam: Module name 'actualname' does not match file name 'wrongname'\n"}</code></pre>
+          <p>Easy to hit by copy-pasting an existing module as a starting point for a new one and forgetting to update the <code>-module</code> line to match the new filename — the fix is making the two agree, in either direction, not a sign anything else is wrong with the code itself.</p>
+        </div>
+        <h4>Exercise 2.6</h4>
+        <div className="exercise">
+          <p>Write a module with one exported function that calls a second, unexported "helper" function internally. Confirm the exported function works normally when called from another module, then try calling the helper function directly from that other module and explain what happens.</p>
+          <details>
+            <summary>Solution</summary>
+            <pre><code>{"-module(expmod).\n-export([public_fn/0]).\n\npublic_fn() -> internal_fn() + 1.\ninternal_fn() -> 41.\n"}</code></pre>
+            <pre className="plain"><code>{"1> expmod:public_fn().\n42\n2> expmod:internal_fn().\n** exception error: undefined function expmod:internal_fn/0\n"}</code></pre>
+            <p><code>public_fn/0</code> calling <code>internal_fn/0</code> from <em>inside the same module</em> needs no export at all — the export list only governs what code <em>outside</em> the module can reach. Calling <code>internal_fn/0</code> the same way you would call any other function, from the shell or from a different module, fails with <code>undef</code>, because as far as anything outside <code>expmod</code> is concerned, that function does not exist.</p>
+          </details>
+        </div>
         <h3>2.7 Processes: <code>spawn</code>, <code>!</code>, and <code>receive</code></h3>
         <p>This is the syntax Milestone 3 will build a real node architecture out of. Three primitives, and nothing else is needed to create concurrency in Erlang — no thread pool to configure, no async keyword to remember to add.</p>
         <pre><code>{"-module(echo).\n-export([loop/0]).\n\nloop() ->\n    receive\n        {From, Ref, Msg} ->\n            From ! {Ref, {echo, Msg}},\n            loop();\n        stop ->\n            ok\n    end.\n"}</code></pre>
@@ -238,6 +302,10 @@ export default function Page() {
         <div className="warn">
           <h5>A mailbox with no selective clause for a message keeps that message forever</h5>
           <p>If a process's <code>receive</code> only ever matches messages of one shape, and something sends it a message of a different shape, that message is not discarded — it sits in the mailbox, permanently, skipped by every future <code>receive</code> that also does not match it. Enough of these accumulate and the mailbox itself becomes a genuine memory leak, and every <code>receive</code> after it gets slightly slower, because a selective receive has to scan past every unmatched message to find one that does match. Milestone 7 measures exactly this cost once the mesh is under load; the fix, covered there, is a catch-all clause that at least logs and discards anything unrecognised, rather than a mailbox with no fallback at all.</p>
+        </div>
+        <div className="cmp">
+          <h5>A typical language vs. Erlang</h5>
+          <p>C++ and Java both give you threads that share the process's memory by default — a thread reads and writes the same objects another thread can reach, and correctness depends on remembering to guard every shared access with a mutex, an atomic, or some other explicit synchronisation primitive you have to choose and apply consistently yourself. JavaScript's runtime avoids that specific hazard by having only one thread of execution at a time (concurrency there is about interleaving callbacks and <code>await</code> points on a single thread, not simultaneous memory access), which sidesteps data races but also means one long-running callback blocks everything else. Erlang processes share <em>nothing</em> by default — no object either side can reach through the other, only messages explicitly copied across — so "did I forget to lock this" is not a category of bug that exists here at all; the honest cost is that this copying is real work (a large term sent between processes is genuinely copied, not just referenced), and a design that leans on huge messages passed constantly between processes pays for that isolation in a way a shared-memory design with careful locking would not.</p>
         </div>
         <h3>2.8 Links, monitors, and <code>trap_exit</code></h3>
         <p>Two mechanisms exist for one process to learn that another one died, and they are not interchangeable — Milestone 4 is built entirely on the distinction.</p>
@@ -271,6 +339,22 @@ export default function Page() {
         <pre><code>{"1> try 1 / 0 catch error:badarith -> {error, division_by_zero} end.\n{error,division_by_zero}\n2> try throw(custom_signal) catch throw:Reason -> {caught, Reason} end.\n{caught,custom_signal}\n"}</code></pre>
         <p>Erlang has three distinct ways to signal something exceptional — <code>error</code> (a genuine bug — division by zero, a failed pattern match, a bad argument), <code>throw</code> (a value used for non-local control flow, the sender expects it to be caught somewhere), and <code>exit</code> (a deliberate request that a process should stop, which is also what an unhandled <code>error</code> becomes) — and <code>try ... catch Class:Reason -{'>'} ...</code> can distinguish between them by matching on <code>Class</code>.</p>
         <p>The honest advice, and the whole thesis of "let it crash": <strong>reach for <code>try</code>/ <code>catch</code> far less often than instinct suggests.</strong> Wrapping every fallible operation defensively is the instinct this language actively argues against — the idiomatic response to "this function can fail in a way I have not planned for" is usually to let the process crash and have a supervisor restart it into clean state, not to catch the failure and attempt to continue in a state you were not prepared for. <code>try</code>/<code>catch</code> earns its place at a genuine boundary: the edge of the system (a network request, user input), or a place where "fail and report a specific, recoverable reason" is itself the correct behaviour rather than "fail and restart."</p>
+        <div className="warn">
+          <h5>Catching <code>_:_</code> hides real bugs as reliably as it hides the failure you meant to catch </h5>
+          <p>A wildcard pattern matches every class and every reason, which means it catches the specific, anticipated failure you were thinking about exactly as well as it catches a genuine programming mistake you were not — a typo'd variable, a bad arithmetic operation, anything:</p>
+          <pre className="plain"><code>{"1> try X = 1 + not_a_number, X catch _:_ -> ok end.\nok\n"}</code></pre>
+          <p><code>1 + not_a_number</code> is a real bug — adding an integer to an atom — and the wildcard <code>catch</code> above converts it into the same <code>ok</code> a genuinely expected, handled failure would produce, with nothing in the return value to tell them apart. Catching a specific <code>Class:Reason</code> pattern (as the two examples at the top of this section do) lets anything that does not match propagate and crash loudly, which — per this section's own advice — is usually the outcome you want for the case you did not anticipate.</p>
+        </div>
+        <h4>Exercise 2.9</h4>
+        <div className="exercise">
+          <p>Write an expression that divides two numbers inside a <code>try</code>, catching only <code>error:badarith</code> specifically (not a wildcard), and returns <code>{'{'}error, division_by_zero{'}'}</code> on failure. Then call it with a division that raises a <em>different</em> error class (<code>throw(not_a_number)</code>, say) and confirm your narrow catch does not swallow it.</p>
+          <details>
+            <summary>Solution</summary>
+            <pre><code>{"safe_divide(A, B) ->\n    try A / B\n    catch error:badarith -> {error, division_by_zero}\n    end.\n"}</code></pre>
+            <pre className="plain"><code>{"1> safe_divide(10, 0).\n{error,division_by_zero}\n2> try throw(not_a_number) catch error:badarith -> {error, division_by_zero} end.\n** exception throw: not_a_number\n"}</code></pre>
+            <p>The second call is the point: a <code>throw</code> is a different exception class from <code>error</code>, so a catch pattern narrowed to <code>error:badarith</code> correctly lets it through uncaught, rather than a wildcard silently absorbing an exception the function was never actually written to handle.</p>
+          </details>
+        </div>
         <h3>2.10 A first taste of behaviours</h3>
         <p>You will not write a full <code>gen_server</code> until Milestone 5, but it is worth seeing the shape of an OTP behaviour once now, so Milestone 5 is recognising a pattern rather than meeting one cold. A behaviour is a module that implements a fixed set of callbacks; OTP's generic machinery — code you never see or modify — handles the process loop, the message protocol, and a long list of edge cases (what happens if a reply never comes, how to shut down cleanly) uniformly for every module that implements it. </p>
         <pre><code>{"%% the shape you will fill in for real in Milestone 5 — not runnable yet\n-module(mesh_node).\n-behaviour(gen_server).\n\ninit(Args) -> {ok, InitialState}.\nhandle_call(Request, From, State) -> {reply, Reply, NewState}.\nhandle_cast(Request, State) -> {noreply, NewState}.\n"}</code></pre>

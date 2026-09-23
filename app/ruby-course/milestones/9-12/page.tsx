@@ -65,6 +65,7 @@ export default function Page() {
         <pre><code>{"class TestingHelpersTest < Minitest::Test\n  include Automation::Testing\n\n  def test_stubs_record_how_they_were_called\n    fetch = stub_step(:fetch, [{ title: \"one\" }])\n    # NOT `upcase = ...`: a local variable of that name would shadow the\n    # verb inside the DSL block and the step would silently disappear.\n    upcaser = stub_step(:upcase) { |records| records.map { |r| r.merge(title: r[:title].upcase) } }\n\n    pipeline = build_pipeline(\"t\") do\n      fetch from: \"somewhere\"\n      upcase\n    end\n\n    result = assert_run_ok(run_pipeline(pipeline))\n\n    assert fetch.called?\n    assert_equal({ from: \"somewhere\" }, fetch.last_options)\n    assert_equal [{ title: \"ONE\" }], result.payload\n    assert_equal [{ title: \"one\" }], upcaser.last_input\n  end\n\n  def test_assertions_about_shape_need_no_execution\n    stub_step(:fetch)\n    stub_step(:save_to)\n\n    pipeline = build_pipeline(\"t\") do\n      fetch from: \"x\"\n      save_to collection: \"papers\"\n    end\n\n    assert_steps %i[fetch save_to], pipeline\n    assert_step_options({ collection: \"papers\" }, pipeline, :save_to)\n    assert_pipeline_valid pipeline\n  end\n\n  def test_retry_behaviour_is_testable_without_waiting\n    attempts = 0\n    stub_step(:flaky) do\n      attempts += 1\n      raise IOError, \"nope\" if attempts < 3\n\n      \"ok after #{attempts}\"\n    end\n\n    pipeline = build_pipeline(\"t\") do\n      retry_on IOError, times: 5, backoff: :none\n      flaky\n    end\n\n    result = assert_run_ok(run_pipeline(pipeline))\n    assert_equal \"ok after 3\", result.payload\n    assert_equal 3, result.results.first.attempts\n  end\nend\n"}</code></pre>
         <p><code>backoff: :none</code> is why <code>RetryPolicy</code> has a <code>backoff</code> field instead of a hard-coded schedule. A retry test that sleeps is a test people delete. Making slow behaviour configurable is a testability decision you make when you design the feature, not afterwards.</p>
         <p><code>test_assertions_about_shape_need_no_execution</code> is the one to copy into your own projects: it checks the pipeline is well-formed without running a thing, which is only possible because building produces data.</p>
+        <h4>Common mistakes in Milestone 9</h4>
         <div className="warn">
           <h5>
             <img className="mascot-right" src={img2.src} alt="The Mewlang cat, winking playfully" width="120" loading="lazy" />
@@ -104,6 +105,8 @@ export default function Page() {
             <li><strong>The anonymous module prepended in the last test</strong> is the counting trick from Milestone 7, used as a test instrument. Note it permanently modifies the class for the rest of the process, which is acceptable in a test suite and would not be in production code.</li>
           </ul>
         </details>
+        <h4>Experiment</h4>
+        <p>In <code>test_retry_behaviour_is_testable_without_waiting</code>, change the stub so it needs six attempts before it succeeds (<code>raise IOError, "nope" if attempts {'<'} 6</code>) but leave <code>times: 5</code> unchanged. Run the test: it now fails with the original <code>IOError</code> instead of returning <code>"ok after 6"</code>, because <code>times: 5</code> permits exactly five attempts and the middleware re-raises once <code>attempt {'>'}= policy.times</code>. That boundary is exactly what <code>assert_run_failed</code> exists to catch.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why does the gem ship testing helpers rather than keeping them in its own test directory?</li>
@@ -118,6 +121,33 @@ export default function Page() {
         <p>Three functions of the AST and nothing else: <code>explain</code> for humans, <code>to_mermaid</code> for documentation, and <code>diff</code> for change review.</p>
         <h3>Concepts</h3>
         <p>Reflection over your own data structures, generating diagrams as text, and value equality doing the work of a diff algorithm.</p>
+        <h3>Design</h3>
+        <p>All three functions in this milestone take the same shape: read an <code>AST::PipelineNode</code>, produce a string or a value, and touch nothing else. No new state, no new classes stored anywhere, no changes to how a pipeline is built or run. That restriction is the design.</p>
+        <table className="grid">
+          <tbody>
+            <tr>
+              <th>Function</th>
+              <th>Reads</th>
+              <th>Produces</th>
+            </tr>
+            <tr>
+              <td><code>explain</code></td>
+              <td>steps, handlers, the registry's own docs</td>
+              <td>a human-readable report</td>
+            </tr>
+            <tr>
+              <td><code>to_mermaid</code></td>
+              <td>steps only</td>
+              <td>Mermaid flowchart text</td>
+            </tr>
+            <tr>
+              <td><code>diff</code></td>
+              <td>two pipelines' steps</td>
+              <td>an added/removed/changed summary</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Keeping them as free functions over the AST, rather than methods that reach back into the registry, the runner or the filesystem, is what makes them trustworthy: <code>explain</code> cannot run a step by accident, and <code>diff</code> cannot be fooled by something that happened between building the two pipelines. The cost is that each function has to be told everything it needs (<code>explain</code> takes <code>registry:</code> explicitly, because it is the one function here that reports on more than the AST alone) rather than reaching for a convenient global.</p>
         <h3>Implementation</h3>
         <pre><code>{"    def explain(pipeline, registry: Automation.registry)\n      lines = [\"#{pipeline.name} (#{pipeline.location})\"]\n\n      pipeline.steps.each_with_index do |step, i|\n        known = registry.registered?(step.name)\n        marker = known ? \" \" : \"?\"\n        lines << format(\"  %s%-2d %-40s %s\", marker, i + 1, step.to_s, step.location)\n\n        doc = known ? registry.entry(step.name).doc : \"UNKNOWN STEP\"\n        lines << \"        #{doc}\" if doc\n      end\n\n      pipeline.handlers.each do |handler|\n        detail = handler.kind == :retry_on ? handler.callable.to_s : \"a block\"\n        lines << format(\"  * %-42s %s\", \"#{handler.kind}: #{detail}\", handler.location)\n      end\n\n      lines.join(\"\\n\")\n    end\n"}</code></pre>
         <pre className="plain"><code>{"$ automation explain examples/research.rb\nresearch (research.rb:5)\n   1  fetch(from: \"https://example.invalid/papers.json\", limit: 20) research.rb:7\n        Fetch a JSON array of records from an HTTP endpoint.\n   2  filter(field: :topic, matching: \"AI\")    research.rb:8\n        Keep records whose field matches a value or pattern.\n   3  summarize(field: :abstract, max_words: 40) research.rb:9\n        Summarise a field of each record into :summary.\n   4  save_to(collection: \"knowledge_base\")    research.rb:10\n        Append records to a collection in the knowledge base.\n  * retry_on: retry Automation::HttpError up to 3x (exponential) research.rb:6\n  * when_failed: a block                       research.rb:12\n"}</code></pre>
@@ -153,6 +183,16 @@ export default function Page() {
           <p>Preferring data over shared process state is the theme of the whole course, and it applies to your own tooling too.</p>
           <p><strong>3.</strong> <code>cost :network</code> is one more class macro storing metadata, and <code>explain</code> counting it is four lines. The valuable part is what it enables: a policy (Milestone 11) that refuses to define a pipeline making more than N network calls without an explicit <code>retry_on</code>, which is the kind of rule that is impossible to enforce with a YAML file and trivial with an inspectable AST.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>In <code>to_mermaid</code>, delete the <code>*step.options.map {'{'} |k, v| "#{'{'}k{'}'}=#{'{'}v{'}'}" {'}'}</code> part of the label so each box shows only the step name. Regenerate the diagram for <code>examples/research.rb</code>: every node now reads <code>fetch</code>, <code>filter</code>, <code>summarize</code>, <code>save_to</code> with nothing inside, which is enough to see the shape of a pipeline but not enough to tell which endpoint or field it touches — the reason the label includes options in the first place.</p>
+        <h4>Common mistakes in Milestone 10</h4>
+        <div className="warn">
+          <ul>
+            <li><strong>Building the Mermaid label with a naive string join and forgetting to escape <code>"</code>.</strong> An option value containing a quote (<code>matching: 'AI "labs"'</code>) closes the node's quoted label early: <code>s0["filter{'<'}br/{'>'}matching=AI "labs""]</code> is not valid Mermaid, and the diagram silently fails to render with no error from this Ruby code at all. The fix is <code>v.to_s.gsub('"', "&quot;")</code> before interpolating, the same escaping discipline the migration script for this very site uses on JSX-significant characters.</li>
+            <li><strong>Calling <code>explain</code> with the wrong registry.</strong> The default argument is <code>registry: Automation.registry</code>, the global one; pass a <code>test_registry</code> from Milestone 9 and every step reports <code>UNKNOWN STEP</code>, because <code>explain</code> only knows what the registry you gave it knows.</li>
+            <li><strong>Assuming <code>diff</code> is a real diff.</strong> It matches by name, so a pipeline with two <code>fetch</code> steps produces a nonsense comparison. Read Solution 10.1 before relying on it for anything with duplicate step names.</li>
+          </ul>
+        </div>
         <h4>Checkpoint</h4>
         <ol>
           <li>Where does every piece of the <code>explain</code> output originally come from?</li>
@@ -236,6 +276,8 @@ export default function Page() {
           <p><strong>Provenance</strong> means adding a field to <code>StepNode</code> (<code>added_by</code>, defaulting to <code>nil</code>) and having <code>Rewrite</code> stamp it. The interesting decision is that <code>Rewrite</code> does not know the policy's name, so <code>Policies.apply</code> must pass it in, which means <code>rewrite</code> needs an optional <code>source:</code> argument. That ripple is typical: provenance is cheap to add at the start and awkward to retrofit, which is an argument for putting it in from the beginning of any system that transforms user input.</p>
           <p><strong>Opting out</strong> deserves a real answer rather than a feature. If policies exist to enforce organisational requirements (audit logging, rate limits, cost caps), a per-pipeline opt-out defeats them, and the correct design is that opting out is itself a policy decision: a list of exemptions held by whoever owns the policy, not a keyword any author can write. If policies exist merely as helpful defaults, an opt-out is fine. <strong>Deciding which kind you have is the design work; the code either way is five lines.</strong></p>
         </details>
+        <h4>Experiment</h4>
+        <p>Lower <code>Rewrite::MAX_STEPS</code> to <code>3</code> and re-run the <code>deduplicate</code> rewrite shown earlier, which turns the four-step <code>research</code> pipeline into five. <code>apply</code> now raises <code>Error, "rewrite produced 5 steps, over the limit of 3"</code> instead of returning a new pipeline. Then set the limit back, write a policy with no idempotence check that appends a step every time it runs, and call <code>Automation.define</code> on the same pipeline name three times in a row: instead of the step count growing without bound, it stops dead at the same <code>MAX_STEPS</code> error, which is the crash-rather-than-an-answer failure mode the Design section above warns about.</p>
         <h4>Common mistakes in Milestone 11</h4>
         <div className="warn">
           <ul>
@@ -247,12 +289,48 @@ export default function Page() {
             <li><strong>Policies that return something other than a pipeline.</strong> Check the type and say which policy misbehaved; a <code>NoMethodError</code> three frames away is not a useful report.</li>
           </ul>
         </div>
+        <h4>Checkpoint</h4>
+        <ol>
+          <li>Why does <code>Rewrite</code> collect operations and apply them at the end, rather than mutating the pipeline as each one is declared?</li>
+          <li>Why is producing a successor pipeline preferable to mutating the one that is currently running?</li>
+          <li>What does <code>MAX_STEPS</code> protect against, and why is a crash an acceptable failure mode there? </li>
+          <li>Why must a policy be idempotent, and what does <code>after == pipeline</code> rely on to detect that? </li>
+          <li>Why is opting out of a policy a design decision rather than a feature you can add unthinkingly?</li>
+        </ol>
         <h2 className="milestone-head"><span className="num">Milestone 12</span>Shipping it</h2>
         <h3>Goal</h3>
         <p>A gemspec with no runtime dependencies, an <code>automation</code> command with four subcommands and honest exit codes, a documented trust boundary between Ruby pipeline files and JSON ones, and the release mechanics.</p>
         <h3>Concepts</h3>
         <p>Gem packaging, <code>OptionParser</code>, exit codes as an interface, and keeping a CLI thin enough that the library remains the product.</p>
-        <h3>The gemspec</h3>
+        <h3>Design</h3>
+        <p>Shipping a DSL gem is three separate promises to three separate audiences, and this milestone keeps them separate rather than folding them into one file.</p>
+        <table className="grid">
+          <tbody>
+            <tr>
+              <th>Promise</th>
+              <th>To whom</th>
+              <th>Where it lives</th>
+            </tr>
+            <tr>
+              <td>What this gem depends on, and which Ruby it needs</td>
+              <td>Whoever runs <code>gem install</code></td>
+              <td>The gemspec</td>
+            </tr>
+            <tr>
+              <td>How to run a pipeline from a shell, with codes scripts can rely on</td>
+              <td>CI jobs, cron, a human at a terminal</td>
+              <td>The CLI</td>
+            </tr>
+            <tr>
+              <td>Which files are safe to run and which are safe to merely read</td>
+              <td>Anyone integrating untrusted pipeline definitions</td>
+              <td><code>load_file</code> / <code>load_data</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p>The CLI in particular is deliberately thin: it parses arguments, calls straight into the library (<code>Automation.run</code>, <code>Automation::Inspector.explain</code>, the loaders), and formats the result. <strong>None of the three subsections below contain logic that is not already in the library from an earlier milestone.</strong> A CLI that accumulates its own business logic stops being testable the way <code>CLITest</code> below is testable, and becomes the one part of your gem nobody can exercise without shelling out.</p>
+        <h3>Implementation</h3>
+        <h4>The gemspec</h4>
         <pre><code>{"Gem::Specification.new do |spec|\n  spec.name = \"automation\"\n  spec.version = Automation::VERSION\n  spec.summary = \"A Ruby DSL for describing, inspecting and running automation pipelines.\"\n  spec.homepage = \"https://github.com/yourname/automation\"\n  spec.license = \"MIT\"\n  spec.required_ruby_version = \">= 3.2.0\"\n\n  spec.metadata[\"source_code_uri\"] = spec.homepage\n  spec.metadata[\"changelog_uri\"] = \"#{spec.homepage}/blob/main/CHANGELOG.md\"\n  spec.metadata[\"rubygems_mfa_required\"] = \"true\"\n\n  spec.files = Dir[\"lib/**/*.rb\", \"exe/*\", \"README.md\", \"CHANGELOG.md\", \"LICENSE.txt\"]\n  spec.bindir = \"exe\"\n  spec.executables = [\"automation\"]\n  spec.require_paths = [\"lib\"]\n\n  # No runtime dependencies on purpose: everything used here ships with Ruby.\nend\n"}</code></pre>
         <ul>
           <li><strong><code>required_ruby_version</code> is not decoration.</strong> We use <code>Data.define</code> (3.2) and endless methods (3.0), so an older Ruby fails with a syntax error at load time rather than a clear message. Declaring the floor means <code>gem install</code> refuses politely.</li>
@@ -260,7 +338,7 @@ export default function Page() {
           <li><strong><code>changelog_uri</code></strong> puts a Changelog link on the RubyGems page, which is the difference between users being able to evaluate an upgrade and not.</li>
           <li><strong>Zero runtime dependencies</strong> is a feature worth defending. Every dependency is a version constraint your users must satisfy and a security surface you inherit. We needed HTTP, JSON, a store, option parsing, spell-checking and a test framework, and Ruby's standard library has all of them.</li>
         </ul>
-        <h3>The CLI</h3>
+        <h4>The CLI</h4>
         <pre><code>{"  class CLI\n    COMMANDS = {\n      \"run\" => :cmd_run,\n      \"explain\" => :cmd_explain,\n      \"graph\" => :cmd_graph,\n      \"list\" => :cmd_list\n    }.freeze\n\n    def call(argv)\n      options = { dry_run: false, safe: false, vars: {}, verbose: false }\n      parser = build_parser(options)\n      parser.parse!(argv)\n\n      command = COMMANDS[argv.shift]\n      return usage(parser) unless command\n\n      file = argv.shift\n      return usage(parser, \"a pipeline file is required\") unless file\n\n      load_pipelines(file, options)\n      send(command, argv.shift, options)\n    rescue Automation::InvalidPipeline => e\n      warn e.message\n      1\n    rescue Automation::Error => e\n      warn \"automation: #{e.message}\"\n      1\n    end\n"}</code></pre>
         <p>Points worth copying into your own CLIs:</p>
         <ul>
@@ -279,7 +357,7 @@ export default function Page() {
           <pre className="bad"><code>{"exe/automation:42:in `run': super: no superclass method `run' for #<Automation::CLI>"}</code></pre>
           <p>Ruby lets you redefine a method with no warning at all, and the resulting error appears somewhere unrelated. The fix was a dispatch table and <code>cmd_</code> prefixes, which is what the code above shows. The general habit: <strong>when two things in one class want the same name, that is information about the design</strong>, not an inconvenience to route around.</p>
         </div>
-        <h3>The trust boundary, made concrete</h3>
+        <h4>The trust boundary, made concrete</h4>
         <pre><code>{"  # Load a pipeline file. Ordinary Ruby, so it can do anything Ruby can do:\n  # only run files you trust. Use load_data for anything else.\n  def self.load_file(path)\n    before = pipelines.keys\n    Kernel.load(File.expand_path(path))\n    pipelines.keys - before\n  end\n\n  # The safe path: pipelines as data, no code executed.\n  def self.load_data(path)\n    require \"json\"\n    data = JSON.parse(File.read(path), symbolize_names: true)\n    Array(data[:pipelines] || [data]).map { |h| from_h(h).tap { |pl| pipelines[pl.name] = pl } }\n  end\n"}</code></pre>
         <p>Two loaders, two comments, one flag. <code>automation run pipeline.rb</code> executes Ruby; <code>automation run --safe pipeline.json</code> does not. Both produce the same AST and run through the same engine, which is the payoff for having made the AST the centre of the system.</p>
         <pre className="plain"><code>{"$ automation run --safe examples/research.json\nresearch_safe: FAILED (1 steps)\n  ✗ fetch(from: \"http://127.0.0.1:9/papers.json\") Automation::HttpError: ...connection refused\n"}</code></pre>
@@ -306,6 +384,20 @@ export default function Page() {
           <p>The reason it works is the CLI design: <code>call</code> returns an integer and never calls <code>exit</code>. <strong>Push side effects to the edges</strong> (one <code>exit</code> at the bottom of the executable, one place that writes to streams) and the rest becomes ordinary testable code. That principle is language-independent and it is the single most valuable thing in this milestone.</p>
           <p>For part 2, the key decision is that JSON output must be <em>stable</em>: include a <code>"schema": 1</code> field from the first release, because the moment a CI job parses your output, the format is an API. Nothing is more annoying than a tool that reorders its JSON keys between patch versions.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>Edit <code>automation.gemspec</code> so <code>required_ruby_version</code> reads <code>"{'>'}= 3.4.0"</code>, then run <code>gem build automation.gemspec && gem install ./automation-0.1.0.gem</code> on a machine running an older Ruby. Installation refuses outright:</p>
+        <pre className="plain"><code>{"ERROR:  Error installing ./automation-0.1.0.gem:\n\tautomation-0.1.0 requires Ruby version >= 3.4.0. The current ruby version is 3.3.8.\n"}</code></pre>
+        <p>Nothing about your code ran; RubyGems checked the declared floor before extracting a single file. Put the version back to <code>"{'>'}= 3.2.0"</code> and the same install succeeds, which is the whole reason this field exists: a clear refusal at install time beats a syntax error the first time someone loads <code>lib/automation/ast.rb</code> and hits <code>Data.define</code> on a Ruby that predates it.</p>
+        <h4>Common mistakes in Milestone 12</h4>
+        <div className="warn">
+          <ul>
+            <li><strong>Two methods with the same name in one class.</strong> Ruby redefines silently; see the bug above. A dispatch table with distinct <code>cmd_</code> method names avoids the collision by construction.</li>
+            <li><strong>Forgetting <code>required_ruby_version</code>.</strong> Without it, an unsupported Ruby fails with a raw syntax error deep in your library instead of a clear refusal from <code>gem install</code>.</li>
+            <li><strong>Writing results and errors to the same stream.</strong> Send results to <code>$stdout</code> and errors to <code>$stderr</code> via <code>warn</code>, or <code>automation explain x.rb | less</code> mixes the two.</li>
+            <li><strong>Calling <code>exit</code> from inside library or command methods.</strong> It makes the CLI untestable in-process; return an integer instead and let one line at the bottom of the executable call <code>exit</code>.</li>
+            <li><strong>Treating <code>load_file</code> and <code>load_data</code> as interchangeable.</strong> Only the JSON path is safe for input you did not write yourself; a <code>--safe</code> flag that quietly falls back to <code>Kernel.load</code> defeats the entire trust boundary.</li>
+          </ul>
+        </div>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why does the CLI return exit codes rather than calling <code>exit</code> directly?</li>

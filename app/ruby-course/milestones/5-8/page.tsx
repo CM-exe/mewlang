@@ -41,6 +41,7 @@ export default function Page() {
         <h3>Implementation</h3>
         <h4>The context</h4>
         <pre><code>{"  # Context is what flows between steps. It carries the payload plus\n  # everything the runner and the steps need to know about the run, and it\n  # is immutable: a step produces a new context rather than editing one.\n  Context = Data.define(:payload, :pipeline, :step_index, :dry_run, :vars, :log) do\n    def self.start(pipeline:, payload: nil, dry_run: false, log: Log.null, vars: {})\n      new(payload: payload, pipeline: pipeline, step_index: 0,\n          dry_run: dry_run, vars: vars.freeze, log: log)\n    end\n\n    def current_step = pipeline.steps[step_index]\n    def advance(value) = with(payload: value, step_index: step_index + 1)\n    def set(key, value) = with(vars: vars.merge(key => value).freeze)\n    def dry_run? = dry_run\n  end\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>def self.start</code> inside a <code>Data.define</code> block is a class method on the generated class. The block is a class body, so <code>def self.x</code> works exactly as it would anywhere else. </li>
           <li><code>advance</code> and <code>set</code> both return <em>new</em> contexts via <code>with</code>. Nothing is mutated, so a middleware that keeps a reference to the context it saw cannot be surprised later.</li>
@@ -60,6 +61,7 @@ export default function Page() {
         <p><strong>Note what <code>DryRun</code> does:</strong> it returns <code>context.payload</code> without calling <code>nxt</code>, which short-circuits everything inside it, including the actual step. A middleware that can decline to continue is what makes caching, authorisation and dry runs possible in the same mechanism. </p>
         <h4>The runner</h4>
         <pre><code>{"    def run(pipeline, payload = nil, dry_run: false, vars: {})\n      Validator.new(@registry).validate!(pipeline) if @validate\n\n      context = Context.start(pipeline: pipeline, payload: payload,\n                              dry_run: dry_run, log: @log, vars: vars)\n      counter = AttemptCounter.new\n      chain = build_chain(pipeline, counter)\n      results = []\n\n      pipeline.steps.each_with_index do |step, index|\n        step_context = context.with(step_index: index)\n        counter.reset\n        started = now\n\n        begin\n          value = chain.call(step, step_context)\n          results << StepResult.new(step: step, status: :ok, value: value, error: nil,\n                                    attempts: counter.count, seconds: now - started)\n          context = step_context.advance(value)\n        rescue StandardError => e\n          error = e.is_a?(Error) ? e : StepFailed.new(step, e)\n          results << StepResult.new(step: step, status: :failed, value: nil, error: error,\n                                    attempts: counter.count, seconds: now - started)\n          handle_failure(pipeline, error, step, context)\n          run_always(pipeline, context)\n          return RunResult.new(pipeline: pipeline, ok: false, results: results.freeze,\n                               payload: nil, error: error)\n        end\n      end\n\n      run_always(pipeline, context)\n      RunResult.new(pipeline: pipeline, ok: true, results: results.freeze,\n                    payload: context.payload, error: nil)\n    end\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>Process.clock_gettime(Process::CLOCK_MONOTONIC)</code> rather than <code>Time.now</code>. A monotonic clock cannot go backwards when NTP adjusts the system time, which is the correct tool for measuring durations in any language.</li>
           <li>The chain is built <strong>once per run</strong>, not per step. Middleware composition is not free, and doing it in the loop would be a silly cost.</li>
@@ -110,6 +112,11 @@ export default function Page() {
           <li>What is the null object pattern and where does it appear here?</li>
           <li>Why is the context immutable, given that we reassign it in the loop anyway?</li>
         </ol>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p>Building <code>Middleware.build</code> as a four-line fold, and a <code>Context</code> that carries its own <code>advance</code>/<code>set</code> methods through a <code>Data.define</code> block, needed no framework, no code generation, and no macro. That is genuinely pleasant, but it is not a capability unique to Ruby: Rack, Rails' own middleware stack, Plug and Express all build the identical fold, in whatever language they happen to be written in. What Ruby buys here is brevity, not power nothing else has.</p>
+          <p>The honest cost is that nothing here is checked until it runs. A middleware lambda declared with the wrong arity fails on its first call, not before, and the only reason this milestone catches it quickly is that the test suite exercises new code within seconds of it being written. A statically typed middleware chain (a Go <code>http.Handler</code> chain, for instance) would refuse to compile with a mismatched signature at all. Fast to write, wrong caught later rather than never, and caught cheaply because the language makes testing this cheap too — that is the trade, not a one-sided win.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 6</span>Failure as a design, not a rescue</h2>
         <h3>Goal</h3>
         <p><code>retry_on</code> with backoff, <code>when_failed</code> handlers that receive the real error, and <code>always</code> for cleanup. All declared in the DSL, all inspectable before running.</p>
@@ -118,6 +125,7 @@ export default function Page() {
         <h3>Design</h3>
         <p>The retry logic could live in the runner as an <code>if</code>. Making it middleware instead means it composes with everything else, can be turned off by not adding it, and can be replaced by a user with a smarter one. And the <em>policy</em> is separate from the <em>mechanism</em>:</p>
         <pre><code>{"  RetryPolicy = Data.define(:errors, :times, :backoff, :base_delay) do\n    def self.build(errors, times: 3, backoff: :exponential, base_delay: 0.01)\n      errors = Array(errors)\n      errors = [StandardError] if errors.empty?\n      errors.each do |klass|\n        unless klass.is_a?(Class) && klass <= Exception\n          raise ArgumentError, \"retry_on expects exception classes, got #{klass.inspect}\"\n        end\n      end\n      new(errors: errors.freeze, times: times, backoff: backoff, base_delay: base_delay)\n    end\n\n    def delay_for(attempt)\n      case backoff\n      when :none        then 0\n      when :linear      then base_delay * attempt\n      when :exponential then base_delay * (2**(attempt - 1))\n      else raise ArgumentError, \"unknown backoff #{backoff.inspect}\"\n      end\n    end\n\n    def to_s = \"retry #{errors.join(', ')} up to #{times}x (#{backoff})\"\n  end\n"}</code></pre>
+        <h4>Explanation</h4>
         <ul>
           <li><code>klass {'<'}= Exception</code> uses <code>Module#{'<'}=</code>, which answers "is this class the same as or a subclass of". It is the correct way to ask, and it catches the common mistake of writing <code>retry_on :timeout</code> or <code>retry_on "IOError"</code> at <em>build</em> time with a clear message.</li>
           <li>The policy is a value, so <code>pipeline.retry_policy.to_s</code> works without running anything: <code>"retry IOError up to 4x (exponential)"</code>. Being able to ask a pipeline about its failure behaviour is exactly the kind of thing the AST exists for.</li>
@@ -177,6 +185,18 @@ export default function Page() {
           <pre><code>{"    # Timeout.timeout raises inside whatever the step happens to be doing,\n    # at an arbitrary point. If that point is inside a file write, an open\n    # socket handshake, or an `ensure` that is releasing a lock, you can be\n    # left with corrupted state that no rescue can repair. Use it only for\n    # work you can safely abandon, and prefer a library's own timeout\n    # (Net::HTTP's open_timeout/read_timeout) whenever one exists.\n    Timeouts = lambda do |step, context, nxt|\n      seconds = step.options[:timeout]\n      next nxt.call(step, context) unless seconds\n\n      Timeout.timeout(seconds, Automation::StepTimeout) { nxt.call(step, context) }\n    end\n"}</code></pre>
           <p>This is the Ruby version of a lesson from the Go course: you cannot safely stop arbitrary code from the outside. Go's answer is cooperative cancellation via <code>context</code>; Ruby's <code>Timeout</code> is the opposite and injects an exception at an arbitrary instruction boundary. Our HTTP client takes the right approach instead, by passing <code>open_timeout</code> and <code>read_timeout</code> down to <code>Net::HTTP</code>, where the library knows which points are safe.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>In <code>handle_failure</code>, delete the <code>rescue StandardError ={'>'} e</code> guard and give a <code>when_failed</code> handler a bug (<code>raise NameError, "notifier exploded"</code>). Run a pipeline that fails: instead of a logged <code>"when_failed handler itself raised..."</code> line and a normal <code>RunResult</code> with <code>ok: false</code>, the whole process now crashes with the notifier's own <code>NameError</code>, and the actual step failure that triggered the handler is nowhere in the output. That is the "single most annoying bug class" named above, reproduced on purpose. Put the rescue back and it disappears.</p>
+        <h4>Common mistakes in Milestone 6</h4>
+        <div className="warn">
+          <ul>
+            <li><strong>A bare-word verb shadowed by a local variable of the same name.</strong> Bug 1 above. Rename the variable, or call the verb with explicit parentheses.</li>
+            <li><strong>Expecting <code>cause</code> to be set on a constructed-but-not-raised exception.</strong> Bug 2 above. Ruby only fills in <code>cause</code> when you <code>raise</code> inside a <code>rescue</code>; store the original yourself if you build the wrapper instead.</li>
+            <li><strong>Letting a <code>when_failed</code> or <code>always</code> handler's own exception escape unguarded.</strong> It replaces the real failure with the notifier's failure. Always rescue around user-supplied handlers.</li>
+            <li><strong>Forgetting that <code>retry</code> restarts the <code>begin</code> block, not the method.</strong> Any state set up before the <code>begin</code> (rather than inside it) is not re-initialised on a retried attempt.</li>
+            <li><strong>Hard-coding <code>sleep</code> durations in a retry test.</strong> Use <code>backoff: :none</code> or a small <code>base_delay</code>, or the suite gets slow enough that people stop running it.</li>
+          </ul>
+        </div>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why is the retry policy a <code>Data</code> object rather than three keyword arguments to the runner? </li>
@@ -186,6 +206,11 @@ export default function Page() {
           <li>Explain the zero-step pipeline bug in one sentence.</li>
           <li>Why is <code>Timeout.timeout</code> a last resort?</li>
         </ol>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p><code>rescue *policy.errors</code> and <code>retry</code> are the pull of this milestone: an array of exception classes decided at run time, spliced straight into a <code>rescue</code> clause, and a keyword that restarts a <code>begin</code> block with no hand-written loop. A language that fixes its set of caught exceptions at compile time (Go's typed error values, Java's checked exceptions) cannot express "catch whatever this policy value says" without a switch over the type, and none of them has a built-in "try this block again."</p>
+          <p>The honest cost sits right next to it, in Bug 2. <code>cause</code> is a convenience Ruby gives you for free on exactly one path (raising inside a rescue) and gives you nothing on the other (constructing an exception without raising it), and nothing in the language warns you which path you are on. A statically checked error type would force you to carry the original value explicitly from the start, because there would be no implicit mechanism to lean on and then discover has a gap. Ruby's dynamism bought the retry policy's flexibility and cost this milestone one of its two bugs.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 7</span>Plugins, and preferring real methods to ghosts </h2>
         <h3>Goal</h3>
         <p>Third parties add verbs by writing a class. Those verbs become <em>real methods</em> on the DSL builder rather than <code>method_missing</code> ghosts, which lets us catch typos at build time with a spelling suggestion and a line number.</p>
@@ -199,6 +224,7 @@ export default function Page() {
         <p><strong><code>option</code> does two things at once</strong>, and that duality is the whole class-macro pattern: it records metadata the validator and the documentation generator can read, and it defines an instance method so <code>max_words</code> works inside <code>call</code>. This is how <code>attr_accessor</code>, Rails' <code>validates</code>, RSpec's <code>let</code> and ActiveRecord's associations all work. Once you have written one, the entire Ruby ecosystem becomes less mysterious.</p>
         <pre className="plain"><code>{"p Automation.registry.spec_for(:summarize).keys   # => [:max_words, :suffix]\np Summarize.instance_methods(false).sort          # => [:call, :max_words, :suffix]\n"}</code></pre>
         <p>The readers really exist. They are not ghosts, they appear in <code>instance_methods</code>, and an editor or documentation tool can see them.</p>
+        <h4>Explanation</h4>
         <ul>
           <li><code>class {'<'}{'<'} self</code> opens the singleton class, so everything inside defines class methods. It is the idiomatic way to write several of them together.</li>
           <li><code>inherited</code> is a hook Ruby calls when a class is subclassed. Copying the parent's spec there is what makes <code>class Fetch {'<'} BaseFetch</code> inherit options. <strong>Always call <code>super</code> in a hook</strong>: someone else's library may have its own <code>inherited</code> in the chain, and omitting <code>super</code> silently breaks them.</li>
@@ -290,6 +316,18 @@ export default function Page() {
           <pre><code>{"      def deprecated_option(old, use:)\n        option(old)\n        define_method(old) do\n          unless self.class.warned_about?(old)\n            warn \"#{caller_locations(1, 1).first}: option #{old} is deprecated, use #{use}\"\n          end\n          @options.fetch(old) { send(use) }\n        end\n      end\n"}</code></pre>
           <p>"Warn once per process" needs somewhere to record what has been warned about, and the class object is the natural place. Including the caller's location in the message is what turns a deprecation warning from noise into something a user can act on, and it is the same <code>caller_locations</code> technique as Milestone 4.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>In <code>builder_class_for</code>, remove the <code>cached[:generation] == registry.generation</code> check so a cached builder class is returned unconditionally. Build one pipeline (which populates the cache), register a brand-new plugin on the same registry, and try to use its verb in a second pipeline: you get <code>NoMethodError: undefined method '{'<'}verb{'>'}'</code> instead of a new step, because the stale class from before the registration is still being handed out. Put the generation check back and the second pipeline builds correctly. This is the caching half of the <code>object_id</code> lesson from Milestone 9, one milestone early.</p>
+        <h4>Common mistakes in Milestone 7</h4>
+        <div className="warn">
+          <ul>
+            <li><strong>Forgetting <code>super</code> in <code>inherited</code>.</strong> Silently breaks any other library's own <code>inherited</code> hook further down the chain.</li>
+            <li><strong>Caching a generated builder class without invalidating it.</strong> See the Experiment above; a registry that can gain new verbs needs the cache keyed on more than identity.</li>
+            <li><strong>Reaching for <code>self.class</code> inside a method prepended to a singleton class.</strong> <code>self</code> is already the class there, so <code>self.class</code> is <code>Class</code>, not your plugin. The third bug above.</li>
+            <li><strong>Never checking a <code>RunResult</code>.</strong> Returning results instead of raising is the right design, and it means an ignored result is an ignored failure, exactly as it was for the silent failed run above.</li>
+            <li><strong>Writing <code>option</code> definitions with mutable default values shared across instances.</strong> A <code>default: []</code> that every plugin instance then appends to is the same aliasing bug as any other language's mutable-default-argument trap.</li>
+          </ul>
+        </div>
         <h4>Checkpoint</h4>
         <ol>
           <li>What two things does the <code>option</code> class macro do, and why both?</li>
@@ -310,6 +348,7 @@ export default function Page() {
         <p><code>env = ENV</code> as a parameter is the small move that makes this testable: a test passes a Hash. <code>Float(...)</code> and <code>Integer(...)</code> are the strict conversion methods, which raise on garbage rather than returning <code>0</code> like <code>to_i</code> does. <code>"abc".to_i</code> is <code>0</code>, and a timeout of zero seconds discovered in production is a bad afternoon.</p>
         <h4>The HTTP adapter, and why it collapses errors</h4>
         <pre><code>{"    def request(uri, config)\n      Net::HTTP.start(uri.host, uri.port,\n                      use_ssl: uri.scheme == \"https\",\n                      open_timeout: config.http_timeout,\n                      read_timeout: config.http_timeout) do |http|\n        http.request(Net::HTTP::Get.new(uri, \"User-Agent\" => config.user_agent))\n      end\n    rescue Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout, SocketError => e\n      # Map every transport failure onto one class, so retry_on has\n      # something simple to match.\n      raise HttpError.new(uri.to_s, \"transport\", e.message)\n    end\n"}</code></pre>
+        <h4>Explanation</h4>
         <p>Net::HTTP can raise at least a dozen different exceptions from unrelated hierarchies: <code>Errno::ECONNREFUSED</code>, <code>SocketError</code>, <code>Net::OpenTimeout</code>, <code>OpenSSL::SSL::SSLError</code> and more. Asking your users to write <code>retry_on Errno::ECONNREFUSED, SocketError, Net::OpenTimeout, ...</code> is asking them to maintain a list that will be wrong. <strong>An adapter's job is to present one coherent failure model</strong>, so we map the lot onto <code>HttpError</code> and users write <code>retry_on Automation::HttpError</code>.</p>
         <p>Also note <code>open_timeout</code> and <code>read_timeout</code> passed to the library rather than wrapping the call in <code>Timeout.timeout</code>. The library knows where it is safe to give up; a generic timeout does not.</p>
         <h4>The store</h4>
@@ -387,6 +426,8 @@ export default function Page() {
           <p>The fourth test is the one that will actually catch a difference. <code>PStore</code> writes on every transaction; a naive <code>JSONStore</code> that keeps records in memory and writes in an <code>at_exit</code> hook passes the first three tests and fails this one. <strong>A contract test is valuable in proportion to how much it tests behaviour the implementations could plausibly disagree about.</strong></p>
           <p>One trap worth knowing: <code>JSON.parse</code> returns string keys, while <code>PStore</code> round-trips symbols through <code>Marshal</code>. So the contract exposes a genuine incompatibility, and you must decide the contract (probably: symbol keys, with <code>JSON.parse(..., symbolize_names: true)</code>) rather than letting each store do what is convenient. Discovering that disagreement before your users do is the entire point.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>Set <code>AUTOMATION_HTTP_TIMEOUT=abc</code> in the environment and call <code>Config.from_env</code>: <code>Float()</code> raises <code>ArgumentError: invalid value for Float(): "abc"</code> immediately, at configuration time. Now temporarily replace that <code>Float(...)</code> call with a bare <code>.to_i</code> and repeat: it returns <code>0</code> with no error at all, and the next <code>fetch</code> step gets a zero-second timeout instead of a clear configuration failure. Put <code>Float()</code> back and the loud, early error returns.</p>
         <h4>Common mistakes in Milestone 8</h4>
         <div className="warn">
           <ul>

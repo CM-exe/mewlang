@@ -44,7 +44,18 @@
         <p>ETS-backed counters at scale, <code>observer</code> as a GUI window into a running node, and
             <code>dbg</code> for safe, bounded tracing of a live system.</p>
 
-        <h3>Design and implementation</h3>
+        <h3>Design</h3>
+
+        <p>One ETS table, four pre-seeded counters (<code>sent</code>, <code>dropped</code>, <code>crashed</code>,
+            <code>restarted</code>), each incremented from wherever the corresponding event actually happens rather
+            than inferred afterwards by polling. This is deliberately the same shape as Milestone 7's registry — a
+            named, public ETS table any process can touch directly — because it is the same kind of problem: many
+            independent processes need to update one piece of shared state, often, without funnelling every update
+            through a single bottleneck process first. Pre-seeding the four keys in <code>start/0</code> rather
+            than letting <code>inc/1</code> create them on demand is a deliberate, narrow design choice too — see
+            "Common mistakes in Milestone 9" below for what it costs.</p>
+
+        <h3>Implementation</h3>
 
         <pre><code>%% src/mesh_metrics.erl
 -module(mesh_metrics).
@@ -61,6 +72,8 @@ inc(Key) -&gt;
 snapshot() -&gt;
     maps:from_list(ets:tab2list(?MODULE)).
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p><code>ets:update_counter/3</code> is a single atomic increment inside the table itself — no read, modify,
             write race between two processes incrementing the same counter concurrently, because the increment
@@ -148,6 +161,53 @@ dbg:tpl(mesh_node_state, drain, dbg:fun2ms(fun([_, Amt]) when Amt > 50 -> ok end
                 on a busy system where the wildcard version would not be.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Set up a trace specification with <code>dbg:tpl/3</code> but skip the <code>dbg:p/2</code> call that
+            actually switches tracing on for a set of processes, call <code>mesh_node_state:drain/2</code>, and
+            predict — before running it — whether anything prints.</p>
+        <pre class="plain"><code>1&gt; dbg:tracer().
+{ok,&lt;0.90.0&gt;}
+2&gt; dbg:tpl(mesh_node_state, drain, x).
+{ok,[...]}
+3&gt; mesh_node_state:drain(mesh_node_state:new(1), 30).
+#{energy =&gt; 70,id =&gt; 1,status =&gt; alive}
+4&gt; dbg:p(all, call).
+{ok,[...]}
+5&gt; mesh_node_state:drain(mesh_node_state:new(1), 30).
+(&lt;0.86.0&gt;) call mesh_node_state:drain(#{energy =&gt; 100,id =&gt; 1,status =&gt; alive},30)
+(&lt;0.86.0&gt;) returned from mesh_node_state:drain/2 -&gt; #{energy =&gt; 70,id =&gt; 1,
+                                                     status =&gt; alive}
+#{energy =&gt; 70,id =&gt; 1,status =&gt; alive}
+6&gt; dbg:stop().
+ok
+</code></pre>
+        <p>Step 3's call produces no trace output at all, even though the exact match specification from step 2 is
+            still installed — <code>dbg:tpl/3</code> only decides <em>what</em> a matching call should record;
+            <code>dbg:p/2</code> is the separate switch that decides <em>which processes</em> are being watched in
+            the first place, and until it is flipped on, nothing is watched. Only step 5, after both are set,
+            produces the two trace lines. Forgetting the second call is an easy way to conclude tracing "isn't
+            working" when it was never actually switched on.</p>
+
+        <h4>Common mistakes in Milestone 9</h4>
+        <div class="warn">
+            <p><strong>Assuming <code>inc/1</code> works for any atom you hand it.</strong> It does not —
+                <code>start/0</code> pre-seeds exactly four keys, and <code>ets:update_counter/3</code> requires the
+                key to already exist; there is no implicit "create it with a starting value of zero" step. Calling
+                <code>mesh_metrics:inc(timeout)</code> for a fifth kind of event nobody thought to seed crashes the
+                calling process immediately:</p>
+            <pre class="plain"><code>1&gt; mesh_metrics:start().
+ok
+2&gt; mesh_metrics:inc(timeout).
+** exception error: bad argument
+     in function  ets:update_counter/3
+        called as ets:update_counter(mesh_metrics,timeout,1)
+        *** argument 2: not a key that exists in the table
+     in call from mesh_metrics:inc/1 (mesh_metrics.erl, line 10)
+</code></pre>
+            <p>Adding a new metric means adding it to the seed list inside <code>start/0</code> first, not calling
+                <code>inc/1</code> on a new atom and expecting the table to grow to accommodate it.</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why does <code>ets:update_counter/3</code> avoid a race that a plain read-then-write increment
@@ -233,6 +293,8 @@ jsonify(Map) -&gt;
 "{\"sent\":0,\"dropped\":0,\"crashed\":0,\"restarted\":0}\n"
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong><code>spawn_link/3</code> to start <code>accept_loop</code></strong> rather than a plain
             <code>spawn/3</code> matters here specifically: if the accept loop crashes — a malformed connection it
             was not written to handle, say — the link means whatever process started the dashboard finds out
@@ -245,6 +307,23 @@ jsonify(Map) -&gt;
             (<code>spawn(fun() -&gt; handle(Sock) end)</code>), so one slow or malicious client blocks nothing except
             its own connection — the same isolation property Milestone 8 demonstrated for mesh nodes, applying
             identically here because it is the same language feature, not a special case built for HTTP.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Running an HTTP server as an ordinary supervised child of the same application it reports on — not a
+                separate process on a separate machine polling this one — is a genuinely different shape than most
+                stacks reach for by default, and it works here specifically because a <code>gen_tcp</code> listener
+                is just another process: spawn it, link it, hand it to a supervisor, and it gets exactly the same
+                restart guarantee as a mesh node. The honest cost is real, though: this handler has no keep-alive,
+                no chunked transfer encoding, no TLS, and speaks just enough HTTP/1.1 to answer a <code>GET</code> —
+                reaching for <code>cowboy</code> or <code>ranch</code> is the right call the moment this needs to
+                serve real browser traffic rather than a JSON endpoint for <code>curl</code> and
+                <code>EventSource</code>. A language with a mature HTTP-server ecosystem built in or one
+                <code>import</code> away — Go's <code>net/http</code>, or almost any web framework in Ruby or Perl —
+                gets you further, faster, for the serving part itself; what OTP buys back is that whatever server
+                you end up with slots into the exact same supervision tree as everything else, with no separate
+                deployment story of its own.</p>
+        </div>
 
         <div class="warn">
             <h5>Streaming updates needs the connection kept open, on purpose</h5>
@@ -308,6 +387,38 @@ stream_loop(Sock) ->
                 a second route required restructuring anything.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>With <code>mesh_metrics:start()</code> and <code>mesh_dashboard:start(Port)</code> already running from
+            the verified transcript above, call <code>mesh_metrics:inc(sent)</code> five times from the same shell,
+            then <code>curl</code> <code>/metrics</code> again <em>without restarting the dashboard</em>. Predict
+            whether the new count shows up.</p>
+        <pre class="plain"><code>1&gt; [mesh_metrics:inc(sent) || _ &lt;- lists:seq(1,5)].
+[1,2,3,4,5]
+2&gt; os:cmd("curl -s http://127.0.0.1:8080/metrics").
+"{\"dropped\":0,\"sent\":5,\"crashed\":0,\"restarted\":0}\n"
+</code></pre>
+        <p>It does, immediately, with no restart and no extra plumbing: <code>mesh_metrics</code>'s ETS table is
+            public and shared, <code>handle/1</code> reads it fresh on every single request via
+            <code>mesh_metrics:snapshot()</code>, and the dashboard process itself holds no cached copy of the
+            counters anywhere — it is a stateless reader sitting in front of state that genuinely lives elsewhere.</p>
+
+        <h4>Common mistakes in Milestone 10</h4>
+        <div class="warn">
+            <p><strong>Assuming the router matches a path prefix rather than the exact bytes.</strong>
+                <code>{http_request, 'GET', {abs_path, &lt;&lt;"/metrics"&gt;&gt;}, _}</code> matches only that exact
+                binary — a request for <code>/metrics?since=0</code>, which a browser or a monitoring tool building
+                a cache-busting URL would send without a second thought, has a different <code>abs_path</code> and
+                silently falls through to the 404 clause:</p>
+            <pre class="plain"><code>$ curl -s http://127.0.0.1:8080/metrics
+{"dropped":0,"sent":0,"crashed":0,"restarted":0}
+$ curl -s 'http://127.0.0.1:8080/metrics?since=0'
+{"error":"not_found"}
+</code></pre>
+            <p>A route this simple needs to split the path on <code>?</code> and match only the part before it —
+                exactly the fix Exercise 10's <code>/nodes/&lt;id&gt;</code> solution already does with
+                <code>binary:split/2</code>, just not yet applied to <code>/metrics</code> itself.</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>Why does the accept loop use <code>spawn_link</code> for itself but a plain <code>spawn</code> for
@@ -357,6 +468,8 @@ true
 Shell got {pong,nodea@myhost}
 ok
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p>Every part of that is real: two independent operating-system processes, each running its own BEAM, each
             with its own supervision trees, its own memory, its own scheduler — connected over TCP (via
@@ -424,6 +537,41 @@ ok
                 stay available throughout, which is exactly what makes reconciling them afterward hard.</p>
         </details>
 
+        <h4>Experiment</h4>
+        <p>Start <code>nodeb</code> with the <em>wrong</em> cookie on purpose and try to connect. Then, without
+            restarting either node, fix the cookie at runtime and try again.</p>
+        <pre class="plain"><code>$ erl -sname nodeb -setcookie wrongcookie
+(nodeb@myhost)1&gt; net_kernel:connect_node(nodea@myhost).
+false
+(nodeb@myhost)2&gt; erlang:set_cookie(nodea@myhost, meshcookie).
+true
+(nodeb@myhost)3&gt; net_kernel:connect_node(nodea@myhost).
+true
+(nodeb@myhost)4&gt; nodes().
+[nodea@myhost]
+</code></pre>
+        <p>The cookie check runs fresh on every connection attempt, not once at boot — <code>erlang:set_cookie/2</code>
+            changes what <code>nodeb</code> will present (or accept) on its <em>next</em> attempt, live, with no
+            restart of either BEAM instance needed. This is worth sitting with precisely because it cuts against the
+            instinct that authentication is something decided once, at startup: here it is re-checked, cheaply, on
+            every single connection.</p>
+
+        <h4>Common mistakes in Milestone 11</h4>
+        <div class="warn">
+            <p><strong>Assuming a cookie mismatch raises an error you can catch.</strong> It does not —
+                <code>net_kernel:connect_node/1</code> simply returns <code>false</code>, exactly the same value it
+                would return if the other node did not exist at all, or was unreachable over the network. There is
+                no exception, no log message on the calling side by default, and no way to distinguish "wrong
+                cookie" from "no such node" from the return value alone:</p>
+            <pre class="plain"><code>(nodeb@myhost)1&gt; net_kernel:connect_node(nodea@myhost).
+false
+</code></pre>
+            <p>Diagnosing a failed connection in practice means checking the cookie explicitly
+                (<code>erlang:get_cookie()</code> on each side) rather than trusting the return value to tell you
+                what went wrong — a real, easy-to-miss gap between "the API reports failure" and "the API explains
+                the failure."</p>
+        </div>
+
         <h4>Checkpoint</h4>
         <ol>
             <li>What has to match between two nodes before they will trust each other enough to connect?</li>
@@ -441,7 +589,22 @@ ok
 
         <h3>Concepts</h3>
         <p><code>relx</code> releases via <code>rebar3 release</code>, Common Test as EUnit's heavier sibling for
-            integration-shaped tests, and PropEr for property-based testing.</p>
+            integration-shaped tests, PropEr for property-based testing, and <code>sys.config</code> as the standard
+            place a release's environment-specific settings live.</p>
+
+        <h3>Design</h3>
+
+        <p>A release bundles everything <code>mesh</code> needs to run standalone — including, critically, a
+            <em>configuration</em> file, <code>config/sys.config</code>, separate from the compiled code itself.
+            Up to this point every tunable number in this project — <code>node_sup</code>'s restart
+            <code>intensity</code> and <code>period</code> from Milestone 6, most obviously — has been a literal
+            value baked into the module that uses it, which is fine for a course where every milestone is run from
+            source, and genuinely wrong for anything meant to be deployed: changing how many restarts an operator is
+            willing to tolerate should not require recompiling and re-releasing the whole application. OTP's answer
+            is <code>application:get_env/2,3</code>, reading values an operator can override per-environment, in
+            <code>sys.config</code>, with no code change at all — released here, in Milestone 12, because a release
+            is the first point in this course where "per-environment configuration" is actually a real, separate
+            concept from "the code."</p>
 
         <h3>Implementation</h3>
 
@@ -455,6 +618,8 @@ $ _build/default/rel/mesh/bin/mesh stop
 ok
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p>That is a complete, standalone deployment artefact: a copy of the exact Erlang runtime it was built
             against, every dependency, and <code>mesh</code>'s own compiled code, in one directory —
             <code>_build/default/rel/mesh/bin/mesh</code> is a shell script that boots the whole application as a
@@ -463,6 +628,61 @@ ok
             category of artefact as a statically-linked Go binary, arrived at by a very different route: Go gets
             there by compiling to native machine code with no runtime dependency; Erlang gets there by bundling its
             own runtime alongside the code that needs it.</p>
+
+        <h4>Application configuration: <code>sys.config</code></h4>
+
+        <p><code>node_sup:init/1</code>'s restart limits move from two hardcoded numbers to two calls to
+            <code>application:get_env/3</code>, each with the old literal as its fallback default — so the module
+            still behaves exactly as Milestone 6 described it if no configuration is supplied at all:</p>
+
+        <pre><code>%% src/node_sup.erl
+init([]) -&gt;
+    Intensity = application:get_env(mesh, restart_intensity, 3),
+    Period = application:get_env(mesh, restart_period, 5),
+    SupFlags = #{strategy =&gt; simple_one_for_one, intensity =&gt; Intensity, period =&gt; Period},
+    ChildSpec = #{id =&gt; mesh_node, start =&gt; {mesh_node, start_link, []}, restart =&gt; transient},
+    {ok, {SupFlags, [ChildSpec]}}.
+</code></pre>
+
+        <pre class="plain"><code>%% config/sys.config
+[
+  {mesh, [
+    {restart_intensity, 1},
+    {restart_period, 5}
+  ]}
+].
+</code></pre>
+
+        <p><code>application:get_env(App, Key, Default)</code> is the three-argument form specifically because it
+            returns the bare value (<code>Default</code> itself, or whatever was configured) rather than the
+            <code>{ok, Value} | undefined</code> shape the two-argument version returns — one line, no case
+            statement needed, at the cost of not being able to tell "explicitly configured" apart from "fell back to
+            the default," which this particular setting has no need to distinguish.</p>
+
+        <h4>Verified: the same crash pattern, a different threshold, because <code>sys.config</code> said so</h4>
+
+        <pre class="plain"><code>$ erl -pa _build/default/lib/mesh/ebin -config config/sys
+1&gt; application:load(mesh).
+ok
+2&gt; application:get_env(mesh, restart_intensity, 3).
+1
+3&gt; {ok, SupPid} = node_sup:start_link().
+{ok,&lt;0.84.0&gt;}
+4&gt; {ok, P1} = supervisor:start_child(node_sup, [1]).
+{ok,&lt;0.86.0&gt;}
+5&gt; mesh_node:crash(P1), timer:sleep(50), is_process_alive(SupPid).
+true    %% restart 1 of 1 (configured) — tolerated
+6&gt; [{_, P2, _, _}] = supervisor:which_children(node_sup), mesh_node:crash(P2), timer:sleep(50).
+ok
+7&gt; is_process_alive(SupPid).
+false   %% the 2nd crash: configured intensity of 1 exceeded
+</code></pre>
+
+        <p>No code changed between this run and Milestone 6's original three-crashes-tolerated demonstration — only
+            <code>config/sys.config</code> did, loaded via <code>erl -config config/sys</code> (and, in a real
+            release, bundled automatically as <code>_build/default/rel/mesh/releases/&lt;vsn&gt;/sys.config</code>).
+            The same module, started the same way, now gives up after one restart instead of three, purely because
+            an operator's configuration said one was the limit.</p>
 
         <h4>A property test, for the sessionisation-shaped part of this system</h4>
 
@@ -496,6 +716,21 @@ OK: Passed 100 test(s).
             must hold. This is a genuinely different kind of confidence than the specific examples in Milestone 2's
             EUnit tests — those prove the function is correct for the cases you thought of; this searches, somewhat
             adversarially, for a case you did not.</p>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>PropEr generating hundreds of inputs a second and asserting a property against each one is not
+                unique to Erlang — but it is unusually cheap to get right here because so much of this codebase is
+                pure functions over immutable data: no setup, no teardown, no hidden state to reset between the
+                hundred generated cases, because there genuinely is none. The honest cost is real too: a property
+                that fails after ninety-three passing cases hands you a randomly-generated, sometimes large input to
+                debug, and PropEr's shrinking (searching for the smallest input that still fails, visible in this
+                course's own Experiment below) exists specifically because the raw counterexample is often not one a
+                human would choose to read. Property tests also cannot replace example-based tests entirely — they
+                are excellent at "does this invariant hold for a wide space of inputs" and comparatively bad at
+                "does this exact, specific scenario from a bug report behave correctly," which is exactly what
+                Milestone 2's EUnit tests are for instead.</p>
+        </div>
 
         <div class="cmp">
             <h5>A typical language vs. Erlang</h5>
@@ -541,6 +776,29 @@ OK: Passed 100 test(s).
                 in how the floor or ceiling was implemented, because it exercises exactly the inputs most likely to
                 trigger one.</p>
         </details>
+
+        <h4>Experiment</h4>
+        <p>Weaken <code>prop_drain_never_goes_negative/0</code> from <code>Final &gt;= 0</code> to the strictly
+            positive <code>Final &gt; 0</code> and rerun <code>rebar3 proper</code>. Predict what fails before
+            running it.</p>
+        <pre class="plain"><code>$ rebar3 proper -m mesh_node_state_proper
+Testing mesh_node_state_proper:prop_drain_never_goes_negative()
+................!
+Failed: After 17 test(s).
+{2,33,43}
+
+Shrinking ...(3 time(s))
+{1,0,0}
+0/1 properties passed, 1 failed
+</code></pre>
+        <p>PropEr finds a failing case within 17 random attempts, then <em>shrinks</em> it — searching for a smaller
+            input that still fails — down to <code>{Id, StartEnergy, DrainAmount} = {1, 0, 0}</code>: a node that
+            starts at exactly zero energy, drained by exactly zero. <code>drain(State0, 0)</code> leaves
+            <code>Final</code> at exactly <code>0</code>, which satisfies the original, correct
+            <code>&gt;= 0</code> but not the deliberately-broken <code>&gt; 0</code>. This is what the "why" box
+            above means by a property test finding the case you did not think to write down: nobody sat down and
+            decided to test "drain by zero starting from zero" specifically, and PropEr found it anyway, minimised
+            to the smallest input that demonstrates it.</p>
 
         <h4>Common mistakes in Milestones 9–12</h4>
         <div class="warn">

@@ -87,6 +87,27 @@
 2400.0
 </code></pre>
 
+        <h4>Experiment</h4>
+
+        <p>Construct a second <code>labeled</code> value with an exact integer instead of a decimal literal —
+            <code>2400</code>, not <code>2400.00</code> — and compare what prints back.</p>
+
+        <pre><code>(define l2 (labeled "checking" 2400))
+(labeled-value l2)
+(exact? (labeled-value l2))
+</code></pre>
+
+        <pre class="plain"><code>&gt; (labeled-value l2)
+2400
+&gt; (exact? (labeled-value l2))
+#t
+</code></pre>
+
+        <p>No <code>.0</code> this time, and <code>exact?</code> confirms why: a literal written without a decimal
+            point is an exact integer, and Racket only normalises the way <code>2400.00</code> did above when a
+            number is inexact in the first place. Nothing about <code>labeled</code> itself changed — the same
+            struct, the same accessor — only the kind of number handed to it did.</p>
+
         <div class="exercise">
             <h5>Exercise 1</h5>
             <ol>
@@ -133,6 +154,19 @@
         <p>Lists, pairs, <code>map</code>/<code>filter</code>/<code>foldl</code>, recursion, and <code>match</code>
             applied to more than one shape at once.</p>
 
+        <h3>Design</h3>
+
+        <p>Every function here takes a plain Racket list and returns a plain number — not a custom "dataset"
+            struct wrapping one, and not a <code>labeled</code> value from Milestone 1. The toolkit does not yet
+            know what these numbers will eventually represent (an account balance, a robot's recorded positions, a
+            benchmark's measured timings), so keeping <code>sum</code>, <code>average</code>, <code>minimum</code>,
+            and <code>maximum</code> ignorant of all of that, working over the single simplest shape Racket gives
+            you for "a bunch of values," is what lets these same four functions get reused unchanged wherever a
+            later milestone needs one. <code>foldl</code> specifically, rather than hand-written recursion, is the
+            other half of the decision: all four are "reduce a list to one value," and writing that shape once as a
+            call to a built-in higher-order function is both shorter and, per the comparison below, the exact
+            pattern every other course in this curriculum converges on under a different name.</p>
+
         <h3>Implementation</h3>
 
         <pre><code>;; stats.rkt
@@ -160,6 +194,8 @@
 9
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong><code>(foldl min (first xs) (rest xs))</code></strong> is worth pausing on: rather than special-
             casing an empty list with an awkward sentinel value ("what is the minimum of nothing?"), it seeds the
             fold with the list's own first element and folds over the rest — which is also, not incidentally, why
@@ -177,6 +213,45 @@
                 worth noticing as the same shape recurring for the fifth time in five languages, not a Racket-specific
                 trick.</p>
         </div>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Be honest about the readability trade this makes. <code>(foldl min (first xs) (rest xs))</code> is
+                shorter than a loop, but it asks you to already know what <code>foldl</code>'s three arguments mean
+                and in what order — a newcomer reading <code>for (x : xs) { m = min(m, x) }</code> in Go can guess
+                the whole algorithm from the shape alone, where <code>foldl</code>'s call reveals nothing about
+                which argument is the seed and which is the list without already knowing the function's contract.
+                Stepping through a <code>foldl</code> call with a debugger is also genuinely less natural than
+                stepping through an imperative loop's iterations one at a time, since there is no loop body to set a
+                breakpoint inside. The trade is worth making here — four tiny, obviously-correct one-liners instead
+                of four small loops — but "shorter" and "more readable to someone who has not internalised
+                <code>foldl</code> yet" are not the same claim, and this course is asking you to internalise it
+                early precisely because Milestone 4 onward assumes you already have.</p>
+        </div>
+
+        <h4>Experiment</h4>
+
+        <p>Call <code>average</code> and <code>minimum</code> on the same empty list, and predict, before running
+            it, whether both behave the same way.</p>
+
+        <pre><code>(average (list))
+(minimum (list))
+</code></pre>
+
+        <pre class="plain"><code>&gt; (average (list))
+0
+&gt; (minimum (list))
+; first: contract violation
+;   expected: (and/c list? (not/c empty?))
+;   given: '()
+</code></pre>
+
+        <p>They do not — <code>average</code> silently returns <code>0</code> for an empty list, a deliberate
+            choice made explicit in its own <code>if</code>, while <code>minimum</code> raises immediately,
+            because its <code>foldl</code> seed is <code>(first xs)</code> and <code>first</code> has nothing to
+            return on an empty list. Two different, equally deliberate answers to "what should the empty case do,"
+            living side by side in the same four-function file — worth noticing precisely because nothing about
+            <code>average</code>'s or <code>minimum</code>'s code loudly announces that they disagree.</p>
 
         <div class="exercise">
             <h5>Exercise 2</h5>
@@ -254,6 +329,8 @@
     [energy (max 0 (- (robot-energy r) 1))]))
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong><code>(provide (struct-out robot) move)</code></strong> — <code>struct-out</code> exports the
             constructor, predicate, and every accessor for <code>robot</code> in one line, rather than listing
             <code>robot</code>, <code>robot?</code>, <code>robot-name</code>, <code>robot-x</code>,
@@ -285,6 +362,25 @@ robot: energy cannot be negative: -5
                 <code>move</code> is called. <strong>A guard is a last line of defence, not a substitute for the
                     calling code doing its own arithmetic correctly.</strong></p>
         </div>
+
+        <h4>Experiment</h4>
+
+        <p>Move a robot a very long way — far past any sensible board edge — and confirm the guard, as written so
+            far, has nothing to say about it.</p>
+
+        <pre><code>(define r (robot "wall-e" 0 0 1))
+(define r2 (move (move r 100000 0) 0 0))
+(printf "x=~a y=~a energy=~a\n" (robot-x r2) (robot-y r2) (robot-energy r2))
+</code></pre>
+
+        <pre class="plain"><code>$ racket robot-far.rkt
+x=100000 y=0 energy=0
+</code></pre>
+
+        <p>Accepted without complaint. The guard only ever checks <code>energy</code> — <code>x</code> and
+            <code>y</code> can be anything at all right now, however far outside a sensible playing field, because
+            nothing has told the struct that a bound on position is even a rule yet. Exercise 3 is precisely where
+            that rule gets written.</p>
 
         <div class="exercise">
             <h5>Exercise 3</h5>
@@ -371,6 +467,8 @@ robot: energy cannot be negative: -5
      (eval-expr body (cons (cons name (eval-expr val env)) env))]))
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong>One <code>match</code>, one clause per AST node type</strong> — this is the entire evaluator, and
             it reads almost like a specification of the language's semantics rather than an implementation of one:
             a number evaluates to itself, addition evaluates both sides and adds them, a variable looks itself up
@@ -409,6 +507,32 @@ eval-expr: unbound variable: y
                 replaces "write out constructors by hand" with a real reader parsing actual <code>.finance</code>
                 text. Every later milestone is variations on exactly the shape built here.</p>
         </div>
+
+        <h4>Experiment</h4>
+
+        <p>Shadow a name: build a program where an inner <code>let</code> rebinds <code>x</code> to a different
+            value while an outer <code>x</code> is still in scope, and confirm each reference to <code>x</code>
+            sees the binding that was actually closest to it, not the first one ever created.</p>
+
+        <pre><code>;; (let x = 1 in x + (let x = 100 in x + 0))
+(define prog
+  (let-e 'x (num-e 1)
+    (add-e (var-e 'x)
+      (let-e 'x (num-e 100)
+        (add-e (var-e 'x) (num-e 0))))))
+(eval-expr prog '())
+</code></pre>
+
+        <pre class="plain"><code>&gt; (eval-expr prog '())
+101
+</code></pre>
+
+        <p>101, not 1 and not 200 — the inner <code>(var-e 'x)</code> uses (100), and the outer one uses 1. Nothing
+            in <code>eval-expr</code> was written specifically to handle shadowing; it falls out entirely from
+            <code>let-e</code>'s clause consing the new binding onto the <em>front</em> of <code>env</code> and
+            <code>assoc</code> always returning the first match it finds — the newest binding for a name is always
+            the first one <code>assoc</code> sees, which is exactly what "closest enclosing scope wins" means,
+            implemented with no special-casing at all.</p>
 
         <div class="exercise">
             <h5>Exercise 4</h5>
@@ -462,6 +586,23 @@ eval-expr: unbound variable: y
             <li>Why does <code>var-e</code>'s clause raise its own specific error rather than letting a failed
                 lookup propagate some other way?</li>
         </ol>
+
+        <h4>Common mistakes in Milestone 4</h4>
+        <div class="warn">
+            <p><strong>Forgetting to actually extend the environment inside <code>let-e</code>'s clause</strong> —
+                writing <code>(eval-expr body env)</code> instead of
+                <code>(eval-expr body (cons (cons name (eval-expr val env)) env))</code>. The mistake compiles
+                without complaint, because <code>env</code> is exactly the right type either way — a list of
+                pairs — and the bug only shows up when the body actually references the name the <code>let</code>
+                was supposed to introduce:</p>
+            <pre class="plain"><code>; eval-expr: unbound variable: x
+</code></pre>
+            <p>for the ordinary example this milestone verifies, <code>(let x = 2 + 3 in x + 10)</code>, that
+                message is genuinely confusing the first time: <code>x</code> is right there, bound, in the source
+                — the bug is that it was never bound in the environment the evaluator actually threads through,
+                which is a distinction the error message itself cannot show you, only the source of
+                <code>eval-expr</code> can.</p>
+        </div>
 
         <h4>Common mistakes in Milestones 1–4</h4>
         <div class="warn">

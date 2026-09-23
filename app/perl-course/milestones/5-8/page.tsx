@@ -32,6 +32,33 @@ export default function Page() {
         </p>
         <h3>Concepts</h3>
         <p>POD, <code>Exporter</code> and selective exports, <code>cpanfile</code> versus <code>Makefile.PL</code>, <code>$VERSION</code>, compile tests, and <code>BAIL_OUT</code>.</p>
+        <h3>Design</h3>
+        <p>A distribution is not "the code plus some paperwork". Each new file answers one question a stranger — or you, in six months — actually asks before trusting the code enough to run it:</p>
+        <table className="grid">
+          <tbody>
+            <tr>
+              <th>Question a stranger asks</th>
+              <th>Answered by</th>
+            </tr>
+            <tr>
+              <td>"What is this, and how do I call it?"</td>
+              <td>POD in <code>lib/Strata.pm</code>, read by <code>perldoc</code></td>
+            </tr>
+            <tr>
+              <td>"What do I get if I <code>use</code> this module?"</td>
+              <td><code>@EXPORT_OK</code> in <code>Strata::Util</code> — nothing by accident</td>
+            </tr>
+            <tr>
+              <td>"What has to be installed, and why?"</td>
+              <td><code>cpanfile</code>, one comment per dependency</td>
+            </tr>
+            <tr>
+              <td>"Does it even load?"</td>
+              <td>a compile test, run first, that <code>BAIL_OUT</code>s if the answer is no</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>That ordering is also the order to write the pieces in. A module nobody can <code>require</code> makes every other question moot, which is why the compile test — not the documentation, not the exports — is the first thing this milestone's <code>t/</code> directory should contain, even though it is described last below because it is easiest to understand once you have seen what it is protecting.</p>
         <h3>Implementation</h3>
         <h4>Documentation lives in the code</h4>
         <pre><code>{"package Strata;\nuse v5.36;\n\nour $VERSION = '0.01';\n\n=head1 NAME\n\nStrata - forensic text archaeology for heterogeneous log data\n\n=head1 SYNOPSIS\n\n    use Strata::Pipeline;\n    use Strata::Parser::Registry;\n\n    my $parser = Strata::Parser::Registry->for_file(\"access.log\");\n    my $pipe   = Strata::Pipeline->new(parser => $parser);\n    $pipe->run_file(\"access.log\");\n\n=head1 DESCRIPTION\n\nIts central policy is that B<a line you cannot parse is still evidence>:\nparsers never throw and never return undef, they return a record carrying\nthe raw text, its provenance, and a description of what went wrong.\n\n=cut\n\n1;\n"}</code></pre>
@@ -49,6 +76,28 @@ export default function Page() {
         <p>The second is the unit test for the helpers, and it is worth showing one assertion:</p>
         <pre><code>{"is_deeply [top(10, \\%counts)], [qw(b a c d)], \"asking for more than exists is fine\";\nis_deeply [top(2, {})], [], \"an empty hash yields nothing\";\n"}</code></pre>
         <p>Both are edge cases, and both are the kind of thing that works by accident until someone refactors. Testing the boring boundaries of a four-line function is cheap insurance for code that every report depends on.</p>
+        <div className="exercise">
+          <h5>Exercise 5</h5>
+          <p><code>Strata::Util</code>'s <code>@EXPORT_OK</code> already promises <code>human_bytes</code> and <code>truncate_str</code> — Milestone 1 wrote <code>commify</code>, Milestone 2 wrote <code>top</code>, and these two have been sitting in the export list unimplemented ever since. Write them. <code>human_bytes($n)</code> should turn a byte count into something like <code>"206.1KB"</code> (check it against Milestone 1's own fixture: 211,017 bytes should come out as <code>206.1KB</code>), climbing through KB, MB, GB and TB as the number grows. <code>truncate_str($str, $max)</code> should return the string unchanged if it already fits within <code>$max</code> characters, and otherwise cut it and append <code>"..."</code> so that the whole result — text and ellipsis together — is exactly <code>$max</code> characters, never more. Write the tests before you write the functions, the way the rest of this milestone argues you should.</p>
+        </div>
+        <details>
+          <summary>Solution 5 — open after trying</summary>
+          <pre><code>{"sub human_bytes ($bytes) {\n    my @units = (\"B\", \"KB\", \"MB\", \"GB\", \"TB\");\n    my $n = $bytes;\n    my $i = 0;\n    while (abs($n) >= 1024 && $i < $#units) {\n        $n /= 1024;\n        $i++;\n    }\n    return $i == 0 ? \"${n}B\" : sprintf(\"%.1f%s\", $n, $units[$i]);\n}\n\nsub truncate_str ($str, $max = 40) {\n    return $str if length($str) <= $max;\n    return substr($str, 0, $max - 3) . \"...\";\n}"}</code></pre>
+          <p>Two details worth noticing. <strong><code>human_bytes</code> stops climbing units at <code>$#units</code></strong>, the last valid index, so a value bigger than the largest unit still prints — as an oversized number of terabytes — rather than reading off the end of <code>@units</code> and returning <code>undef</code> silently in the middle of a report line. <strong><code>truncate_str</code> subtracts 3 before cutting, not after</strong>: the whole point of a bounded field width is that the result never exceeds it, and appending <code>"..."</code> to an already-<code>$max</code>-character substring would make the truncated version <em>longer</em> than the string it replaced for inputs near the boundary, which defeats the reason to truncate at all.</p>
+          <pre className="plain"><code>{"$ prove -l t/05-util.t\nt/05-util.t .. ok\nAll tests successful."}</code></pre>
+        </details>
+        <h4>Experiment</h4>
+        <p>Remove the compile test's <code>BAIL_OUT</code> — delete just the <code>or BAIL_OUT(...)</code> part — and deliberately break one module by deleting the trailing <code>1;</code> from the end of <code>Strata::Util</code>, which makes <code>require</code> fail because a <code>.pm</code> file has to return a true value. Run the compile test both ways. Without <code>BAIL_OUT</code>, the broken module's own <code>use_ok</code> fails and the test file runs to completion regardless, reporting "1 of N failed". With <code>BAIL_OUT</code> restored, the run stops the instant the broken module is hit and never reaches anything after it. That is the right behaviour once <code>prove -l t/</code> is running dozens of files: letting three hundred unrelated assertions fail because one module never loaded would bury the single line that actually explains what went wrong.</p>
+        <div className="warn">
+          <h5>Common mistakes in Milestone 5</h5>
+          <ul>
+            <li><strong>Reaching for <code>@EXPORT</code> because it needs no <code>qw(...)</code> at the call site.</strong> It works right up until two modules you both <code>use</code> export a sub with the same name, and the caller has no way to tell which one it is running.</li>
+            <li><strong>Forgetting the trailing <code>1;</code>.</strong> The module compiles, every sub in it is syntactically fine, and it still fails to <code>require</code> — a genuinely confusing error the first time you meet it, because the reported failure line is wherever the module was loaded, not wherever the missing statement should have been.</li>
+            <li><strong>Letting <code>cpanfile</code> and <code>Makefile.PL</code> drift apart.</strong> Add a dependency to one and forget the other, and the failure shows up as "works on my machine" for whichever installer the other developer happens to use.</li>
+            <li><strong>Skipping the compile test because "the module obviously loads".</strong> It costs four lines, and it is the one test that turns a wall of unrelated failures into a single, immediate, readable one.</li>
+            <li><strong>A dependency line with no comment.</strong> Six months from now the question is "can I remove this", and <code>requires 'XML::LibXML';</code> on its own answers that worse than nothing would.</li>
+          </ul>
+        </div>
         <h4>Checkpoint</h4>
         <ol>
           <li>What is the difference between <code>@EXPORT</code> and <code>@EXPORT_OK</code>, and which should you use?</li>
@@ -121,6 +170,11 @@ export default function Page() {
         <p>Separator sniffing scores consistency rather than counting commas:</p>
         <pre><code>{"sub sniff_separator ($class, @lines) {\n    my %score;\n    for my $sep (\",\", \";\", \"\\t\", \"|\") {\n        my %counts;\n        for my $line (@lines) {\n            my $n = () = $line =~ /\\Q$sep\\E/g;\n            $counts{$n}++;\n        }\n        my ($mode) = sort { $counts{$b} <=> $counts{$a} } keys %counts;\n        $score{$sep} = $mode ? $counts{$mode} * $mode : 0;   # consistent AND present\n    }\n    ...\n}\n"}</code></pre>
         <p>The insight is that <strong>a real separator appears the same number of times on almost every line</strong>. Semicolons scattered through prose score badly because their count varies; the actual delimiter scores highly because it does not. <code>\Q...\E</code> quotes the separator so a <code>|</code> is a literal rather than alternation.</p>
+        <div className="cmp">
+          <h5>Splitting on commas vs asking a real CSV parser</h5>
+          <pre className="plain"><code>{"naive split (typical)                       Perl, with Text::CSV\n──────────────────────                       ─────────────────────\nmy @fields = split /,/, $line;               my $row = $csv->getline($fh);\n# \"Multi\\nline name\" already broke           # multi-line quoted fields,\n# this before split ever ran                 # embedded commas and quotes,\n# a stray quote just becomes                 # all handled; a broken row\n# one more ordinary character                # reports where and why\n"}</code></pre>
+          <p><code>split /,/</code> cannot be fixed into correctness with a cleverer regex, because the problem is not the separator — it is that one CSV "line" can span several physical lines when a field is quoted, and <code>split</code> only ever sees one physical line at a time. <code>Text::CSV</code> is a real state machine that reads as many physical lines as one logical record needs, and when a row does break, it hands back the error code, the character position, and the exact text that failed. Reimplementing that by hand, one edge case at a time, is how a production log parser accumulates a decade of regex patches and still gets embedded quotes wrong.</p>
+        </div>
         <h4>XML: a pull parser, because a DOM would eat the file</h4>
         <pre><code>{"# XML is not line-oriented either, and a DOM parser would load the whole\n# document into memory. XML::LibXML::Reader is a pull parser: it walks the\n# document element by element with constant memory, which is the only\n# defensible way to read an XML file of unknown size.\n\nwhile (eval { $reader->read }) {\n    next unless $reader->nodeType == XML_READER_TYPE_ELEMENT;\n\n    if (!defined $record) {\n        next if $reader->depth == 0;         # skip the root itself\n        $record = $reader->name;             # the first child names the record\n    }\n    next unless $reader->name eq $record;\n    ...\n}\n"}</code></pre>
         <p>Three decisions worth noting. <strong>The record element is inferred</strong> from the first child of the root, so <code>{'<'}alerts{'>'}{'<'}alert/{'>'}{'<'}/alerts{'>'}</code> needs no configuration. <strong>Attributes are prefixed with <code>@</code></strong> (<code>@id</code>, <code>@severity</code>) so they cannot collide with child elements of the same name, which is a real XML idiom. And <strong><code>recover ={'>'} 2</code></strong> asks libxml2 to continue after errors rather than aborting, which is the same policy as everywhere else in this project.</p>
@@ -237,6 +291,11 @@ export default function Page() {
           <p>With the fallback set, bad bytes become U+FFFD, which is greppable, countable, and universally understood to mean "something was lost here". Counting them is then trivial and more reliable than counting warnings, which the fallback suppresses:</p>
           <pre><code>{"    if (index($line, \"\\x{fffd}\") >= 0) {\n        my $n = () = $line =~ /\\x{fffd}/g;\n        $self->{decode_warnings} += $n;\n        push @{ $self->{notes} }, \"invalid bytes replaced\" if $self->{decode_warnings} == $n;\n    }"}</code></pre>
         </div>
+        <div className="cmp">
+          <h5>A wrapper class vs a stack of filehandle layers</h5>
+          <pre className="plain"><code>{"typical (wrapper object)                    Perl (PerlIO layers)\n─────────────────────────                    ─────────────────────\nfh = gzip.open(path, \"rb\")                   open my $fh, \"<:raw\", $path;\ntext = io.TextIOWrapper(fh,                  # detect gzip, then:\n        encoding=\"utf-8\",                    binmode $fh, \":encoding($enc)\";\n        errors=\"replace\")\nfor line in text: ...                        while (<$fh>) { ... }\n"}</code></pre>
+          <p>Both end up with a handle that yields decoded text regardless of what is compressing or encoding it underneath, but they get there differently. The typical approach composes by <em>wrapping one object in another</em>, and every wrapper adds a method-call layer of indirection to every read. Perl's version composes by <em>stacking string labels onto one handle</em> — <code>:raw</code>, then separately <code>:encoding(UTF-8)</code> — pushed and popped like a real stack, while <code>{'<'}$fh{'>'}</code> stays the same one operator throughout. The honest cost is that the stack is global mutable state attached to the handle itself: two pieces of code that both call <code>binmode</code> on the same handle can step on each other in a way two independently-scoped wrapper objects cannot, which is exactly why <code>Strata::Source</code> keeps every layering decision in one place instead of letting callers add their own.</p>
+        </div>
         <h4>Bounding the damage</h4>
         <pre><code>{"use constant {\n    PEEK_BYTES     => 4096,\n    MAX_LINE_BYTES => 1_048_576,      # a \"line\" longer than 1 MB is not a line\n};\n\n    if (length($line) > $self->{max_line_bytes}) {\n        $self->{long_lines}++;\n        push @{ $self->{notes} }, \"over-long line truncated\" if $self->{long_lines} == 1;\n        $line = substr($line, 0, $self->{max_line_bytes}) . \"\\n\";\n    }\n"}</code></pre>
         <p>A file with no newlines at all is a single "line" the size of the file, and <code>{'<'}$fh{'>'}</code> will happily read all of it into one scalar. That is how a streaming tool runs out of memory on a file it never loaded. <strong>Any reader of untrusted input needs a line-length bound</strong>, exactly as a network protocol needs a maximum frame size, and the test proves that reading continues correctly after a truncation rather than losing the rest of the file.</p>
@@ -289,7 +348,8 @@ export default function Page() {
           <pre><code>{"# from_record looks in the fields a parser produced first, and only falls\n# back to scanning the raw line for types the fields did not supply. A\n# parsed field is evidence; a regex over the whole line is a guess."}</code></pre>
           <p><strong>Prefer structure to scanning, always.</strong> The Apache parser already knows the client address and the request path; asking it is exact, and scanning the same line is an inference that will sometimes be wrong. Scanning is for the text nobody parsed, which is exactly where you need it and exactly where it is least reliable.</p>
         </div>
-        <h3>Timestamps: the module that decides whether correlation works</h3>
+        <h3>Implementation</h3>
+        <h4>Timestamps: the module that decides whether correlation works</h4>
         <p>Records from five sources are only comparable if their timestamps are. That means every dialect becomes one integer, and the integer has to be right.</p>
         <pre><code>{"    # 12/Sep/2026:13:44:10 +0000\n    if ($raw =~ m{^(\\d{2})/(\\w{3})/(\\d{4}):(\\d{2}):(\\d{2}):(\\d{2})(?:\\s([+-])(\\d{2})(\\d{2}))?}) {\n        my $mon = $MONTH{$2} or return $class->_strptime_fallback($raw, %opt);\n        my $offset = defined $7 ? ($8 * 3600 + $9 * 60) * ($7 eq \"-\" ? -1 : 1) : 0;\n        return _epoch_utc($3, $mon, $1, $4, $5, $6) - $offset;\n    }\n"}</code></pre>
         <p>The test that matters asserts that different spellings of the same instant produce the same number:</p>
@@ -331,6 +391,15 @@ export default function Page() {
           <p>Stable (the same input gives the same token, so correlation still works), unlinkable without the key, and per-dataset if you rotate the key. Note what it still leaks: frequency. If one token appears 90% of the time, its identity may be inferable from context regardless of the hash.</p>
           <p><strong>3.</strong> The ambiguous hour is genuinely unresolvable from the data: 01:30 occurs twice on the night the clocks go back, and a local-time log with no offset cannot say which. The defensible options are to pick the first occurrence and flag the record, or to mark the timestamp as ambiguous and let correlation treat it as a range. <strong>What you must not do is pick one silently</strong>, because an hour of duplicated timestamps in an incident timeline is exactly the kind of thing that sends an investigation down a wrong path. This is also the strongest possible argument for logging in UTC with an explicit offset, which is worth saying in your tool's documentation.</p>
         </details>
+        <h4>Checkpoint</h4>
+        <ol>
+          <li>Why is match, validate, normalise kept as three separate steps rather than one clever regex?</li>
+          <li>What does <code>reject_after</code> defend against, and why can it never be a complete defence on its own?</li>
+          <li>Why does <code>from_record</code> prefer a parser's own fields over scanning the raw line?</li>
+          <li>What does the table of instant-to-epoch test cases actually specify, and why is that more valuable than a single passing test?</li>
+          <li>What is the syslog year problem, and what heuristic does this milestone use to resolve it?</li>
+          <li>The hand-written timestamp fast path was originally slower than <code>Time::Piece</code>. What was it actually spending its time on, and what fixed it?</li>
+        </ol>
         <h4>Common mistakes in Milestones 5–8</h4>
         <div className="warn">
           <ul>

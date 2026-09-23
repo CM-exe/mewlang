@@ -95,6 +95,7 @@ module Automation
 end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><strong>One base class, everything under it.</strong> This is not politeness, it is the only way a user
                 can write a correct <code>rescue</code>. A library that raises bare <code>RuntimeError</code> forces its
@@ -143,6 +144,7 @@ end
 end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>name.to_sym</code> normalises at the boundary, so <code>"fetch"</code> and <code>:fetch</code> are
                 the same step forever after. Do this once, at construction, and never think about it again.</li>
@@ -190,6 +192,7 @@ end
 end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>callable = nil, &amp;block</code> accepts both <code>register(:fetch) { ... }</code> and
                 <code>register(:fetch, MyStep.new)</code>. <code>impl = callable || block</code> takes whichever
@@ -339,6 +342,23 @@ registry.sort_by { |name, _| name } # =&gt; [[:fetch, #&lt;Proc...&gt;]]
             <li>What does <code>Hash#fetch</code> with a block do that <code>Hash#[]</code> does not?</li>
             <li>Why must every error in a gem inherit from one base class?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p><img src="../../assets/expressions/front.png" alt="The Mewlang cat, facing forward" width="120" class="mascot-center">Nothing in Milestone 1 needs Ruby specifically. <code>Registry#register</code> accepting "anything that
+                responds to <code>#call</code>" is duck typing, and it is genuinely convenient: a lambda, a
+                <code>Method</code> object and a plain object all work with zero adapter code. But the same design is
+                one interface declaration away in Go, and a Python <code>Protocol</code> gets you the same check with
+                static tooling behind it. What this milestone actually shows off is smaller and more concrete:
+                <code>Data.define</code>-adjacent value semantics done by hand (<code>==</code>, <code>eql?</code>,
+                <code>hash</code>, <code>freeze</code>) are four separate decisions in Ruby that a case class or a
+                Go struct with a generated comparator would bundle for you automatically.</p>
+            <p>The honest cost showed up immediately: forgetting <code>hash</code> while defining <code>==</code>
+                breaks <code>uniq</code> and Hash lookups with no warning at write time, only at use time, and only
+                if a test happens to exercise it. Milestone 4's <code>Data.define</code> makes this whole category of
+                mistake impossible by generating all three together — which is itself an admission that hand-rolled
+                value equality in Ruby is a trap worth avoiding once a better tool exists.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 2</span>Blocks: the DSL with its receiver showing</h2>
 
@@ -599,6 +619,22 @@ fetching.steps.map(&amp;:name)   # =&gt; [:fetch]   (unchanged)
             <li>Where does <code>e.cause</code> come from, and what is the Go equivalent?</li>
             <li>Why is a typo in a step name not caught until run time?</li>
         </ol>
+
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p><code>yield builder</code> is the whole trick in this milestone, and it is smaller than it looks: a
+                block that receives an object and calls methods on it is one line of Ruby, and the same builder
+                pattern exists in Go (a function taking a <code>*Builder</code>), in Java (a fluent builder class) and
+                everywhere else. Nothing here required a dynamic language yet — Milestone 3 is where that changes.</p>
+            <p>What this milestone is honest about instead is the price of choosing "return a result" over "raise an
+                exception". A <code>Pipeline#run</code> that returns bare values, with no result wrapper, makes a
+                failed step indistinguishable from a step that legitimately returned <code>nil</code>. We pay for that
+                simplicity later, in Milestone 5, with a whole <code>RunResult</code> type built specifically to stop
+                conflating the two. A language feature this milestone leans on without remarking on it:
+                <code>rescue StandardError =&gt; e</code> inside a bare method body works because a method definition
+                is an implicit <code>begin</code> block — convenient here, and one more thing a reader coming from a
+                language with explicit <code>try</code> blocks has to learn once and then never think about again.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 3</span>instance_eval: what it buys, and what it costs
         </h2>
@@ -1094,6 +1130,7 @@ end
 end
 </code></pre>
 
+        <h4>Explanation</h4>
         <ul>
             <li><code>Data.define(:name, :args, :options, :location)</code> creates a class with readers, keyword
                 construction, value equality, <code>hash</code>, a readable <code>inspect</code> and frozen instances.

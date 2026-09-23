@@ -63,6 +63,8 @@
 100
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p>This is the result worth staring at. <code>my-or</code>'s expansion is, textually,
             <code>(let ([it #f]) (if it it it))</code> — the macro's own <code>it</code> and the argument
             <code>it</code> (which refers to the outer <code>(define it 100)</code>) look, on the page, like the
@@ -118,6 +120,30 @@
                 introduce a binding visible to its caller (an "anaphoric" macro, deliberately) — but that has to be
                 an opt-in decision, never an accident.</p>
         </div>
+
+        <h4>Experiment</h4>
+
+        <p>Confirm that <code>my-or</code>'s first argument is evaluated exactly once, no matter how many times
+            <code>it</code> appears inside the macro's expansion — give it a side effect and count.</p>
+
+        <pre><code>(define counter 0)
+(my-or (begin (set! counter (add1 counter)) #f) 99)
+counter
+</code></pre>
+
+        <pre class="plain"><code>&gt; (my-or (begin (set! counter (add1 counter)) #f) 99)
+99
+&gt; counter
+1
+</code></pre>
+
+        <p><code>it</code> appears twice in <code>my-or</code>'s expansion, <code>(if it it b)</code> — but
+            <code>a</code>'s own expansion site, <code>(let ([it a]) ...)</code>, evaluates <code>a</code> exactly
+            once, binding the result to <code>it</code>, and both later uses of <code>it</code> simply read that
+            one binding back. This is precisely why the macro needs the <code>let</code> at all, rather than
+            expanding straight to <code>(if a a b)</code>: that naive version would evaluate <code>a</code> twice,
+            running any side effect inside it twice too — a bug this macro's actual shape avoids by construction,
+            not by convention.</p>
 
         <div class="exercise">
             <h5>Exercise 5</h5>
@@ -192,6 +218,8 @@
 3
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong><code>name:id</code></strong> requires that piece of syntax to be an identifier, specifically —
             not any expression, an identifier. <strong><code>val:expr</code></strong> requires a well-formed
             expression. <strong><code>...</code></strong> after <code>(name:id val:expr)</code> means "zero or
@@ -227,6 +255,40 @@ my-let: expected identifier
                 fact.</p>
         </div>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>The better error messages are not free. <code>syntax-parse</code> is a genuinely large piece of
+                machinery to learn — syntax classes, attributes, <code>#:fail-when</code>/<code>#:fail-unless</code>,
+                the distinction between a pattern variable and an attribute — for what <code>my-let</code> needed
+                here, which <code>define-syntax-rule</code> could express in one line with worse errors as the only
+                cost. For a macro that only ever gets called correctly by its own author, inside a single small
+                project, that cost may simply not be worth paying — <code>define-syntax-rule</code> stays the right
+                default for a quick, private macro, and <code>syntax-parse</code> earns its complexity specifically
+                when a macro's misuse needs to be caught clearly, by someone other than the person who wrote it,
+                which is exactly the situation Milestone 7's finance DSL is about to be in.</p>
+        </div>
+
+        <h4>Experiment</h4>
+
+        <p>Put the mistake in the <em>middle</em> of three bindings, with valid bindings on either side, and confirm
+            <code>syntax-parse</code>'s error still names the exact offending piece rather than the whole form or
+            the first thing it finds.</p>
+
+        <pre><code>(my-let ([x 1] [2 3] [z 3]) (+ x z))
+</code></pre>
+
+        <pre class="plain"><code>&gt; (my-let ([x 1] [2 3] [z 3]) (+ x z))
+my-let: expected identifier
+  at: 2
+  in: (my-let ((x 1) (2 3) (z 3)) (+ x z))
+</code></pre>
+
+        <p>The error names <code>2</code> specifically — not <code>x</code>, not <code>z</code>, both perfectly
+            valid bindings sitting right next to it — because <code>syntax-parse</code> checks each repetition of
+            <code>(name:id val:expr)</code> independently as it walks the <code>...</code> pattern, rather than
+            validating the whole binding list as one opaque unit and reporting only "something in here is wrong."
+        </p>
+
         <div class="exercise">
             <h5>Exercise 6</h5>
             <ol>
@@ -261,6 +323,29 @@ my-let: expected identifier
             <li>Why is a compile-time error naming the exact expected shape more valuable than a generic
                 pattern-match failure, specifically for a macro other people will use?</li>
         </ol>
+
+        <h4>Common mistakes in Milestone 6</h4>
+        <div class="warn">
+            <p><strong>Writing <code>body:expr ...</code> (plain ellipsis) instead of <code>body:expr ...+</code>
+                </strong> — the difference looks cosmetic, and a call with a real body still works either way. It
+                stops being cosmetic the moment <code>my-let</code> is called with no body at all,
+                <code>(my-let ([x 1]))</code>: with plain <code>...</code>, the pattern still matches (zero body
+                expressions is a valid repetition count), and the macro happily expands to
+                <code>((lambda (x)) 1)</code> — a <code>lambda</code> with no body, which is a real syntax error,
+                but reported against the <em>expanded</em> code rather than against <code>my-let</code>'s own call:
+            </p>
+            <pre class="plain"><code>; lambda: bad syntax
+;   in: (lambda (x))
+</code></pre>
+            <p>compare that to what <code>...+</code> actually says about the identical mistake:</p>
+            <pre class="plain"><code>; my-let: expected more terms starting with expression
+;   at: ()
+;   within: (my-let ((x 1)))
+</code></pre>
+            <p>the second message names <code>my-let</code> and the call site directly; the first blames a
+                <code>lambda</code> the caller never wrote and would have to mentally un-expand to connect back to
+                their own mistake.</p>
+        </div>
 
         <h2 class="milestone-head"><span class="num">Milestone 7</span>The finance DSL</h2>
 
@@ -310,6 +395,8 @@ account: unknown account type: bogus-type (expected checking, savings, or credit
   in: (account weird bogus-type 100)
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong><code>begin-for-syntax</code></strong> is what makes <code>known-account-type?</code> exist at
             the right time: ordinary <code>define</code> creates a run-time binding, invisible to code executing
             during macro expansion; <code>begin-for-syntax</code> creates a <strong>compile-time</strong> binding,
@@ -347,6 +434,31 @@ account: unknown account type: bogus-type (expected checking, savings, or credit
             separation exists is genuinely disorienting, which is exactly why this milestone introduces the concept
             explicitly rather than letting you discover it from an opaque error alone.</p>
         </div>
+
+        <h4>Experiment</h4>
+
+        <p>Widen <code>known-account-type?</code> to also accept <code>investment</code>, and confirm an
+            <code>investment</code> account — previously rejected — now compiles. Then check whether the error
+            message kept up.</p>
+
+        <pre><code>(begin-for-syntax
+  (define (known-account-type? sym)
+    (memq sym '(checking savings credit investment))))
+
+(account weird investment 100)
+</code></pre>
+
+        <pre class="plain"><code>&gt; (account weird investment 100)
+&gt; weird
+(weird investment 100)
+</code></pre>
+
+        <p>It compiles now — but the <code>#:fail-unless</code> message inside <code>account</code> still reads
+            "(expected checking, savings, or credit)", unchanged, because that text is a separate string literal
+            with no actual connection to <code>known-account-type?</code>'s own definition. Widening the check and
+            updating the message describing it are two different edits, and it is easy to make only one of them; a
+            genuinely correct fix here also updates the format string, which this experiment deliberately leaves
+            undone to make the gap visible.</p>
 
         <div class="exercise">
             <h5>Exercise 7</h5>
@@ -436,6 +548,8 @@ account: unknown account type: bogus-type (expected checking, savings, or credit
 #(struct:add-e #(struct:num-e 2) #(struct:num-e 3))
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p><strong>The double <code>...</code></strong> is worth reading carefully: the outer
             <code>(struct type-name (field ...) #:transparent) ...</code> repeats the entire struct definition once
             per <code>type-name</code>, while the inner <code>field ...</code> repeats within each one independently
@@ -454,6 +568,29 @@ account: unknown account type: bogus-type (expected checking, savings, or credit
                 as every other macro in this course. There is no generated-source-file step to keep in sync with a
                 specification that changed.</p>
         </div>
+
+        <h4>Experiment</h4>
+
+        <p>Add a node type with <em>zero</em> fields to the same <code>define-ast-types</code> call, and confirm
+            the macro handles an empty field list without needing a special case.</p>
+
+        <pre><code>(define-ast-types
+  (num-e (val))
+  (add-e (l r))
+  (var-e (name))
+  (let-e (name val body))
+  (nil-e ()))
+
+(nil-e)
+</code></pre>
+
+        <pre class="plain"><code>&gt; (nil-e)
+(nil-e)
+</code></pre>
+
+        <p>No special case was needed because <code>(field ...)</code> matching zero repetitions is exactly as
+            valid, to <code>syntax-parse</code>, as matching several — ellipsis means "zero or more" by default, the
+            same way Milestone 2's own list functions never needed a separate empty-list code path bolted on.</p>
 
         <div class="exercise">
             <h5>Exercise 8</h5>
@@ -499,6 +636,17 @@ account: unknown account type: bogus-type (expected checking, savings, or credit
                 want to know if a named waypoint was declared before it is referenced), not something inherently
                 about finance.</p>
         </details>
+
+        <h4>Checkpoint</h4>
+        <ol>
+            <li>What does the double <code>...</code> in <code>define-ast-types</code>'s template do that a single
+                <code>...</code> could not?</li>
+            <li>Where would you draw the line between "the toolkit" and "a specific DSL" in your own code so far,
+                and why does <code>known-account-type?</code> belong firmly on the DSL side of that line?</li>
+            <li>Why did adding a <code>describe</code> function per type (Exercise 8) need a different
+                macro-writing tool than the plain syntax templating <code>define-ast-types</code> already uses for
+                struct definitions?</li>
+        </ol>
 
         <h4>Common mistakes in Milestones 5–8</h4>
         <div class="warn">

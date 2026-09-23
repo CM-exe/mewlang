@@ -349,6 +349,8 @@ func (c *antClient) roundTrip(ctx context.Context, r request) (response, error) 
 }
 </code></pre>
 
+        <h4>Explanation</h4>
+
         <p>This function is twenty lines and every one of them is load-bearing.</p>
 
         <ul>
@@ -618,6 +620,21 @@ if sensed.hasTeleport {
             <li>What happens if an ant times out, then the owner replies, and the ant does not drain its channel?</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>The single-owner pattern is not a Go idea — it is the actor model, and you can write it in Erlang,
+                Elixir or Akka too. What Go contributes is that it is <em>cheap</em> here: 1,000 ant goroutines plus
+                one owner goroutine plus 1,000 buffered channels cost a few megabytes and start in microseconds. The
+                same shape in a language with OS-thread-weight concurrency would force you toward a thread pool and a
+                work queue long before you reached this ant count, which is a different, more complicated program.</p>
+            <p>The honest cost: nothing in the language stops you from breaking the single-owner rule. The comment on
+                the struct fields is the entire enforcement mechanism, and it is enforced by discipline plus
+                <code>go test -race</code>, not by the compiler. Erlang and Rust each take this further in their own
+                way — Erlang by making every process's memory genuinely private, Rust by making a smuggled pointer a
+                compile error rather than a comment. Go trusts you, which is fast to write and easy to get wrong once
+                a codebase has more than one author.</p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 6</span>Pheromones, and a clock of its own</h2>
 
         <h3>Goal</h3>
@@ -655,6 +672,23 @@ if sensed.hasTeleport {
    evaporator ──►┤
    Stats caller ►┘
 </code></pre>
+
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>A typical periodic job — a cron entry, a Quartz scheduler, a <code>setInterval</code> — assumes its
+                work will run to completion every time it fires, and treats a run that is still busy when the next
+                tick arrives as an operational problem to fix (usually by making the job faster or the interval
+                longer). The scheduler and the work are separate concerns, and a missed tick is unusual enough to
+                page someone.</p>
+            <p>The idiomatic Go version here treats a missed tick as the normal case under load: <code>evaporate</code>
+                tries a non-blocking send and, if the owner's queue is full, simply skips that cycle. No error, no
+                retry, no alert. This works because a <code>time.Ticker</code> paired with <code>select</code> and a
+                <code>default</code> case turns "is anyone listening right now" into a two-line question you can ask
+                on every tick, which most schedulers do not expose at all. The cost is that this policy is only
+                correct because evaporation is idempotent and its value decays with delay; a periodic job with side
+                effects that must not be skipped (say, a billing cycle) needs the traditional "queue it and guarantee
+                it runs" discipline instead.</p>
+        </div>
 
         <h3>Implementation</h3>
 
@@ -726,6 +760,8 @@ func (e *Engine) evaporate(ctx context.Context) {
 	}
 }
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <ul>
             <li><code>time.NewTicker</code> fires repeatedly; <code>time.NewTimer</code> fires once. A ticker that is
@@ -938,6 +974,22 @@ trail  : delivered 404, pheromone left 397
                 Milestone 3 was not?</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p>Nothing about pheromones needed Go specifically — <code>FloatGrid.Evaporate</code> and
+                <code>weightedStep</code> are ordinary numeric code you could write identically in Python or Java.
+                What Go earns its keep on here is the plumbing around that code: a <code>time.Ticker</code> plus a
+                non-blocking <code>select</code> gives the evaporator goroutine a load-shedding policy in four lines,
+                and because it is just another client of the same owner, it needed no new synchronisation primitive
+                at all, only a new message kind.</p>
+            <p>The honest verdict: this milestone's actual algorithm (weighted random choice with a decay term) is
+                the interesting part, and Go contributed nothing to that part beyond what any language with closures
+                and a decent standard library would. Where a language choice would matter more is at much larger
+                scale — millions of cells decaying continuously — where you would want either a lazy, timestamp-based
+                decay (no periodic sweep at all) or a language with SIMD-friendly array operations built in, neither
+                of which this milestone needed yet.</p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 7</span>Shutting down, provably</h2>
 
         <h3>Goal</h3>
@@ -980,6 +1032,22 @@ trail  : delivered 404, pheromone left 397
             derived from <code>context.Background()</code>, so they outlive the ants and stop only when <code>Run</code>
             says so. A context is a cancellation scope, and "everything cancels at once" is a design decision, not a
             default you have to accept.</p>
+
+        <div class="cmp">
+            <h5>Typical approach vs Go's idiomatic approach</h5>
+            <p>A typical shutdown path in many services is a single flag or a single cancellation signal that
+                everything listens to, on the theory that "stop" should mean stop, everywhere, at once. It is simple
+                to reason about and it is exactly wrong the moment cleanup itself needs something that "everything"
+                includes — here, the final <code>Stats</code> call needs the owner, and the owner would already be
+                gone.</p>
+            <p>Go's <code>context</code> package makes the idiomatic fix cheap: contexts form a tree, so
+                <code>Run</code> derives three separate cancellation scopes (ants, evaporator, owner) instead of
+                sharing one, and shuts them down in the order the dependency graph actually requires. The cost is
+                that you now have to think about that order explicitly — three <code>context.WithCancel</code> calls
+                and a comment explaining why, instead of one flag everyone reads. For a program with no cleanup
+                dependencies, one shared context would have been simpler and just as correct; the extra structure
+                here is earned by "the last thing we do needs something we are shutting down."</p>
+        </div>
 
         <h3>Implementation</h3>
 
@@ -1115,6 +1183,8 @@ func (e *Engine) Run(ctx context.Context) (Stats, error) {
         <pre class="plain"><code>=== RUN   TestNoGoroutineLeak
 --- PASS: TestNoGoroutineLeak (0.15s)
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <p>The retry loop is the part people get wrong. <code>runtime.NumGoroutine()</code> is a snapshot, and a
             goroutine that has been told to stop takes an unspecified moment to actually stop, so a single comparison
@@ -1253,6 +1323,23 @@ func waitChan(wg *sync.WaitGroup) &lt;-chan struct{} {
             <li>An ant is inside <code>time.Sleep(30 * time.Second)</code> when you cancel. What are your options?</li>
         </ol>
 
+        <div class="why">
+            <h5>Why are we using this language here?</h5>
+            <p><code>context.Context</code> is the part of Go that makes this milestone almost pleasant: cancellation
+                that composes (a timeout derived from a signal-triggered cancellation, in two lines), propagates
+                automatically through every function that accepts a <code>ctx</code> parameter, and is checked
+                cooperatively rather than requiring a separate kill mechanism per goroutine kind. <code>sync.WaitGroup</code>
+                and <code>signal.NotifyContext</code> round out a shutdown story that needs zero third-party
+                dependencies.</p>
+            <p>The honest cost: every one of these primitives is cooperative, which is the same fact as "you cannot
+                kill a goroutine" wearing different clothes. <code>context</code> gives you a clean way to
+                <em>ask</em> every goroutine to stop; it gives you nothing if a goroutine does not check. Compare
+                Erlang, where a supervisor can unconditionally terminate a process regardless of what it is doing,
+                or a language with structured concurrency and cancellation points enforced by the runtime. Go's
+                answer is disciplined convention, not a guarantee, and this milestone's entire second half exists
+                because that distinction matters in practice, not just in theory.</p>
+        </div>
+
         <h2 class="milestone-head"><span class="num">Milestone 8</span>Chaos: crashes, dropped messages, slow ants</h2>
 
         <h3>Goal</h3>
@@ -1376,6 +1463,8 @@ func (e *Engine) superviseAnt(ctx context.Context, a *Ant, deaths chan&lt;- *Ant
 	e.runAnt(ctx, a)
 }
 </code></pre>
+
+        <h4>Explanation</h4>
 
         <ul>
             <li><code>recover()</code> returns <code>nil</code> when there was no panic, which is how the deferred

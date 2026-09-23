@@ -136,6 +136,11 @@ export default function Page() {
           <li><strong><code>#lang racket</code></strong> is not a comment and not decoration — it is the single most important line in the file, and this whole course is, in a real sense, about what comes after the words <code>#lang</code>. It tells Racket's own module system which <em>language</em> the rest of the file is written in, which determines how the reader turns the following text into syntax, and which determines what identifiers like <code>displayln</code> even mean. By Milestone 9, your own files will start <code>#lang finance</code> instead, and this line is exactly what makes that meaningful rather than cosmetic.</li>
           <li><strong><code>(displayln "hello, language factory")</code></strong> is a function call: parenthesis, then the function, then its arguments, no commas, no special call syntax — this is the entirety of Racket's function-call grammar, and Section 2.1 explains why having only one call syntax at all is not a limitation.</li>
         </ul>
+        <h4>A real script takes real arguments</h4>
+        <p><code>racket file.rkt</code> is a bare invocation with no arguments — most of this course's own example scripts stay that way, deliberately, to keep the code on the page focused on whatever that milestone is actually teaching. A script meant to be run repeatedly from a shell, the way <code>budget.finance</code> will be from Milestone 9 onward, usually wants real command-line arguments instead of a hardcoded value, and <code>racket/cmdline</code> is the standard library for that — Racket's equivalent of Go's <code>flag</code> package or Python's <code>argparse</code>.</p>
+        <pre><code>{"#lang racket\n(require racket/cmdline)\n\n(define name \"language factory\")\n\n(command-line\n #:program \"hello\"\n #:once-each\n [(\"-n\" \"--name\") n \"Who to greet\" (set! name n)]\n #:args () (void))\n\n(displayln (format \"hello, ~a\" name))\n"}</code></pre>
+        <pre className="plain"><code>{"$ racket hello.rkt\nhello, language factory\n$ racket hello.rkt --name \"budget.finance reader\"\nhello, budget.finance reader\n$ racket hello.rkt --help\nusage: hello [ <option> ... ]\n\n<option> is one of\n\n  -n <n>, --name <n>\n     Who to greet\n  --help, -h\n     Show this help\n  --\n     Do not treat any remaining argument as a switch (at this level)\n"}</code></pre>
+        <p><code>--help</code> is generated for you, from the same <code>#:once-each</code> clause that declares <code>--name</code> — the one-line description <code>"Who to greet"</code> is what shows up next to it, which is the same "declare it once, get the documentation for free" idea <code>syntax-parse</code>'s syntax classes bring to macros in Milestone 6, applied here to an ordinary script's flags instead.</p>
         <h3>The REPL</h3>
         <pre className="plain"><code>{"$ racket\nWelcome to Racket v8.7 [cs].\n> (+ 1 2)\n3\n> (define (square x) (* x x))\n> (square 5)\n25\n> (require racket/list)\n> (first '(a b c))\n'a\n"}</code></pre>
         <p><code>racket</code> with no file argument drops you into a REPL exactly like <code>erl</code> or <code>irb</code> — definitions and expressions typed directly, evaluated immediately. <code>(require racket/list)</code> pulls in one of Racket's many small, focused libraries; <code>racket</code> the language you get from <code>#lang racket</code> already includes a large, convenient standard set, and <code>#lang racket/base</code> — a smaller, faster-loading language this course's own toolkit code prefers once performance starts to matter in Milestone 11 — includes much less, requiring you to <code>require</code> things explicitly.</p>
@@ -147,6 +152,8 @@ export default function Page() {
         <pre><code>{"#lang racket\n(require rackunit)\n\n(check-equal? (+ 1 2) 3)\n(check-equal? (+ 1 2) 4)     ;; deliberately wrong, to see real failure output\n"}</code></pre>
         <pre className="plain"><code>{"$ raco test scratch.rkt\n--------------------\nFAILURE\nname:       check-equal?\nlocation:   scratch.rkt:5:0\nactual:     3\nexpected:   4\n--------------------\n1 success(es) 1 failure(s) 0 error(s) 0 test(s) skipped\n"}</code></pre>
         <p><code>rackunit</code> ships with Racket — no dependency to add. <code>raco test</code> finds every <code>check-*</code> call in a module (there is no separate "test function" naming convention to learn; any <code>check-equal?</code>, run at module load time, counts) and reports failures with the exact location, the actual value, and the expected one — deliberately shown failing once here, immediately, so the very first thing you see from this course's testing tool is what a real failure looks like.</p>
+        <h3>Style and formatting</h3>
+        <p>Racket ships no equivalent of <code>gofmt</code> — there is no single official formatter that every <code>.rkt</code> file is expected to already agree with, and no build step in this course's own <code>langfac</code> project runs one. Style here is convention-driven: the <a href="https://docs.racket-lang.org/style/">Racket Style Guide</a> (linked from <code>raco docs</code>) documents indentation, naming, and module-organisation conventions the community broadly follows, and DrRacket's own structural editor auto-indents new code to match them as you type, which is where most Racket programmers get consistent formatting in practice — by writing inside an editor that already knows the convention, rather than by running a separate formatting pass afterward. A third-party formatter, <code>fmt</code> (<code>raco pkg install fmt</code>, then <code>raco fmt file.rkt</code>), exists and is worth knowing about if a project wants an enforceable, CI-checkable formatting rule the way <code>gofmt -l</code> gives Go — but it is a community package, not part of the language distribution, and this course's own code was formatted by hand against the Style Guide's conventions rather than by running it.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>What does the <code>#lang</code> line at the top of a file actually determine?</li>
@@ -163,31 +170,113 @@ export default function Page() {
           <h5>A typical language vs. Racket</h5>
           <p>In Python or Ruby, "write a program that manipulates other programs" means parsing text into a bespoke AST representation (or, for Ruby's DSL course, hijacking method dispatch instead) — the data shape of "a program" and the data shape of "an ordinary list" are unrelated. In Racket, they are the same shape from the start, so list functions you already know — <code>map</code>, <code>filter</code>, pattern matching via <code>match</code> — are already, immediately, tools for working with code. This is not a claim that manipulating code is <em>easy</em> in Racket, only that it does not require a second, separate toolkit on top of the one you already have for lists.</p>
         </div>
+        <div className="exercise">
+          <h5>Exercise 2.1</h5>
+          <ol>
+            <li>Write <code>operators</code>, taking a quoted arithmetic expression like <code>'(+ 1 (* 2 3))</code> and returning the list of every operator symbol it uses, in the order encountered — <code>(operators '(+ 1 (* 2 3)))</code> should give <code>'(+ *)</code>. Treat the expression purely as a list of lists; do not evaluate it.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 2.1 — open after trying</summary>
+          <pre><code>{"(require racket/list)\n\n(define (operators expr)\n  (cond\n    [(not (list? expr)) '()]\n    [(empty? expr) '()]\n    [else (cons (first expr)\n                (append-map operators (rest expr)))]))"}</code></pre>
+          <p>Nothing here is "code-manipulation" machinery distinct from ordinary list processing — <code>operators</code> is exactly the shape of function you would write to pull every first element out of a tree of plain lists, because a quoted expression <em>is</em> a tree of plain lists. Running it on a deeper expression, <code>(operators '(+ (* 2 3) (- 4 (* 5 6))))</code>, gives <code>'(+ * - *)</code> — the same function, unmodified, works on any depth of nesting.</p>
+        </details>
         <h3>2.2 Lists, pairs, and higher-order functions</h3>
         <pre><code>{"> (define xs (list 1 2 3 4 5))\n> (map (lambda (x) (* x x)) xs)\n'(1 4 9 16 25)\n> (filter even? xs)\n'(2 4)\n> (foldl + 0 xs)\n15\n> (cons 0 xs)\n'(0 1 2 3 4 5)\n> (first xs)\n1\n> (rest xs)\n'(2 3 4 5)\n"}</code></pre>
         <p>A Racket list is, underneath, a chain of two-element <strong>pairs</strong> (<code>cons</code> cells) — <code>(cons 0 xs)</code> builds a new pair whose first half is <code>0</code> and whose second half is the existing list <code>xs</code>, and a "list" is precisely a chain of these ending in the empty list <code>'()</code>. <code>map</code>, <code>filter</code> and <code>foldl</code> need no introduction if Course 2's Ruby blocks or Course 1's Go closures are still fresh — the shape (a function, a collection, a new collection or a single accumulated value) is the same idea in a fourth syntax.</p>
+        <div className="warn">
+          <h5>A common mistake: assuming <code>map</code> pads or truncates mismatched lists</h5>
+          <p>Some languages' equivalent of <code>map</code> over two collections silently stops at the shorter one, or pads the missing side with a default. Racket's does neither — it insists every list argument have exactly the same length, and raises rather than guessing what you meant:</p>
+          <pre className="plain"><code>{"> (map + (list 1 2 3) (list 10 20))\nmap: all lists must have same size\n  first list length: 3\n  other list length: 2\n  procedure: #<procedure:+>\n"}</code></pre>
+          <p>worth knowing before it happens by surprise in the middle of a longer pipeline, where the error points at <code>map</code> itself rather than at whichever earlier step actually produced the short list.</p>
+        </div>
+        <div className="exercise">
+          <h5>Exercise 2.2</h5>
+          <ol>
+            <li>Write <code>total-of</code>, taking a predicate and a list of numbers and returning the sum of only the numbers the predicate accepts — <code>(total-of positive? (list -5 10 -3 20 7))</code> should give <code>37</code> — by composing <code>filter</code> and <code>foldl</code> rather than writing a new recursive function.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 2.2 — open after trying</summary>
+          <pre><code>{"(define (total-of pred xs) (foldl + 0 (filter pred xs)))"}</code></pre>
+          <p><code>filter</code> then <code>foldl</code>, composed directly, rather than one hand-written loop doing both jobs at once — the same instinct Milestone 2 uses throughout the toolkit itself: a small higher-order function built from smaller ones is usually clearer than a bespoke loop that reimplements both from scratch.</p>
+        </details>
         <h3>2.3 Recursion</h3>
         <pre><code>{"(define (sum-list xs)\n  (cond\n    [(empty? xs) 0]\n    [else (+ (first xs) (sum-list (rest xs)))]))\n\n(define (sum-tail xs [acc 0])\n  (cond\n    [(empty? xs) acc]\n    [else (sum-tail (rest xs) (+ acc (first xs)))]))\n"}</code></pre>
         <p><code>[acc 0]</code> in the parameter list is a default argument — <code>(sum-tail xs)</code> and <code>(sum-tail xs 10)</code> are both valid calls. Racket's compiler recognises and optimises tail calls, the same guarantee Erlang's course relied on for unbounded recursion depth, though in ordinary Racket code you will reach for <code>for</code>, <code>for/list</code>, and the higher-order functions from Section 2.2 far more often than hand-written recursion — they exist precisely so you do not have to write <code>sum-tail</code>-shaped functions by hand for every single loop.</p>
+        <div className="exercise">
+          <h5>Exercise 2.3</h5>
+          <ol>
+            <li>Write <code>deep-sum</code>, recursively summing every number in a list that may itself contain nested lists of numbers — <code>(deep-sum (list 1 (list 2 3) (list (list 4 5) 6)))</code> should give <code>21</code>.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 2.3 — open after trying</summary>
+          <pre><code>{"(define (deep-sum xs)\n  (cond\n    [(empty? xs) 0]\n    [(list? (first xs)) (+ (deep-sum (first xs)) (deep-sum (rest xs)))]\n    [else (+ (first xs) (deep-sum (rest xs)))]))"}</code></pre>
+          <p>Two separate recursive calls happen in the middle clause — one descending into the nested list, one continuing across the rest of the current list — which is the general shape any function walking a tree-of-lists rather than a flat list needs: recursion on the "down" direction and recursion on the "across" direction are genuinely two different calls, not one.</p>
+        </details>
         <h3>2.4 <code>match</code>: pattern matching over any shape</h3>
         <pre><code>{"(define (describe v)\n  (match v\n    [(list a b) (format \"pair: ~a and ~a\" a b)]\n    [(? string?) \"a string\"]\n    [(? number? n) #:when (negative? n) \"a negative number\"]\n    [(? number?) \"a number\"]\n    [_ \"something else\"]))\n"}</code></pre>
         <pre className="plain"><code>{"> (describe (list 1 2))\n\"pair: 1 and 2\"\n> (describe \"hi\")\n\"a string\"\n> (describe -5)\n\"a negative number\"\n> (describe 5)\n\"a number\"\n"}</code></pre>
         <p><code>match</code> is Racket's general-purpose destructuring and dispatch tool, playing the same role Erlang's function clauses and guards played in Course 4 — a list shape, a predicate (<code>(? string?)</code>), a predicate with a bound name and a guard clause, and a wildcard, tried top to bottom. Milestone 3 extends this to match on <code>struct</code> shapes directly, and Milestone 4's interpreter is built almost entirely out of one large <code>match</code> over AST node types.</p>
+        <div className="warn">
+          <h5>A common mistake: assuming <code>match</code> is automatically total</h5>
+          <p><code>describe</code> above, exactly as written, has no wildcard clause — every case is a specific shape or predicate, and nothing says "anything else." Hand it a value none of those four clauses recognises and it fails at run time, not at compile time, with no indication in advance from <code>match</code> itself that a case was left uncovered:</p>
+          <pre className="plain"><code>{"> (describe 42)\nmatch: no matching clause for 42\n"}</code></pre>
+          <p>worth treating as a genuine design decision rather than an oversight to always fix the same way: a trailing <code>[_ "something else"]</code> clause is right when "anything else" has one sensible answer, and leaving it out deliberately is right when reaching this <code>match</code> with an unrecognised value at all is itself a bug you want surfaced immediately — the same judgement call Milestone 4's <code>eval-expr</code> makes, on purpose, by having no wildcard clause either.</p>
+        </div>
         <h3>2.5 Structs</h3>
         <pre><code>{"(struct point (x y) #:transparent)\n\n(define p (point 3 4))\n(point-x p)          ; 3\n(point? p)            ; #t\n(struct-copy point p [x 10])   ; point with x replaced, y unchanged\n"}</code></pre>
         <p><code>struct</code> declares a new data type with named fields, a constructor (<code>point</code> itself, callable), automatic accessors (<code>point-x</code>, <code>point-y</code>), and a predicate (<code>point?</code>) — all generated from one declaration, the same convenience Erlang's maps and Go's structs each provide differently. <code>#:transparent</code> matters specifically for this course: without it, two structurally-identical struct instances print opaquely and are not <code>equal?</code> to each other by value, which makes testing (Section 1's <code>check-equal?</code>) and debugging output far less useful — every struct in this course's own code is transparent unless there is a specific reason to hide its contents.</p>
+        <div className="exercise">
+          <h5>Exercise 2.5</h5>
+          <ol>
+            <li>Write <code>midpoint</code>, taking two <code>point</code>s and returning the <code>point</code> halfway between them — <code>(midpoint (point 0 0) (point 4 6))</code> should give a point equal, by <code>equal?</code>, to <code>(point 2 3)</code>.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 2.5 — open after trying</summary>
+          <pre><code>{"(define (midpoint p1 p2)\n  (point (/ (+ (point-x p1) (point-x p2)) 2)\n         (/ (+ (point-y p1) (point-y p2)) 2)))"}</code></pre>
+          <p><code>(equal? (midpoint (point 0 0) (point 4 6)) (point 2 3))</code> is <code>#t</code> precisely because <code>point</code> is <code>#:transparent</code> — two separately constructed <code>point</code>s with the same field values are <code>equal?</code> to each other, which is exactly what makes a test like this one meaningful to write at all rather than needing a field-by-field comparison.</p>
+        </details>
         <h3>2.6 Contracts: specifications the runtime checks for you</h3>
         <pre><code>{"#lang racket\n(provide (contract-out\n  [account-balance (-> account? real?)]\n  [withdraw (-> account? (and/c real? positive?) account?)]))\n"}</code></pre>
         <pre className="plain"><code>{"> (withdraw checking -50)\nwithdraw: contract violation\n  expected: a number strictly greater than 0\n  given: -50\n  in: the 2nd argument of\n      (-> account? (and/c real? positive?) account?)\n  contract from: (module account)\n  blaming: (module account)\n   (assuming the contract is correct)\n  at: account.rkt:7:5\n"}</code></pre>
         <p>A contract on <code>provide</code> is an executable specification, checked automatically at the module boundary every time an outside caller uses the function — not a comment describing what should be true, a runtime check that catches exactly the class of "I called this with the wrong kind of value" bug. Notice how much of the report is about <em>where responsibility lies</em>, not just what went wrong: <code>expected</code> is stated in plain English rather than echoing the contract expression verbatim (<code>and/c real? positive?</code> becomes "a number strictly greater than 0"), and <code>blaming</code> names which module's code is at fault for the violation — for a contract this simple the caller is obviously to blame, but for a contract built from several composed pieces across several modules, knowing exactly which one to blame is often the entire value of the error message.</p>
+        <div className="cmp">
+          <h5>A typical language vs. Racket</h5>
+          <p>JavaScript has no contract system at all — a function that requires a positive number either checks by hand with an <code>if</code> and throws, or, with TypeScript layered on top, gets a type annotation that is completely erased by the time the code actually runs, so a <code>-50</code> arriving from a JSON response or an <code>any</code>-typed boundary is caught nowhere at run time. C++ gets closer with <code>assert()</code>, but an assertion only reports that something failed and where — it cannot name which <em>module's</em> code is to blame, because C++ has no module boundary a contract could attach to in the first place. Racket's contracts sit deliberately in between: checked automatically, every single call, but only at the specific boundary where trust between two separately-authored pieces of code needs verifying — which is also the honest cost worth stating plainly: that per-call check is real run-time overhead a TypeScript annotation, erased at compile time, never pays at all.</p>
+        </div>
+        <div className="warn">
+          <h5>A common mistake: assuming a contract protects a function's every caller</h5>
+          <p>A <code>contract-out</code> contract only checks calls that cross the <em>module boundary</em> — an internal helper inside the same module that calls the contracted function directly bypasses the check entirely, because internal calls, by design, never touch <code>provide</code> at all:</p>
+          <pre className="plain"><code>{";; acct.rkt\n(define (withdraw balance amt) (- balance amt))\n(define (withdraw-unchecked balance amt) (withdraw balance amt))  ; internal call, no check\n(provide (contract-out [withdraw (-> real? (and/c real? positive?) real?)])\n         withdraw-unchecked)\n"}</code></pre>
+          <pre className="plain"><code>{"> (withdraw-unchecked 100 -50)   ; from another module -- contract never fires\n150\n> (withdraw 100 -50)              ; from another module -- contract fires\nwithdraw: contract violation\n  expected: a number strictly greater than 0\n"}</code></pre>
+          <p>this is not a bug in <code>contract-out</code> — it is the entire point, stated in Milestone 3's own design section: internal code that already maintains its own invariants should not pay a contract-checking cost for calling itself. But it does mean a contract is not a substitute for validating an argument inside a function that other, uncontracted internal code also calls.</p>
+        </div>
         <h3>2.7 A first taste of macros</h3>
         <p>You will not write a real macro until Milestone 5, but the shape is worth seeing once now:</p>
         <pre><code>{"(define-syntax-rule (my-unless condition body)\n  (if condition (void) body))\n\n(my-unless #f (displayln \"this prints\"))\n(my-unless #t (displayln \"this does not\"))\n"}</code></pre>
         <p><code>define-syntax-rule</code> declares a macro by pattern: wherever <code>(my-unless condition body)</code> appears in your code, the compiler replaces it, before your program runs, with <code>(if condition (void) body)</code>, substituting whatever you wrote for <code>condition</code> and <code>body</code>. Compare this to a function: a function receives already- evaluated <em>values</em>; a macro receives un-evaluated <em>syntax</em> and produces more syntax. That distinction — value at run time versus syntax at compile time — is the entire subject of Milestone 5 onward, and Section 2.1's "code is data" is precisely what makes writing the right-hand side of a macro feel like ordinary list manipulation rather than a separate skill.</p>
+        <div className="cmp">
+          <h5>A typical language vs. Racket</h5>
+          <p>C and C++ have macros too — the preprocessor's <code>#define</code> — and it is worth being precise about exactly how different they are from what <code>define-syntax-rule</code> does above, because the word "macro" is doing very different work in each language. A C macro is <strong>textual substitution</strong>, performed by a separate pass before the compiler ever parses the result: <code>#define SQUARE(x) x * x</code> expands <code>SQUARE(a + b)</code> to the literal text <code>a + b * a + b</code>, silently wrong by ordinary operator precedence, because the preprocessor has no idea <code>x</code> was meant to be one self-contained expression — it does not parse C at all, only text. A Racket macro is <strong>syntax-to-syntax</strong>, operating on already-parsed syntax objects that know their own grouping, so <code>(my-unless (+ a b) ...)</code>'s <code>condition</code> is unambiguously the whole <code>(+ a b)</code> expression, never a fragment pasted into the wrong place. This is also exactly where hygiene (Milestone 5) matters: a C macro that introduces a local variable can collide with a caller's identically-named variable with no warning from the language at all, which is precisely the historical folklore "macros are dangerous" comes from — a hazard Racket's macro system was built specifically not to have.</p>
+        </div>
         <h3>2.8 Errors and exceptions</h3>
         <pre><code>{"(define (safe-divide a b)\n  (with-handlers ([exn:fail? (lambda (e) (displayln (exn-message e)) #f)])\n    (/ a b)))\n"}</code></pre>
         <pre className="plain"><code>{"> (safe-divide 10 2)\n5\n> (safe-divide 10 0)\n/: division by zero\n#f\n"}</code></pre>
         <p><code>with-handlers</code> is Racket's <code>try</code>/<code>catch</code>, matching an exception predicate (<code>exn:fail?</code> catches ordinary errors; more specific predicates exist for narrower cases) to a handler function. <code>error</code> raises one: <code>(error 'my-function "bad input: ~a" val)</code> — the leading symbol names the raising context, which shows up in the message exactly as <code>eval-expr</code> did in the interpreter you will build in Milestone 4.</p>
+        <div className="exercise">
+          <h5>Exercise 2.8</h5>
+          <ol>
+            <li>Write <code>safe-first</code>, taking a list and a default value, returning the list's first element normally but the default instead of raising when the list is empty — <code>(safe-first (list 1 2 3) 'none)</code> should give <code>1</code>, and <code>(safe-first (list) 'none)</code> should give <code>'none</code>, not an error.</li>
+          </ol>
+        </div>
+        <details>
+          <summary>Solution 2.8 — open after trying</summary>
+          <pre><code>{"(define (safe-first xs default)\n  (with-handlers ([exn:fail? (lambda (e) default)])\n    (first xs)))"}</code></pre>
+          <p>Catching <code>exn:fail?</code> here and simply returning <code>default</code> works because <code>first</code> on an empty list already raises exactly that kind of exception — <code>safe-first</code> does not need to check <code>(empty? xs)</code> itself first; it lets <code>first</code>'s own error do the checking and converts the failure into a value instead. This is a real trade-off, not a strictly better approach: checking <code>empty?</code> up front is more explicit about what is being guarded against, while catching the exception is shorter but would just as happily swallow a different, unrelated <code>exn:fail?</code> raised from somewhere else inside a more complex <code>xs</code> expression.</p>
+        </details>
         <h3>2.9 Modules, <code>require</code>, and <code>provide</code></h3>
         <pre><code>{";; geometry.rkt\n#lang racket\n(provide point distance)   ;; only these are visible outside this module\n\n(struct point (x y) #:transparent)\n(define (distance p1 p2)\n  (sqrt (+ (sqr (- (point-x p2) (point-x p1)))\n           (sqr (- (point-y p2) (point-y p1))))))\n"}</code></pre>
         <pre><code>{";; main.rkt\n#lang racket\n(require \"geometry.rkt\")\n\n(distance (point 0 0) (point 3 4))   ; 5\n"}</code></pre>

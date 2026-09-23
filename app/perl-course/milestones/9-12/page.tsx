@@ -99,6 +99,11 @@ export default function Page() {
         </div>
         <p>Run against 100,000 synthetic occurrences (four entity types, one hour, uniformly scattered — the kind of input that makes a lot of short-lived events rather than a few long ones):</p>
         <pre className="plain"><code>{"$ ./bin/strata correlate strata.db --gap 60\nbuilt 55,744 events from 100,000 occurrences in 1.35s\n"}</code></pre>
+        <div className="cmp">
+          <h5>One do-everything SQL query vs sort in SQL, group in Perl</h5>
+          <pre className="plain"><code>{"SQL window functions (typical)                  Perl sweep\n────────────────────────────────                 ───────────\nSELECT *, ts - LAG(ts) OVER (                    ORDER BY type, value, ts;\n  PARTITION BY type, value ORDER BY ts)          -- then a five-line loop that\n  AS gap FROM occurrences;                       -- flushes @current on a gap\n-- then a second query to turn \"gap > 60\"      -- or a change of key\n-- into contiguous group ids ...\n"}</code></pre>
+          <p>SQLite can compute the gap between consecutive rows with <code>LAG</code>, but turning "the gap here exceeds 60 seconds" into a group id per event is a second, harder query — the standard trick is a running sum of a boolean flag, which is correct but reads like a puzzle, and debugging it means reasoning about window frames rather than about the data. The Perl sweep says the same thing in five lines that read in the order they execute: same key and gap under 60 seconds, keep going; otherwise flush and start again. Neither is wrong, and a database-first team would reasonably prefer keeping the logic in SQL where any other query can reuse it — this project's choice is that a linear pass a reader can trace top to bottom is worth writing in application code rather than as a SQL expression fewer people on the team can read at a glance.</p>
+        </div>
         <h4>Indexes, and reading the plan instead of guessing</h4>
         <p>The sweep's <code>ORDER BY</code> and every later point lookup by entity both want the same thing: rows for one <code>(type, value)</code> pair, already close together. One index serves both:</p>
         <pre><code>{"CREATE INDEX idx_occ_type_value_ts ON occurrences(type, value, ts);\n"}</code></pre>
@@ -134,6 +139,8 @@ export default function Page() {
           <p>That finds every pair of events that share a record; a small union-find over the pairs (Milestone 12's graph work, arriving slightly early) turns pairs into connected groups, and each group becomes one <code>sessions</code> row referencing its member events. Keeping it as a separate table rather than mutating <code>events</code> means the original per-entity grouping is never lost, which matters when two different merge strategies need comparing later.</p>
           <p><strong>3.</strong> Same plan either way — <code>SEARCH r USING INTEGER PRIMARY KEY (rowid=?)</code> — because in SQLite an <code>INTEGER PRIMARY KEY</code> column <em>is</em> the table's rowid, not a separate indexed copy of it. There is nothing to build: the table's own storage is already ordered by that column, so a lookup by id is always a direct B-tree search, whether or not you remembered to write <code>CREATE INDEX</code>.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>Replace the sweep's composite key, <code>"$row-{'>'}{'{'}type{'}'}\0$row-{'>'}{'{'}value{'}'}"</code>, with plain concatenation, <code>"$row-{'>'}{'{'}type{'}'}$row-{'>'}{'{'}value{'}'}"</code>, and feed <code>sessionize</code> two synthetic occurrences: type <code>ip4</code>, value <code>00.example</code>, and type <code>ip</code>, value <code>400.example</code>. Both keys collapse to the identical string <code>ip400.example</code>, so two occurrences of genuinely different entity types merge into a single event. Put the <code>\0</code> back and they split into two events again, correctly. This does not show up on realistic data, where type names and values rarely line up this way by chance — which is exactly why it belongs in a deliberate experiment with a constructed collision, rather than waiting to be found by a report that quietly merged two unrelated things.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why did wrapping the inserts in one transaction produce roughly a 700× throughput improvement, and what is SQLite actually doing once per transaction that it was doing once per row before?</li>
@@ -230,6 +237,8 @@ export default function Page() {
           <p>Reusing <code>to_epoch</code> rather than writing a second timestamp parser is the point of the exercise: every format that module already understands now works in <code>--since</code> too, for free.</p>
           <p><strong>3.</strong> Register both, and treat them almost identically — set a flag, let the main loop notice it at a safe point — but <code>SIGTERM</code> traditionally gets a shorter grace period and a different exit convention (<code>128 + 15 = 143</code>), because it usually means "a supervisor wants this process gone soon", whereas <code>SIGINT</code> means "a human at a terminal changed their mind". In practice: reuse the same commit-then-exit logic, with the exit code parameterised by which signal fired.</p>
         </details>
+        <h4>Experiment</h4>
+        <p>Pass <code>--workers four</code> instead of <code>--workers 4</code> to a subcommand's option parser. <code>GetOptionsFromArray</code> rejects it itself — <code>Value "four" invalid for option workers (number expected)</code> — and returns false before the handler's own code ever runs, leaving <code>$opt{'{'}workers{'}'}</code> untouched at its default. The <code>=i</code> in <code>"workers=i"</code> is doing real validation, not just documentation: nothing in <code>cmd_ingest</code> needs to check that <code>--workers</code> looks like a number, because a bad value never survives long enough to reach the code that uses <code>%opt</code>.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why does the <code>SIGINT</code> handler only set a flag instead of committing the transaction directly?</li>
@@ -269,6 +278,11 @@ export default function Page() {
           <img className="mascot-right" src={img4.src} alt="The Mewlang cat, delighted" width="110" loading="lazy" />
           Five mutations of <code>'"quoted",plain'</code> in under a second produced a string starting with an unterminated <code>"</code> and no closing quote anywhere in it — exactly the input that hits the <code>next</code> without advancing <code>$pos</code>, so the <code>while</code> condition never changes and the loop spins forever. Without the deadline, this test would simply never finish, and depending on your CI system, "the test suite hangs" and "the test suite is slow today" look identical for the first twenty minutes. <strong>The fuzzer's actual job is not finding the bug — a code reviewer could find this one by eye. Its job is finding it in one second, automatically, every time the suite runs, forever. </strong> The fix is the one-line version of the comment: <code>$pos = $len; next;</code> when no closing quote exists, which is exactly why this project uses <code>Text::CSV</code> for the real parser and keeps this one only as a cautionary exercise.
         </p>
+        <div className="cmp">
+          <h5>A fixed list of edge cases vs mutating real ones under a deadline</h5>
+          <pre className="plain"><code>{"typical unit tests                              this milestone's fuzzer\n────────────────────                             ─────────────────────\nis scan_fields(\"\"), [], \"empty\";                 for (1 .. 2000) {\nis scan_fields('\"a\",b'), [\"a\",\"b\"];                   my $mutant = mutate($seed);\nis scan_fields('bad\"quote'), ...;  # you have         run_with_timeout(\\&scan_fields,\n                                    # to think of          $mutant, 1);\n                                    # this case first }\n"}</code></pre>
+          <p>Hand-written cases are exact and readable, and every one of them is only as good as the edge case you thought to write down — the unterminated-quote hang above was not on anyone's list until the fuzzer produced it by accident. Mutating real fixtures under a hard <code>alarm()</code> deadline trades that precision for coverage of inputs nobody imagined, at the cost of a failure that is a random string instead of a named test with a clear intent. Neither replaces the other: the fuzzer finds what you did not think of, and a hand-written regression test — with the specific failing string committed to <code>t/</code> — is what you still add once it does, so the same crash never has to be rediscovered. </p>
+        </div>
         <h4>Profiling: finding the hot path instead of guessing at it</h4>
         <p><code>strata entities</code> on a busy log spends real time deduplicating candidate entity values before ranking them. The first version used <code>grep</code> against an accumulator array:</p>
         <pre><code>{"sub dedupe_seen (@values) {\n    my @seen;\n    my @unique;\n    for my $v (@values) {\n        push(@unique, $v), push(@seen, $v) unless grep { $_ eq $v } @seen;\n    }\n    return @unique;\n}\n"}</code></pre>
@@ -295,6 +309,8 @@ export default function Page() {
           <pre><code>{"for my $bad (undef, \"\") {\n    my (undef, $err) = run_with_timeout(sub ($v) {\n        $class->can(\"parse\") ? $class->new->parse($v // \"\", file => \"t\", lineno => 1)\n                              : 1;  # stream-mode parsers are exercised via a fixture elsewhere\n    }, $bad, 1);\n    is $err, undef, \"$class does not hang on \" . ($bad // \"undef\");\n}"}</code></pre>
           <p><strong>3.</strong> At 500,000 occurrences the sweep itself scales linearly and stays cheap, but <code>last_insert_id</code> called once per event (55,000-odd times at this scale) turns out to dominate: it is a small extra round trip to SQLite every time, and while each one is fast, 55,000 of them are not free. The fix is to let SQLite generate ids implicitly and read back a <em>batch</em> of them differently — or, more simply, to build events in memory and insert them in one <code>executemany</code>-style pass at the end, trading a little peak memory for far fewer statement round trips. The general lesson matches Milestone 9's transaction story: <strong>the cost is rarely the computation, it is usually the number of round trips to somewhere slower than memory.</strong></p>
         </details>
+        <h4>Experiment</h4>
+        <p>Restrict <code>mutate</code> to only ever delete a character — comment out the insert and replace branches — and rerun the fuzzer against <code>scan_fields</code> with the same seed. It still finds the hang, typically within the first ten trials, because deleting the seed's own closing quote is already enough to produce an unterminated string; the bug does not need insertion or replacement to trigger. That is worth knowing before trusting a fuzzer's silence on a different bug: a narrower set of mutation operators finding a fault tells you that fault does not need the operators you left out, but a narrower set finding <em>nothing</em> tells you far less than a wider one would.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>What does the shared parser contract test actually check, and why did it belong in Milestone 6 and only arrive now?</li>
@@ -309,6 +325,30 @@ export default function Page() {
         <p>Turn correlated events into a graph — an edge between two events that share an entity — queryable by "hops", parallelise ingestion of many files at once using <code>fork</code>, and package the finished tool as something installable.</p>
         <h3>Concepts</h3>
         <p>Recursive common table expressions (<code>WITH RECURSIVE</code>), <code>fork()</code> and pipes as Perl's idiomatic answer to "run this on several cores", reaping children correctly, and final packaging.</p>
+        <h3>Design</h3>
+        <p>The graph is built from data that already exists — <code>events</code> and <code>event_members</code> from Milestone 9 — so this milestone adds exactly two new pieces, and the question each one answers is worth stating before the code:</p>
+        <table className="grid">
+          <tbody>
+            <tr>
+              <th>Question</th>
+              <th>Answered by</th>
+            </tr>
+            <tr>
+              <td>"When are two events linked at all?"</td>
+              <td>an <code>edges</code> table, built once, from event pairs that share a record</td>
+            </tr>
+            <tr>
+              <td>"Which pair counts as the same edge twice?"</td>
+              <td>store each undirected edge once, with the smaller id first</td>
+            </tr>
+            <tr>
+              <td>"What is reachable from node X within N hops?"</td>
+              <td>a recursive query, not a walk written in Perl</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><strong>Edges are materialised, not computed on the fly.</strong> The alternative — join <code>event_members</code> against itself at query time, every time someone asks "what is connected to this event" — repeats the same expensive join on every query instead of once when the data is built. The cost of that choice is staleness: an edge computed now will not reflect an event correlated five minutes from now until <code>correlate</code> runs again, which is an acceptable trade for a forensic tool that analyses a snapshot, and a bad one for a system that needs to answer in real time as new data arrives.</p>
+        <p><strong>The walk itself lives entirely in SQL, which is the opposite of Milestone 9's split.</strong> There, the rule was "let SQLite sort, let Perl group", because a linear sweep over already-sorted rows is awkward to express as a single SQL query but trivial as a Perl loop. Graph reachability is the reverse case: SQLite has had recursive common table expressions since 2014 specifically for bounded graph walks, complete with built-in cycle handling through <code>UNION</code>'s deduplication, so pulling the whole <code>edges</code> table into a Perl hash and hand-rolling a breadth-first search with a visited set would be reimplementing, in a general-purpose language, exactly the algorithm the database already has a declarative name for. The lesson from Milestone 9 was never "SQL sorts, Perl groups" as a fixed rule — it was "match the tool to the shape of the specific problem", and here the shapes point in opposite directions.</p>
         <div className="why">
           <h5>
             <img className="mascot-left" src={img5.src} alt="The Mewlang cat, facing forward" width="110" loading="lazy" />
@@ -357,6 +397,8 @@ export default function Page() {
           <p><strong>2.</strong> Linear speedup holds until every worker is contending for the same SQLite file: <code>fork</code>-based parallelism gives each worker independent CPU and independent memory, but the database write at the end is still one file, and SQLite serialises writers even in WAL mode (WAL lets readers proceed concurrently with a writer, not multiple simultaneous writers). Past roughly the number of physical cores, and well before that if the workload is write-heavy rather than parse-heavy, you are measuring lock contention, not CPU parallelism — a purely CPU-bound task (say, only counting lines per file with no shared destination) would not hit this wall at all, which is precisely why profiling <em>this specific pipeline</em> mattered more than trusting the general reputation of <code>fork</code>.</p>
           <p><strong>3.</strong> Two same-direction pipes (parent→child and child→parent) rather than trying to reuse one: writing a large "stop" payload from the parent while the child is mid-write of its own large result, with neither side reading the other's pipe yet, reliably deadlocks once both messages exceed the 64 KB kernel buffer — you can reproduce it by having the parent print {'>'}64KB before its first read. The fix confirms the general rule from the warn box above: <strong>bidirectional traffic needs two one-way channels (or non-blocking I/O on one), never one pipe pressed into carrying both directions.</strong></p>
         </details>
+        <h4>Experiment</h4>
+        <p>Call <code>ingest_parallel</code> with more workers than files — six files split across eight workers. Two workers get an empty chunk and report zero files back over their pipe; the other six each get exactly one. Nothing hangs and nothing dies: <code>$chunks[$_ % $workers] // []</code> turns "no work assigned" into an empty list to iterate over instead of dereferencing <code>undef</code>, so an idle worker still writes a well-formed result, still gets reaped by <code>waitpid</code>, and every file is still accounted for exactly once in the total.</p>
         <h4>Checkpoint</h4>
         <ol>
           <li>Why is a data race structurally impossible between two <code>fork</code>ed Perl worker processes, in a way it is not for two goroutines?</li>

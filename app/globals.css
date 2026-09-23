@@ -170,6 +170,24 @@
     border-left-color: var(--color-rule);
   }
 
+  /* Injected around every <pre> at runtime by components/CodeCopyButtons.tsx
+     (see that file for why this happens client-side rather than being baked
+     into the migrated .tsx output). The wrapper — not <pre> itself — is the
+     positioning context for .copy-btn, because <pre> is the horizontally
+     scrolling element (overflow-x-auto): an absolutely-positioned child of
+     <pre> would scroll away with the code instead of staying pinned. */
+  .code-block-wrapper {
+    @apply relative;
+  }
+
+  .copy-btn {
+    @apply absolute top-2 right-2 z-10 rounded border border-rule bg-paper/85 px-2 py-1 font-mono text-[.68rem] text-ink-soft cursor-pointer transition-colors hover:border-accent hover:text-ink;
+  }
+
+  .copy-btn-done {
+    @apply border-accent text-accent;
+  }
+
   .bad {
     border-left-color: var(--color-amber);
   }

@@ -34,6 +34,7 @@ export default function Page() {
         <pre><code>{"(define-syntax-rule (my-or a b)\n  (let ([it a]) (if it it b)))\n"}</code></pre>
         <h4>Verified: hygiene, working as designed</h4>
         <pre className="plain"><code>{"> (define it 100)\n> (my-or #f it)\n100\n"}</code></pre>
+        <h4>Explanation</h4>
         <p>This is the result worth staring at. <code>my-or</code>'s expansion is, textually, <code>(let ([it #f]) (if it it it))</code> — the macro's own <code>it</code> and the argument <code>it</code> (which refers to the outer <code>(define it 100)</code>) look, on the page, like the same identifier. If they actually collided, this would evaluate to <code>#f</code> — the macro's local <code>it</code>, bound to the first argument, would shadow the caller's <code>it</code> everywhere in the expansion, corrupting the second argument's meaning. It does not: Racket's hygiene system tracks <em>where each identifier came from</em>, not merely what it is spelled like, so the macro's <code>it</code> and the call site's <code>it</code> remain two distinct bindings despite sharing a name, and the result is the correct <code>100</code>.</p>
         <h4>Breaking it, on purpose</h4>
         <p>Hygiene is not a best-effort convention — it is enforced by the macro expander. Defeating it requires reaching for a specific, lower-level tool that exists precisely to say "no, really, use this exact identifier, ignore where it came from":</p>
@@ -45,6 +46,11 @@ export default function Page() {
           <h5>Why are we using this language here?</h5>
           <p>C's textual macro preprocessor has no equivalent protection at all — a C macro that introduces a local variable named <code>tmp</code> silently breaks any caller who also happens to use <code>tmp</code>, and the historical folklore around "hygienic macro hazards" comes largely from exactly this class of language. Racket's ordinary macro-writing tools (<code>define-syntax-rule</code>, and <code>syntax-parse</code> in Milestone 6) give you hygiene as the default you cannot accidentally opt out of — defeating it, as above, requires reaching past the normal API into <code>syntax-case</code> and <code>datum-{'>'}syntax</code> specifically, tools whose existence is itself an acknowledgment that occasionally, rarely, a macro genuinely needs to introduce a binding visible to its caller (an "anaphoric" macro, deliberately) — but that has to be an opt-in decision, never an accident.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Confirm that <code>my-or</code>'s first argument is evaluated exactly once, no matter how many times <code>it</code> appears inside the macro's expansion — give it a side effect and count.</p>
+        <pre><code>{"(define counter 0)\n(my-or (begin (set! counter (add1 counter)) #f) 99)\ncounter\n"}</code></pre>
+        <pre className="plain"><code>{"> (my-or (begin (set! counter (add1 counter)) #f) 99)\n99\n> counter\n1\n"}</code></pre>
+        <p><code>it</code> appears twice in <code>my-or</code>'s expansion, <code>(if it it b)</code> — but <code>a</code>'s own expansion site, <code>(let ([it a]) ...)</code>, evaluates <code>a</code> exactly once, binding the result to <code>it</code>, and both later uses of <code>it</code> simply read that one binding back. This is precisely why the macro needs the <code>let</code> at all, rather than expanding straight to <code>(if a a b)</code>: that naive version would evaluate <code>a</code> twice, running any side effect inside it twice too — a bug this macro's actual shape avoids by construction, not by convention.</p>
         <div className="exercise">
           <h5>Exercise 5</h5>
           <ol>
@@ -75,6 +81,7 @@ export default function Page() {
         <pre><code>{"(require (for-syntax racket/base syntax/parse))\n\n(define-syntax (my-let stx)\n  (syntax-parse stx\n    [(_ ((name:id val:expr) ...) body:expr ...+)\n     #'((lambda (name ...) body ...) val ...)]))\n"}</code></pre>
         <h4>Verified: correct usage</h4>
         <pre className="plain"><code>{"> (my-let ([x 1] [y 2]) (+ x y))\n3\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong><code>name:id</code></strong> requires that piece of syntax to be an identifier, specifically — not any expression, an identifier. <strong><code>val:expr</code></strong> requires a well-formed expression. <strong><code>...</code></strong> after <code>(name:id val:expr)</code> means "zero or more repetitions of this whole pattern" — an arbitrary number of bindings, each independently checked. <strong><code>body:expr ...+</code></strong> — the <code>+</code> requires <em>at least one</em> body expression, rejecting <code>(my-let ([x 1]))</code> with no body at compile time rather than producing a useless empty function.</p>
         <h4>Verified: a genuine misuse, and a genuine, specific error</h4>
         <pre className="plain"><code>{"> (my-let ([1 2]) (+ x 1))\nmy-let: expected identifier\n  at: 1\n  in: (my-let ((1 2)) (+ x 1))\n"}</code></pre>
@@ -83,6 +90,15 @@ export default function Page() {
           <h5>A typical language vs. Racket</h5>
           <p>A Ruby DSL built on <code>method_missing</code>, from this curriculum's own Course 2, reports a misuse as an ordinary run-time <code>NoMethodError</code> or, worse, as silently-wrong behaviour if the misuse happens to be syntactically valid Ruby that just does not mean what the caller intended — because a Ruby DSL cannot add real syntax or checking rules of its own, only intercept method calls that are already valid Ruby. A <code>syntax-parse</code>-based macro rejects a misuse before the program ever runs, with a message naming the exact expected shape, because it is checking syntax <em>as syntax</em>, at compile time, rather than checking ordinary values at run time after the fact.</p>
         </div>
+        <div className="why">
+          <h5>Why are we using this language here?</h5>
+          <p>The better error messages are not free. <code>syntax-parse</code> is a genuinely large piece of machinery to learn — syntax classes, attributes, <code>#:fail-when</code>/<code>#:fail-unless</code>, the distinction between a pattern variable and an attribute — for what <code>my-let</code> needed here, which <code>define-syntax-rule</code> could express in one line with worse errors as the only cost. For a macro that only ever gets called correctly by its own author, inside a single small project, that cost may simply not be worth paying — <code>define-syntax-rule</code> stays the right default for a quick, private macro, and <code>syntax-parse</code> earns its complexity specifically when a macro's misuse needs to be caught clearly, by someone other than the person who wrote it, which is exactly the situation Milestone 7's finance DSL is about to be in.</p>
+        </div>
+        <h4>Experiment</h4>
+        <p>Put the mistake in the <em>middle</em> of three bindings, with valid bindings on either side, and confirm <code>syntax-parse</code>'s error still names the exact offending piece rather than the whole form or the first thing it finds.</p>
+        <pre><code>{"(my-let ([x 1] [2 3] [z 3]) (+ x z))\n"}</code></pre>
+        <pre className="plain"><code>{"> (my-let ([x 1] [2 3] [z 3]) (+ x z))\nmy-let: expected identifier\n  at: 2\n  in: (my-let ((x 1) (2 3) (z 3)) (+ x z))\n"}</code></pre>
+        <p>The error names <code>2</code> specifically — not <code>x</code>, not <code>z</code>, both perfectly valid bindings sitting right next to it — because <code>syntax-parse</code> checks each repetition of <code>(name:id val:expr)</code> independently as it walks the <code>...</code> pattern, rather than validating the whole binding list as one opaque unit and reporting only "something in here is wrong." </p>
         <div className="exercise">
           <h5>Exercise 6</h5>
           <ol>
@@ -101,6 +117,14 @@ export default function Page() {
           <li>What does <code>...+</code> require that plain <code>...</code> does not?</li>
           <li>Why is a compile-time error naming the exact expected shape more valuable than a generic pattern-match failure, specifically for a macro other people will use?</li>
         </ol>
+        <h4>Common mistakes in Milestone 6</h4>
+        <div className="warn">
+          <p><strong>Writing <code>body:expr ...</code> (plain ellipsis) instead of <code>body:expr ...+</code> </strong> — the difference looks cosmetic, and a call with a real body still works either way. It stops being cosmetic the moment <code>my-let</code> is called with no body at all, <code>(my-let ([x 1]))</code>: with plain <code>...</code>, the pattern still matches (zero body expressions is a valid repetition count), and the macro happily expands to <code>((lambda (x)) 1)</code> — a <code>lambda</code> with no body, which is a real syntax error, but reported against the <em>expanded</em> code rather than against <code>my-let</code>'s own call: </p>
+          <pre className="plain"><code>{"; lambda: bad syntax\n;   in: (lambda (x))\n"}</code></pre>
+          <p>compare that to what <code>...+</code> actually says about the identical mistake:</p>
+          <pre className="plain"><code>{"; my-let: expected more terms starting with expression\n;   at: ()\n;   within: (my-let ((x 1)))\n"}</code></pre>
+          <p>the second message names <code>my-let</code> and the call site directly; the first blames a <code>lambda</code> the caller never wrote and would have to mentally un-expand to connect back to their own mistake.</p>
+        </div>
         <h2 className="milestone-head"><span className="num">Milestone 7</span>The finance DSL</h2>
         <h3>Goal</h3>
         <p>
@@ -115,6 +139,7 @@ export default function Page() {
         <pre><code>{"(require (for-syntax racket/base syntax/parse))\n\n;; begin-for-syntax: this code runs at COMPILE TIME, not when the\n;; finance document runs. known-account-type? is consulted while\n;; expanding `account` forms, not while executing the expanded program.\n(begin-for-syntax\n  (define (known-account-type? sym)\n    (memq sym '(checking savings credit))))\n\n(define-syntax (account stx)\n  (syntax-parse stx\n    [(_ name:id type:id balance:number)\n     #:fail-unless (known-account-type? (syntax-e #'type))\n                   (format \"unknown account type: ~a (expected checking, savings, or credit)\"\n                           (syntax-e #'type))\n     #'(define name (make-account 'name 'type balance))]))\n"}</code></pre>
         <h4>Verified: a genuine account type mistake, caught before the document runs</h4>
         <pre className="plain"><code>{"> (account checking checking 2400.00)   ; correct usage\n> (account weird bogus-type 100)\naccount: unknown account type: bogus-type (expected checking, savings, or credit)\n  at: bogus-type\n  in: (account weird bogus-type 100)\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong><code>begin-for-syntax</code></strong> is what makes <code>known-account-type?</code> exist at the right time: ordinary <code>define</code> creates a run-time binding, invisible to code executing during macro expansion; <code>begin-for-syntax</code> creates a <strong>compile-time</strong> binding, visible to the macro's own body (which itself runs at compile time, expanding your program) but invisible to the expanded program's run-time code. <strong><code>#:fail-unless</code></strong> is <code>syntax-parse</code>'s positive-assertion counterpart to Milestone 6's <code>#:fail-when</code> — fail with this message unless this condition holds.</p>
         <div className="why">
           <h5>Why are we using this language here?</h5>
@@ -124,6 +149,11 @@ export default function Page() {
           <h5>A validation check that ran at the wrong phase, and said nothing useful about why</h5>
           <p>The first version of <code>known-account-type?</code> was defined with a plain <code>define</code>, outside <code>begin-for-syntax</code>. It compiled — nothing about a plain function definition is inherently wrong — but calling it from inside <code>account</code>'s <code>syntax-parse</code> body failed with <code>known-account-type?: unbound identifier</code> at compile time, because phase-0 <code>known-account-type?</code> genuinely does not exist yet while the macro expanding <code>account</code> forms is running — the module containing it has not been <em>executed</em> yet, only expanded so far. <strong>A function consulted during macro expansion has to be defined for macro expansion</strong> — <code>begin-for-syntax</code>, not <code>define</code> — and the fix, once you know to look for it, is a one-word change; finding it the first time without knowing phase separation exists is genuinely disorienting, which is exactly why this milestone introduces the concept explicitly rather than letting you discover it from an opaque error alone.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Widen <code>known-account-type?</code> to also accept <code>investment</code>, and confirm an <code>investment</code> account — previously rejected — now compiles. Then check whether the error message kept up.</p>
+        <pre><code>{"(begin-for-syntax\n  (define (known-account-type? sym)\n    (memq sym '(checking savings credit investment))))\n\n(account weird investment 100)\n"}</code></pre>
+        <pre className="plain"><code>{"> (account weird investment 100)\n> weird\n(weird investment 100)\n"}</code></pre>
+        <p>It compiles now — but the <code>#:fail-unless</code> message inside <code>account</code> still reads "(expected checking, savings, or credit)", unchanged, because that text is a separate string literal with no actual connection to <code>known-account-type?</code>'s own definition. Widening the check and updating the message describing it are two different edits, and it is easy to make only one of them; a genuinely correct fix here also updates the format string, which this experiment deliberately leaves undone to make the gap visible.</p>
         <div className="exercise">
           <h5>Exercise 7</h5>
           <ol>
@@ -156,11 +186,17 @@ export default function Page() {
         <pre><code>{"(require (for-syntax racket/base syntax/parse))\n\n(define-syntax (define-ast-types stx)\n  (syntax-parse stx\n    [(_ (type-name:id (field:id ...)) ...)\n     #'(begin\n         (struct type-name (field ...) #:transparent)\n         ...)]))\n\n(define-ast-types\n  (num-e (val))\n  (add-e (l r))\n  (var-e (name))\n  (let-e (name val body)))\n"}</code></pre>
         <h4>Verified: one macro call, four struct definitions</h4>
         <pre className="plain"><code>{"> (num-e 5)\n#(struct:num-e 5)\n> (add-e (num-e 2) (num-e 3))\n#(struct:add-e #(struct:num-e 2) #(struct:num-e 3))\n"}</code></pre>
+        <h4>Explanation</h4>
         <p><strong>The double <code>...</code></strong> is worth reading carefully: the outer <code>(struct type-name (field ...) #:transparent) ...</code> repeats the entire struct definition once per <code>type-name</code>, while the inner <code>field ...</code> repeats within each one independently — <code>syntax-parse</code>'s ellipsis nesting tracks which repetition each pattern variable belongs to automatically, matching the nesting of the original <code>(type-name (field ...)) ...</code> pattern exactly.</p>
         <div className="cmp">
           <h5>A typical language vs. Racket</h5>
           <p>Generating repetitive boilerplate from a specification is a completely ordinary thing to want in any language — Go's <code>go generate</code>, running an external code-generation tool and writing its output to a real <code>.go</code> file you then compile normally, is this curriculum's own earlier example. The difference here is that <code>define-ast-types</code> is not a separate tool run before compilation, writing text to a file for a second pass to read — it <em>is</em> compilation, one macro expansion, using the exact same language and the exact same "code is data" manipulation tools as every other macro in this course. There is no generated-source-file step to keep in sync with a specification that changed.</p>
         </div>
+        <h4>Experiment</h4>
+        <p>Add a node type with <em>zero</em> fields to the same <code>define-ast-types</code> call, and confirm the macro handles an empty field list without needing a special case.</p>
+        <pre><code>{"(define-ast-types\n  (num-e (val))\n  (add-e (l r))\n  (var-e (name))\n  (let-e (name val body))\n  (nil-e ()))\n\n(nil-e)\n"}</code></pre>
+        <pre className="plain"><code>{"> (nil-e)\n(nil-e)\n"}</code></pre>
+        <p>No special case was needed because <code>(field ...)</code> matching zero repetitions is exactly as valid, to <code>syntax-parse</code>, as matching several — ellipsis means "zero or more" by default, the same way Milestone 2's own list functions never needed a separate empty-list code path bolted on.</p>
         <div className="exercise">
           <h5>Exercise 8</h5>
           <ol>
@@ -174,6 +210,12 @@ export default function Page() {
           <p>Generating a function <em>name</em> (<code>describe-type-name</code>) from a pattern variable requires <code>format-id</code> from <code>syntax/parse</code>'s identifier-construction helpers rather than plain syntax templating — the sketch above simplifies this away; the exercise is worth doing with the real tool once you reach it, since generating names programmatically, not just values, is a genuinely common macro-writing need from here through Milestone 12.</p>
           <p><strong>2.</strong> The defensible boundary: the toolkit is whatever has no domain knowledge about money, accounts, or finance at all — <code>define-ast-types</code>, the interpreter-walking pattern from Milestone 4, generically. <code>#:fail-unless (known-account-type? ...)</code> is finance- specific and correctly stays there. The strongest candidate for promotion: the <code>declared-accounts</code>-style compile-time tracking pattern from Exercise 7 — "has this name been declared yet, at compile time" is a generic DSL-building need (Milestone 10's robot DSL will want to know if a named waypoint was declared before it is referenced), not something inherently about finance.</p>
         </details>
+        <h4>Checkpoint</h4>
+        <ol>
+          <li>What does the double <code>...</code> in <code>define-ast-types</code>'s template do that a single <code>...</code> could not?</li>
+          <li>Where would you draw the line between "the toolkit" and "a specific DSL" in your own code so far, and why does <code>known-account-type?</code> belong firmly on the DSL side of that line?</li>
+          <li>Why did adding a <code>describe</code> function per type (Exercise 8) need a different macro-writing tool than the plain syntax templating <code>define-ast-types</code> already uses for struct definitions?</li>
+        </ol>
         <h4>Common mistakes in Milestones 5–8</h4>
         <div className="warn">
           <ul>
